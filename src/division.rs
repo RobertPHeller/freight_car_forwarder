@@ -2,7 +2,7 @@
 //use crate::Industry::*;
 
 #[derive(Debug)]
-pub struct Division<'system> {
+pub struct Division {
     name: String,
 //    stations: Vec<&Station::Station>,
 //    home: &'system Industry<'system>::Industry,
