@@ -90,7 +90,7 @@ impl fmt::Display for System<'_> {
   }
 }
 
-impl System<'_> {
+impl <'system>System<'_> {
     pub fn SystemName(&self) -> String {
         self.systemName.clone()
     }
@@ -176,6 +176,9 @@ impl System<'_> {
     }
     pub fn IndustryByIndex(&self, i: usize) -> Option<&Industry> {
         self.industries.get(&i)
+    }
+    pub fn IndustryByIndexMut(&mut self, i: usize) -> Option<&mut Industry> {
+        self.industries.get_mut(&i)
     }
     pub fn FindIndustryByName(&self, name: String) -> Option<&Industry> {
         for (id, ind) in self.industries.iter() {
@@ -296,7 +299,10 @@ impl System<'_> {
         let mut buffer = String::new();
         loop {
             buffer.clear();
-            reader.read_line(&mut buffer)?;
+            let result = reader.read_line(&mut buffer);
+            if result.is_err() {
+                return Err(result.err().unwrap());
+            }
             buffer = buffer.trim().to_string();
             //println!("In SkipCommentsReadLine: buffer is {}",buffer);
             if buffer.len() > 0 && !buffer.starts_with("'") {
@@ -649,7 +655,7 @@ impl System<'_> {
     fn LoadCarFile(&mut self,filename: &PathBuf) -> std::io::Result<usize> {
         let mut count = 0;
         let f = File::open(filename.to_str().unwrap())
-                .expect("Cannot open owners file");
+                .expect("Cannot open cars file");
         let mut reader = BufReader::new(f);
         let line = Self::SkipCommentsReadLine(&mut reader)
                         .expect("Read Error");
@@ -744,11 +750,56 @@ impl System<'_> {
         Ok(count)
     }
     fn LoadStatsFile(&mut self,filename: &PathBuf) -> std::io::Result<usize> {
-        let mut count = 0;
         let f = File::open(filename.to_str().unwrap())
-                .expect("Cannot open owners file");
+                .expect("Cannot open stats file");
         let mut reader = BufReader::new(f);
-        Ok(count)
+        let mut line = String::new();
+        let mut newformat: bool = false;
+        let result = reader.read_line(&mut line);
+        if result.is_err() {return result;}
+        let temp = line.find(',');
+        if temp.is_some() {
+            let pos = temp.unwrap();
+            let temp = line.as_str();
+            let word = &temp[0..pos];
+            line = String::from(word);
+            newformat = true;
+        }
+        self.statsPeriod = line.trim().parse::<u32>().expect("Syntax error");
+        let mut Gx: usize = 0;
+        loop {
+            Gx += 1;
+            let result = reader.read_line(&mut line);
+            if result.is_err() {break;}
+            //let mut Ix: usize;
+            //let mut cn: u32;
+            //let mut cl: u32;
+            //let mut sl: u32;
+            if newformat {
+                let vlist: Vec<_> = line.split(',').collect();
+                //Ix = vlist[0].parse::<usize>().expect("Syntax error");
+                //cn = vlist[1].parse::<u32>().expect("Syntax error");
+                //cl = vlist[2].parse::<u32>().expect("Syntax error");
+                //sl = vlist[3].parse::<u32>().expect("Syntax error");
+            } else {
+                let line = line.as_str();
+                let Ixword = &line[0..4].trim();
+                //Ix = Ixword.parse::<usize>().expect("Syntax error");
+                let cnword = &line[4..7].trim();
+                //cn = cnword.parse::<u32>().expect("Syntax error");
+                let clword = &line[7..10].trim();
+                //cl = clword.parse::<u32>().expect("Syntax error");
+                let slword = &line[10..15].trim();
+                //sl = slword.parse::<u32>().expect("Syntax error");
+            }
+            //let industryOpt = self.IndustryByIndexMut(Ix);
+            //if industryOpt.is_none() {continue;}
+            //let mut industry = industryOpt.unwrap();
+            //industry.SetCarsNum(cn);
+            //industry.SetCarsLen(cl);
+            //industry.SetStatsLen(cl);
+        }
+        Ok(Gx)
     }
     fn RestartLoop(&mut self) {
     }

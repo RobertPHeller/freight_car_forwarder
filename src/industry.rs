@@ -15,8 +15,8 @@ pub struct Industry<'system> {
     plate: u8,
     weightclass: u8,
     maxCarLen: u32,
-    carsNum: u8,
-    carsLen: u8,
+    carsNum: u32,
+    carsLen: u32,
     statsLen: u32,
     usedLen: u32,
     remLen: u32,
@@ -100,15 +100,12 @@ impl <'system>Industry<'system> {
     pub fn IncrementStatsLen(&mut self) {
         self.statsLen = self.statsLen + 1;
     }
-    pub fn CarsNum(&self) -> u8 {
-        self.carsNum
-    }
-    pub fn CarsLen(&self) -> u8 {
-        self.carsLen
-    }
-    pub fn StatsLen(&self) -> u32 {
-        self.statsLen
-    }
+    pub fn CarsNum(&self) -> u32 {self.carsNum}
+    pub fn SetCarsNum(&mut self, cn: u32) {self.carsNum = cn;}
+    pub fn CarsLen(&self) -> u32 {self.carsLen}
+    pub fn SetCarsLen(&mut self, cl: u32) {self.carsLen = cl;}    
+    pub fn StatsLen(&self) -> u32 {self.statsLen}
+    pub fn SetStatsLen(&mut self, sl: u32) {self.statsLen = sl;}
     
 }
 
