@@ -307,8 +307,7 @@ impl System<'_> {
         Ok(buffer)
     }
     
-    fn ReadDivisions(reader: &mut BufReader<File>,
-                     divisions: &mut  HashMap<u8, Division>) ->
+    fn ReadDivisions(&mut self, reader: &mut BufReader<File>) ->
             std::io::Result<u8> {
         let mut count: u8 = 0;
         let buffer = Self::SkipCommentsReadLine(reader)
@@ -336,14 +335,13 @@ impl System<'_> {
                                     items[3].chars().next().unwrap());
              let div_index = items[0].trim().parse::<u8>()
                     .expect("Syntax error");
-             divisions.insert(div_index,div);
+             self.divisions.insert(div_index,div);
              count = count + 1;
         }
         Ok(count)
     }
 
-    fn ReadStations(reader: &mut BufReader<File>,
-                    stations: &mut  HashMap<u8, Station>) ->
+    fn ReadStations(&mut self,reader: &mut BufReader<File>) ->
             std::io::Result<u8> {
         let mut count: u8 = 0;
         let buffer = Self::SkipCommentsReadLine(reader)
@@ -368,14 +366,12 @@ impl System<'_> {
                                             .expect("Syntax error"));
             let sta_index = items[0].trim().parse::<u8>()
                         .expect("Syntax error");
-            stations.insert(sta_index,sta);
+            self.stations.insert(sta_index,sta);
             count = count + 1;
         }
         Ok(count)
     }
-    fn ReadIndustries(filename: &PathBuf,
-                      industries: &mut  HashMap<usize, Industry>,
-                      stations: &HashMap<u8, Station>) ->
+    fn ReadIndustries(&mut self,filename: &PathBuf) ->
             std::io::Result<usize> {
         let f = File::open(filename.to_str().unwrap())
                 .expect("Cannot open industries file");
@@ -406,7 +402,7 @@ impl System<'_> {
             let items: Vec<_> = line.split(",").collect();
             //println!("In ReadIndustries(): items is {:?}",items);
             let Ix = items[0].trim().parse::<usize>().expect("Syntax Error");
-            if industries.contains_key(&Ix) {
+            if self.industries.contains_key(&Ix) {
                 return Err(Error::new(ErrorKind::Other,"Duplicate industry index"));
             }
             let mut tword  = String::from(items[1].trim());
@@ -416,7 +412,7 @@ impl System<'_> {
             if IndsStation == 0 {
                 continue
             } else if IndsStation > 1 {
-                if !stations.contains_key(&IndsStation) {
+                if !self.stations.contains_key(&IndsStation) {
                     return Err(Error::new(ErrorKind::Other,"Undefined station index"));
                 }
             }
@@ -441,7 +437,7 @@ impl System<'_> {
             let IndsCarLen = items[13].trim().parse::<u32>().expect("Syntax Error");
             let IndsLoadTypes = String::from(items[14].trim());
             let IndsEmptyTypes = String::from(items[15].trim());
-            industries.insert(Ix, Industry::new(IndsStation, IndsMirror, 
+            self.industries.insert(Ix, Industry::new(IndsStation, IndsMirror, 
                                          IndsName,
                                          IndsLoadTypes, IndsEmptyTypes, 
                                          IndsDivList, IndsTrackLen, 
@@ -462,10 +458,7 @@ impl System<'_> {
             String::from(s)
         }
     }
-    fn ReadTrains(filename: &PathBuf, trains: &mut HashMap<usize, Train>,
-                  trainindex: &mut HashMap<String, usize>, 
-                  industries: &HashMap<usize, Industry>,
-                  stations: &HashMap<u8, Station>) -> std::io::Result<usize> {
+    fn ReadTrains(&mut self,filename: &PathBuf) -> std::io::Result<usize> {
         let f = File::open(filename.to_str().unwrap())
                 .expect("Cannot open trains file");
         let mut reader = BufReader::new(f);
@@ -495,7 +488,7 @@ impl System<'_> {
             let items: Vec<_> = line.split(",").collect();
             //println!("In ReadTrains(): items is {:?}",items); 
             let Tx = items[0].trim().parse::<usize>().expect("Syntax Error");
-            if trains.contains_key(&Tx) {
+            if self.trains.contains_key(&Tx) {
                 return Err(Error::new(ErrorKind::Other,"Duplicate train index"))
             }
             let mut tword  = String::from(items[1].trim());
@@ -551,15 +544,13 @@ impl System<'_> {
                     train.AddStop(&Stop::newStationStop(stopnumber as u8));
                 }
             }
-            trains.insert(Tx, train);
-            trainindex.insert(TrnName.clone(), Tx);
+            self.trains.insert(Tx, train);
+            self.trainIndex.insert(TrnName.clone(), Tx);
             count = count + 1;
         }
         Ok(count)
     }
-    fn ReadTrainOrders(filename: &PathBuf,
-                       trains: &mut HashMap<usize, Train>,
-                       trainindex: &HashMap<String, usize>) -> 
+    fn ReadTrainOrders(&mut self,filename: &PathBuf) -> 
             std::io::Result<usize> {
         let f = File::open(filename.to_str().unwrap())
                 .expect("Cannot open trains file");
@@ -577,18 +568,15 @@ impl System<'_> {
             }
             let trainname = String::from(items[0].trim());
             let trainorder = String::from(items[1].trim());
-            let tx = trainindex.get(&trainname).expect("Unknown train");
-            trains.get_mut(&tx)
+            let tx = self.trainIndex.get(&trainname).expect("Unknown train");
+            self.trains.get_mut(&tx)
                 .expect("Unknown train")
                 .AddOrder(trainorder.clone());
             count = count + 1;
         }
         Ok(count)
     }
-    fn ReadCarTypes(filename: &PathBuf,
-                    cartypesorder: &mut Vec<char>,
-                    cartypes: &mut HashMap<char, CarType>,
-                    cargroups: &mut Vec<CarGroup>) ->  std::io::Result<()> {
+    fn ReadCarTypes(&mut self,filename: &PathBuf) ->  std::io::Result<()> {
         let f = File::open(filename.to_str().unwrap())
                 .expect("Cannot open trains file");
         let mut reader = BufReader::new(f);
@@ -604,8 +592,8 @@ impl System<'_> {
             let type_name: String = String::from(items[2].trim());
             //let pad = items[3];
             let comment: String = String::from(items[4].trim());
-            cartypesorder.push(symbol);
-            cartypes.insert(symbol, CarType::new(comment,type_name,group));
+            self.carTypesOrder.push(symbol);
+            self.carTypes.insert(symbol, CarType::new(comment,type_name,group));
         }
         for car_type_count in 0..MAX_CAR_GROUP {
             let result = Self::SkipCommentsReadLine(&mut reader);
@@ -620,21 +608,25 @@ impl System<'_> {
             let symbol: char = items[0].trim().chars().next().unwrap();
             let comment: String = String::from(items[1].trim());
             //let pad = items[2];
-            cargroups.push(CarGroup::new(symbol,comment));
+            self.carGroups.push(CarGroup::new(symbol,comment));
         }
         Ok(())
     }
-    fn ReadOwners(filename: &PathBuf, owners: &mut HashMap<String, Owner>) ->  
+    fn ReadOwners(&mut self,filename: &PathBuf) ->  
         std::io::Result<usize> {
         let mut count = 0;
         Ok(count)
     }
-    fn LoadCarFile(filename: &PathBuf, cars: &mut Vec<Car>) ->
-        std::io::Result<usize> {
+    fn LoadCarFile(&mut self,filename: &PathBuf) -> std::io::Result<usize> {
         let mut count = 0;
         Ok(count)
     }
-    //fn LoadStatsFile(filename: &PathBuf,
+    fn LoadStatsFile(&mut self,filename: &PathBuf) -> std::io::Result<usize> {
+        let mut count = 0;
+        Ok(count)
+    }
+    fn RestartLoop(&mut self) {
+    }
     pub fn new(systemfile: String) -> Self {
         let systemfilePath: PathBuf = fs::canonicalize(systemfile)
                 .expect("Path not found");
@@ -664,70 +656,7 @@ impl System<'_> {
         let statsfile: PathBuf = systemfilePath
                        .with_file_name(Self::SkipCommentsReadLine(&mut reader)
                                         .expect("Read error"));
-        let mut divisions: HashMap<u8, Division> = HashMap::new();
-        Self::ReadDivisions(&mut reader,&mut divisions)
-                                        .expect("Read error");
-        let mut stations: HashMap<u8, Station> = HashMap::new();
-        Self::ReadStations(&mut reader,&mut stations).expect("Read error");
-        let mut industries: HashMap<usize, Industry> = HashMap::new();
-        Self::ReadIndustries(&industriesfile,&mut industries,&stations)
-                .expect("Read error");
-        let mut trains: HashMap<usize, Train> = HashMap::new();
-        let mut trainindex: HashMap<String, usize> = HashMap::new();
-        Self::ReadTrains(&trainsfile, &mut trains, &mut trainindex,
-                         &industries, &stations).expect("Read error");
-        Self::ReadTrainOrders(&ordersfile, &mut trains, &trainindex)
-                .expect("Read error");
-        let mut cartypesorder: Vec<char> = Vec::new();
-        let mut cartypes: HashMap<char, CarType> = HashMap::new();
-        let mut cargroups: Vec<CarGroup> = Vec::new();
-        Self::ReadCarTypes(&cartypesfile, &mut cartypesorder, &mut cartypes,
-                            &mut cargroups)
-                .expect("Read error");
-        let mut owners: HashMap<String, Owner> = HashMap::new();
-        Self::ReadOwners(&ownersfile, &mut owners)
-                .expect("Read error");
-        let mut cars: Vec<Car> = Vec::new();
-        Self::LoadCarFile(&carsfile, &mut cars).expect("Read error");
-        //Self::LoadStatsFile(&statsfile, &mut 
-        let sessionNumber: u32 = 0;
-        let shiftnumber: u8 = 1;
-        let totalshifts: u8 = 0;
-        let ranalltrains: u32 = 0;
-        let totalpickups: u32 = 0;
-        let totalloads: u32 = 0;
-        let totaltons: u32 = 0;
-        let totalrevenuetons: u32 = 0;
-        let trainPrintOK: bool = false;
-        let wayFreight: bool = false;
-        let deliver: bool = false;
-        let trainlength: u32 = 0;
-        let numbercars: u32 = 0;
-        let traintons: u32 = 0;
-        let trainloads: u32 = 0;
-        let trainempties: u32 = 0;
-        let trainlongest: u32 = 0;
-        let statsperiod: u32 = 0;
-        let carsmoved: u32 = 0;
-        let carsatdest: u32 = 0;
-        let carsnotmoved: u32 = 0;
-        let carsmovedonce: u32 = 0;
-        let carsmovedtwice: u32 = 0;
-        let carsmovedthree: u32 = 0;
-        let carsmovedmore: u32 = 0;
-        let carmovements: u32 = 0;
-        let carsintransit: u32 = 0;
-        let carsatworkbench: u32 = 0;
-        let carsatdest_carsInTransit: u32 = 0;
-        let printYards: bool = false;
-        let printAlpha: bool = false;
-        let printAtwice: bool = false;
-        let printList: bool = false;
-        let printLtwice: bool = false;
-        let printDispatch: bool = false;
-        let printem: bool = false;
-        let messageBuffer: String = String::from("");
-        Self {systemFile: systemfilePath.to_str().unwrap().to_string(), 
+        let mut this = Self {systemFile: systemfilePath.to_str().unwrap().to_string(), 
               systemName: systemname.clone(), 
               industriesFile: industriesfile.to_str().unwrap().to_string(), 
               trainsFile: trainsfile.to_str().unwrap().to_string(), 
@@ -736,30 +665,43 @@ impl System<'_> {
               carTypesFile: cartypesfile.to_str().unwrap().to_string(), 
               carsFile: carsfile.to_str().unwrap().to_string(), 
               statsFile: statsfile.to_str().unwrap().to_string(), 
-              divisions: divisions, stations: stations, 
-              trains: trains, trainIndex: trainindex, industries: industries, 
-              carTypesOrder: cartypesorder, carTypes: cartypes, 
-              carGroups: cargroups, owners: owners,
-              cars: cars, sessionNumber: sessionNumber, 
-              shiftNumber: shiftnumber, totalShifts: totalshifts, 
-              ranAllTrains: ranalltrains, totalPickups: totalpickups, 
-              totalLoads: totalloads, totalTons: totaltons, 
-              totalRevenueTons: totalrevenuetons, trainPrintOK: trainPrintOK, 
-              wayFreight: wayFreight, deliver: deliver, 
-              trainLength: trainlength, numberCars: numbercars, 
-              trainTons: traintons, trainLoads: trainloads, 
-              trainEmpties: trainempties, trainLongest: trainlongest, 
-              statsPeriod: statsperiod, carsMoved: carsmoved, 
-              carsAtDest: carsatdest, carsNotMoved: carsnotmoved, 
-              carsMovedOnce: carsmovedonce, carsMovedTwice: carsmovedtwice, 
-              carsMovedThree: carsmovedthree, carsMovedMore: carsmovedmore, 
-              carMovements: carmovements, carsInTransit: carsintransit, 
-              carsAtWorkBench: carsatworkbench, 
-              carsAtDest_carsInTransit: carsatdest_carsInTransit, 
-              printYards: printYards, printAlpha: printAlpha, 
-              printAtwice: printAtwice, printList: printList, 
-              printLtwice: printLtwice, printDispatch:printDispatch, 
-              printem: printem, messageBuffer: messageBuffer }
+              divisions: HashMap::new(), stations: HashMap::new(), 
+              trains: HashMap::new(), trainIndex: HashMap::new(), 
+              industries: HashMap::new(), 
+              carTypesOrder: Vec::new(), carTypes: HashMap::new(), 
+              carGroups: Vec::new(), owners: HashMap::new(),
+              cars: Vec::new(), sessionNumber: 0, 
+              shiftNumber: 1, totalShifts: 0, 
+              ranAllTrains: 0, totalPickups: 0, 
+              totalLoads: 0, totalTons: 0, 
+              totalRevenueTons: 0, trainPrintOK: false, 
+              wayFreight: false, deliver: false, 
+              trainLength: 0, numberCars: 0, 
+              trainTons: 0, trainLoads: 0, 
+              trainEmpties: 0, trainLongest: 0, 
+              statsPeriod: 0, carsMoved: 0, 
+              carsAtDest: 0, carsNotMoved: 0, 
+              carsMovedOnce: 0, carsMovedTwice: 0, 
+              carsMovedThree: 0, carsMovedMore: 0, 
+              carMovements: 0, carsInTransit: 0, 
+              carsAtWorkBench: 0, 
+              carsAtDest_carsInTransit: 0, 
+              printYards: false, printAlpha: false, 
+              printAtwice: false, printList: false, 
+              printLtwice: false, printDispatch: false, 
+              printem: false, messageBuffer: String::from("") };
+
+        this.ReadDivisions(&mut reader).expect("Read error");
+        this.ReadStations(&mut reader).expect("Read error");
+        this.ReadIndustries(&industriesfile).expect("Read error");
+        this.ReadTrains(&trainsfile).expect("Read error");
+        this.ReadTrainOrders(&ordersfile).expect("Read error");
+        this.ReadCarTypes(&cartypesfile).expect("Read error");
+        this.ReadOwners(&ownersfile).expect("Read error");
+        this.LoadCarFile(&carsfile).expect("Read error");
+        this.LoadStatsFile(&statsfile).expect("Read error");
+        this.RestartLoop();
+        this        
     }
     
 }
