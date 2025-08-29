@@ -40,7 +40,7 @@ pub struct System<'system> {
     //switchList: SwitchList,
     sessionNumber: u32,
     shiftNumber: u8,
-    totalShifts: u8,
+    totalShifts: u32,
     ranAllTrains: u32,
     totalPickups: u32,
     totalLoads: u32,
@@ -197,7 +197,7 @@ impl System<'_> {
     pub fn ShiftNumber(&self) -> u8 {
         self.shiftNumber
     }
-    pub fn TotalShifts(&self) -> u8 {
+    pub fn TotalShifts(&self) -> u32 {
         self.totalShifts
     }
     pub fn NextShift(&mut self) -> u8 {
@@ -553,7 +553,7 @@ impl System<'_> {
     fn ReadTrainOrders(&mut self,filename: &PathBuf) -> 
             std::io::Result<usize> {
         let f = File::open(filename.to_str().unwrap())
-                .expect("Cannot open trains file");
+                .expect("Cannot open orders file");
         let mut reader = BufReader::new(f);
         let mut count: usize = 0;
         loop {
@@ -578,7 +578,7 @@ impl System<'_> {
     }
     fn ReadCarTypes(&mut self,filename: &PathBuf) ->  std::io::Result<()> {
         let f = File::open(filename.to_str().unwrap())
-                .expect("Cannot open trains file");
+                .expect("Cannot open cartypes file");
         let mut reader = BufReader::new(f);
         for car_type_count in 0..NUMBER_OF_CARTYPES {
             let line = Self::SkipCommentsReadLine(&mut reader)
@@ -615,14 +615,139 @@ impl System<'_> {
     fn ReadOwners(&mut self,filename: &PathBuf) ->  
         std::io::Result<usize> {
         let mut count = 0;
+        let f = File::open(filename.to_str().unwrap())
+                .expect("Cannot open owners file");
+        let mut reader = BufReader::new(f);
+        let line = Self::SkipCommentsReadLine(&mut reader)
+                    .expect("Read Error");
+        let TotalOwners = line.trim().parse::<usize>().expect("Syntax error");
+        for ox in 0..TotalOwners {
+            let result = Self::SkipCommentsReadLine(&mut reader);
+            if result.is_err() {
+                break;
+            }
+            let line = result.unwrap();
+            let items: Vec<_> = line.split(",").collect();
+            if items.len() < 3 {
+                return Err(Error::new(ErrorKind::Other,"Syntax error"));
+            }
+            let initials = items[0].trim();
+            let name = items[1].trim();
+            let comment = items[2].trim();
+            self.owners.insert(String::from(initials), 
+                    Owner::new(String::from(initials),
+                               String::from(name),
+                               String::from(comment)));
+            count = count + 1;
+        }
+        
         Ok(count)
+    }
+    fn DeleteAllExistingCars(&mut self) {
+        self.cars.clear();
     }
     fn LoadCarFile(&mut self,filename: &PathBuf) -> std::io::Result<usize> {
         let mut count = 0;
+        let f = File::open(filename.to_str().unwrap())
+                .expect("Cannot open owners file");
+        let mut reader = BufReader::new(f);
+        let line = Self::SkipCommentsReadLine(&mut reader)
+                        .expect("Read Error");
+        self.sessionNumber = line.trim().parse::<u32>().expect("Syntax error");
+        let line = Self::SkipCommentsReadLine(&mut reader)
+                        .expect("Read Error");
+        self.shiftNumber = line.trim().parse::<u8>().expect("Syntax error");
+        let line = Self::SkipCommentsReadLine(&mut reader)
+                        .expect("Read Error");
+        let totalCars: usize = line.trim().parse::<usize>().expect("Syntax error");
+        self.totalShifts = self.sessionNumber * 3;
+        self.NextShift();
+        self.sessionNumber = self.sessionNumber + (self.shiftNumber as u32);
+        self.DeleteAllExistingCars();
+        let mut Cx = 0;
+        loop {
+            let result = Self::SkipCommentsReadLine(&mut reader);
+            if result.is_err() {
+                break;
+            }
+            Cx += 1;
+            let line = result.unwrap();
+            let items: Vec<_> = line.split(',').collect();
+            if items.len() < 20 {
+                return Err(Error::new(ErrorKind::Other,"Syntax error"));
+            }
+            let CrsType: char = items[0].trim().chars().next().unwrap();
+            let CrsRR = items[1].trim();
+            let CrsNum = items[2].trim();
+            let CrsDivList = items[3].trim(); 
+            let CrsLen: u8 = items[4].trim().parse::<u8>().expect("Syntax error");
+            let CrsPlate: u8 = items[5].trim().parse::<u8>().expect("Syntax error");
+            let CrsClass: u8 = items[6].trim().parse::<u8>().expect("Syntax error");
+            let CrsLtWt: u8 = items[7].trim().parse::<u8>().expect("Syntax error");
+            let CrsLdLmt: u8 = items[8].trim().parse::<u8>().expect("Syntax error");
+            let yesno: char = items[9].trim().chars().next().unwrap();
+            let CrsStatus: bool = if yesno == 'L' || yesno == 'l' {
+                                    true
+                                  } else if yesno == 'E' || yesno == 'e' {
+                                    false
+                                  } else {
+                                    return Err(Error::new(ErrorKind::Other,"Undefined load status"));
+                                  };
+            let yesno: char = items[10].trim().chars().next().unwrap();
+            let CrsOkToMirror: bool = if yesno == 'Y' || yesno == 'y' {
+                                        true
+                                      } else if yesno == 'N' || yesno == 'n' {
+                                        false
+                                      } else {
+                                    return Err(Error::new(ErrorKind::Other,"Undefined boolean"));
+                                  };
+            let yesno: char = items[11].trim().chars().next().unwrap();
+            let CrsFixedRoute: bool = if yesno == 'Y' || yesno == 'y' {
+                                        true
+                                      } else if yesno == 'N' || yesno == 'n' {
+                                        false
+                                      } else {
+                                    return Err(Error::new(ErrorKind::Other,"Undefined boolean"));
+                                  };
+            let CrsOwner = items[12].trim();
+            let ownerCheck = self.owners.get(&String::from(CrsOwner));
+            if ownerCheck.is_none() {
+                self.owners.insert(String::from(CrsOwner),
+                                   Owner::new(String::from(CrsOwner),
+                                              String::from(CrsOwner),
+                                              String::from("")));
+            }
+            let yesno: char = items[13].trim().chars().next().unwrap();
+            let CrsDone: bool = if yesno == 'Y' || yesno == 'y' {
+                                  true
+                                } else if yesno == 'N' || yesno == 'n' {
+                                   false
+                                } else {
+                                   return Err(Error::new(ErrorKind::Other,"Undefined boolean"));
+                            };
+            let CrsTrain: usize = items[14].trim().parse::<usize>().expect("Syntax error");
+            let CrsMoves: u32 = items[15].trim().parse::<u32>().expect("Syntax error");
+            let CrsLoc: usize = items[16].trim().parse::<usize>().expect("Syntax error");
+            let CrsDest: usize = items[17].trim().parse::<usize>().expect("Syntax error");
+            let CrsTrips: u32 = items[18].trim().parse::<u32>().expect("Syntax error");
+            let CrsAssigns: u32 = items[19].trim().parse::<u32>().expect("Syntax error");
+            self.cars.push(Car::new(CrsType,String::from(CrsRR),
+                                    String::from(CrsNum),
+                                    String::from(CrsDivList),CrsLen,CrsPlate,
+                                    CrsClass,CrsLtWt,CrsLdLmt,CrsStatus,
+                                    CrsOkToMirror,CrsFixedRoute,
+                                    String::from(CrsOwner),CrsDone,CrsTrain,
+                                    CrsMoves,CrsLoc,CrsDest,CrsTrips,
+                                    CrsAssigns));
+            count += 1;
+        }
         Ok(count)
     }
     fn LoadStatsFile(&mut self,filename: &PathBuf) -> std::io::Result<usize> {
         let mut count = 0;
+        let f = File::open(filename.to_str().unwrap())
+                .expect("Cannot open owners file");
+        let mut reader = BufReader::new(f);
         Ok(count)
     }
     fn RestartLoop(&mut self) {
