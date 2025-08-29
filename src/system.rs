@@ -4,6 +4,7 @@ pub use crate::train::*;
 pub use crate::industry::Industry;
 pub use crate::owner::Owner;
 pub use crate::car::Car;
+pub use crate::cartype::*;
 use std::collections::HashMap;
 use std::collections::hash_map::Iter;
 use std::io::*;
@@ -31,10 +32,10 @@ pub struct System<'system> {
     trains: HashMap<usize, Train>,
     trainIndex: HashMap<String, usize>,
     industries: HashMap<usize, Industry<'system>>,
-    carTypesOrder: Vec<u8>,
-    carTypes: Vec<u8>,
-    //carGroups: Vec<Vec<u8>>,
-    owners: Vec<Owner>,
+    carTypesOrder: Vec<char>,
+    carTypes: HashMap<char, CarType>,
+    carGroups: Vec<CarGroup>,
+    owners: HashMap<String, Owner>,
     cars: Vec<Car>,
     //switchList: SwitchList,
     sessionNumber: u32,
@@ -128,8 +129,8 @@ impl System<'_> {
             if div.Symbol() == symbol {
                 return Some(div);
             }
-         }
-         None
+        }
+        None
     }
 
     pub fn DivisionIter(&self) ->  Iter<'_, u8, Division> {
@@ -301,10 +302,10 @@ impl System<'_> {
             if buffer.len() > 0 && !buffer.starts_with("'") {
                 break;
             }
-         }
-         //println!("Returning from SkipCommentsReadLine");
-         Ok(buffer)
-     }
+        }
+        //println!("Returning from SkipCommentsReadLine");
+        Ok(buffer)
+    }
     
     fn ReadDivisions(reader: &mut BufReader<File>,
                      divisions: &mut  HashMap<u8, Division>) ->
@@ -556,6 +557,84 @@ impl System<'_> {
         }
         Ok(count)
     }
+    fn ReadTrainOrders(filename: &PathBuf,
+                       trains: &mut HashMap<usize, Train>,
+                       trainindex: &HashMap<String, usize>) -> 
+            std::io::Result<usize> {
+        let f = File::open(filename.to_str().unwrap())
+                .expect("Cannot open trains file");
+        let mut reader = BufReader::new(f);
+        let mut count: usize = 0;
+        loop {
+            let result = Self::SkipCommentsReadLine(&mut reader);
+            if result.is_err() {
+                break;
+            }
+            let buffer = result.unwrap();
+            let items: Vec<_> = buffer.split(",").collect();
+            if items.len() < 2 {
+                return Err(Error::new(ErrorKind::Other,"Syntax error"));
+            }
+            let trainname = String::from(items[0].trim());
+            let trainorder = String::from(items[1].trim());
+            let tx = trainindex.get(&trainname).expect("Unknown train");
+            trains.get_mut(&tx)
+                .expect("Unknown train")
+                .AddOrder(trainorder.clone());
+            count = count + 1;
+        }
+        Ok(count)
+    }
+    fn ReadCarTypes(filename: &PathBuf,
+                    cartypesorder: &mut Vec<char>,
+                    cartypes: &mut HashMap<char, CarType>,
+                    cargroups: &mut Vec<CarGroup>) ->  std::io::Result<()> {
+        let f = File::open(filename.to_str().unwrap())
+                .expect("Cannot open trains file");
+        let mut reader = BufReader::new(f);
+        for car_type_count in 0..NUMBER_OF_CARTYPES {
+            let line = Self::SkipCommentsReadLine(&mut reader)
+                    .expect("Read Error");
+            let items: Vec<_> = line.split(",").collect();
+            if items.len() < 5 {
+                return Err(Error::new(ErrorKind::Other,"Syntax error"));
+            }
+            let symbol: char = items[0].trim().chars().next().unwrap();
+            let group: char = items[1].trim().chars().next().unwrap();
+            let type_name: String = String::from(items[2].trim());
+            //let pad = items[3];
+            let comment: String = String::from(items[4].trim());
+            cartypesorder.push(symbol);
+            cartypes.insert(symbol, CarType::new(comment,type_name,group));
+        }
+        for car_type_count in 0..MAX_CAR_GROUP {
+            let result = Self::SkipCommentsReadLine(&mut reader);
+            if result.is_err() {
+                break;
+            }
+            let line = result.unwrap();
+            let items: Vec<_> = line.split(",").collect();
+            if items.len() < 2 {
+                return Err(Error::new(ErrorKind::Other,"Syntax error"));
+            }
+            let symbol: char = items[0].trim().chars().next().unwrap();
+            let comment: String = String::from(items[1].trim());
+            //let pad = items[2];
+            cargroups.push(CarGroup::new(symbol,comment));
+        }
+        Ok(())
+    }
+    fn ReadOwners(filename: &PathBuf, owners: &mut HashMap<String, Owner>) ->  
+        std::io::Result<usize> {
+        let mut count = 0;
+        Ok(count)
+    }
+    fn LoadCarFile(filename: &PathBuf, cars: &mut Vec<Car>) ->
+        std::io::Result<usize> {
+        let mut count = 0;
+        Ok(count)
+    }
+    //fn LoadStatsFile(filename: &PathBuf,
     pub fn new(systemfile: String) -> Self {
         let systemfilePath: PathBuf = fs::canonicalize(systemfile)
                 .expect("Path not found");
@@ -597,10 +676,20 @@ impl System<'_> {
         let mut trainindex: HashMap<String, usize> = HashMap::new();
         Self::ReadTrains(&trainsfile, &mut trains, &mut trainindex,
                          &industries, &stations).expect("Read error");
-        let cartypesorder: Vec<u8> = Vec::new();
-        let cartypes: Vec<u8> = Vec::new();
-        let owners: Vec<Owner> = Vec::new();
-        let cars: Vec<Car> = Vec::new();
+        Self::ReadTrainOrders(&ordersfile, &mut trains, &trainindex)
+                .expect("Read error");
+        let mut cartypesorder: Vec<char> = Vec::new();
+        let mut cartypes: HashMap<char, CarType> = HashMap::new();
+        let mut cargroups: Vec<CarGroup> = Vec::new();
+        Self::ReadCarTypes(&cartypesfile, &mut cartypesorder, &mut cartypes,
+                            &mut cargroups)
+                .expect("Read error");
+        let mut owners: HashMap<String, Owner> = HashMap::new();
+        Self::ReadOwners(&ownersfile, &mut owners)
+                .expect("Read error");
+        let mut cars: Vec<Car> = Vec::new();
+        Self::LoadCarFile(&carsfile, &mut cars).expect("Read error");
+        //Self::LoadStatsFile(&statsfile, &mut 
         let sessionNumber: u32 = 0;
         let shiftnumber: u8 = 1;
         let totalshifts: u8 = 0;
@@ -649,7 +738,8 @@ impl System<'_> {
               statsFile: statsfile.to_str().unwrap().to_string(), 
               divisions: divisions, stations: stations, 
               trains: trains, trainIndex: trainindex, industries: industries, 
-              carTypesOrder: cartypesorder, carTypes: cartypes, owners: owners,
+              carTypesOrder: cartypesorder, carTypes: cartypes, 
+              carGroups: cargroups, owners: owners,
               cars: cars, sessionNumber: sessionNumber, 
               shiftNumber: shiftnumber, totalShifts: totalshifts, 
               ranAllTrains: ranalltrains, totalPickups: totalpickups, 
