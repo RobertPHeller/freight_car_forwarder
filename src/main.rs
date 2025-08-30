@@ -12,14 +12,22 @@ fn print_usage(program: &str, opts: Options) {
     let brief = format!("Usage: {} FILE [options]", program);
     print!("{}", opts.usage(&brief));
 }
-        
+
+fn manage_trains_and_printing(system: &mut System) {
+}
+
+fn run_one_train(system: &mut System) {
+}
+
+fn reports_menu(system: &mut System) {
+}
 
 fn main() {
     let args: Vec<String> = env::args().collect();
     let program = args[0].clone();
 
     let mut opts = Options::new();    
-    opts.optopt("o", "", "set output file name", "NAME");
+    //opts.optopt("o", "", "set output file name", "NAME");
     opts.optflag("h", "help", "print this help menu");
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => { m }
@@ -37,7 +45,8 @@ fn main() {
         return;
     };
     
-    let system = System::new(systemfile);
+    let mut system = System::new(systemfile);
+    
     loop {
         println!("{}",system.SystemName());
         println!("");
@@ -69,6 +78,25 @@ fn main() {
         };
         if status == 0 {break;}
         let cmd = command.chars().next().unwrap_or(' ');
-        if cmd == 'Q' || cmd == 'q' {break;}
+        match cmd {
+            'L' | 'l' => system.ReLoadCarFile(),
+            'S' | 's' =>
+                match system.SaveCars() {
+                    true => println!("Cars saved."),
+                    false => println!("Cars not saved."),
+                }, 
+             'M' | 'm' => manage_trains_and_printing(&mut system),
+             'U' | 'u' => system.ShowUnassignedCars(),
+             'A' | 'a' => system.CarAssignment(),
+             'O' | 'o' => system.RunAllTrains(),
+             'B' | 'b' => system.RunBoxMoves(),
+             'T' | 't' => run_one_train(&mut system),
+             'P' | 'p' => system.PrintAllLists(),
+             'C' | 'c' => system.ShowCarMovements(true),
+             'R' | 'r' => reports_menu(&mut system),
+             'I' | 'i' => system.ResetIndustryStats(),
+             'Q' | 'q' => break,
+             _ => println!("Unreconized command character: {}",cmd),
+        }
     }
 }
