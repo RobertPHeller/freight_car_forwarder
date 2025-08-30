@@ -17,7 +17,7 @@ use std::fs;
 
 
 #[derive(Debug)]
-pub struct System<'system> {
+pub struct System {
     systemFile: String,
     systemName: String,
     industriesFile: String,
@@ -31,7 +31,7 @@ pub struct System<'system> {
     stations: HashMap<u8, Station>,
     trains: HashMap<usize, Train>,
     trainIndex: HashMap<String, usize>,
-    industries: HashMap<usize, Industry<'system>>,
+    industries: HashMap<usize, Industry>,
     carTypesOrder: Vec<char>,
     carTypes: HashMap<char, CarType>,
     carGroups: Vec<CarGroup>,
@@ -55,10 +55,10 @@ pub struct System<'system> {
     trainLoads: u32,
     trainEmpties: u32,
     trainLongest: u32,
-    //curDiv &Division::Division;
-    //originYard: &Industry::Industry,
-    //trainLastLocation: &Industry::Industry,
-    //carDest: &Industry::Industry,
+    curDivIndex: u8,
+    originYardIndex: usize,
+    trainLastLocationIndex: usize,
+    carDestIndex: usize,
     statsPeriod: u32,
     carsMoved: u32,
     carsAtDest: u32,
@@ -84,13 +84,13 @@ pub struct System<'system> {
 }
 
 use std::fmt;
-impl fmt::Display for System<'_> {
+impl fmt::Display for System {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "<#System {}>", self.systemName)
   }
 }
 
-impl <'system>System<'_> {
+impl System {
     pub fn SystemName(&self) -> String {
         self.systemName.clone()
     }
@@ -771,34 +771,43 @@ impl <'system>System<'_> {
             Gx += 1;
             let result = reader.read_line(&mut line);
             if result.is_err() {break;}
-            //let mut Ix: usize;
-            //let mut cn: u32;
-            //let mut cl: u32;
-            //let mut sl: u32;
+            let Ix: usize;
+            let cn: u32;
+            let cl: u32;
+            let sl: u32;
             if newformat {
                 let vlist: Vec<_> = line.split(',').collect();
-                //Ix = vlist[0].parse::<usize>().expect("Syntax error");
-                //cn = vlist[1].parse::<u32>().expect("Syntax error");
-                //cl = vlist[2].parse::<u32>().expect("Syntax error");
-                //sl = vlist[3].parse::<u32>().expect("Syntax error");
+                Ix = vlist[0].parse::<usize>().expect("Syntax error");
+                cn = vlist[1].parse::<u32>().expect("Syntax error");
+                cl = vlist[2].parse::<u32>().expect("Syntax error");
+                sl = vlist[3].parse::<u32>().expect("Syntax error");
             } else {
                 let line = line.as_str();
                 let Ixword = &line[0..4].trim();
-                //Ix = Ixword.parse::<usize>().expect("Syntax error");
+                Ix = Ixword.parse::<usize>().expect("Syntax error");
                 let cnword = &line[4..7].trim();
-                //cn = cnword.parse::<u32>().expect("Syntax error");
+                cn = cnword.parse::<u32>().expect("Syntax error");
                 let clword = &line[7..10].trim();
-                //cl = clword.parse::<u32>().expect("Syntax error");
+                cl = clword.parse::<u32>().expect("Syntax error");
                 let slword = &line[10..15].trim();
-                //sl = slword.parse::<u32>().expect("Syntax error");
+                sl = slword.parse::<u32>().expect("Syntax error");
             }
-            //let industryOpt = self.IndustryByIndexMut(Ix);
-            //if industryOpt.is_none() {continue;}
-            //let mut industry = industryOpt.unwrap();
-            //industry.SetCarsNum(cn);
-            //industry.SetCarsLen(cl);
-            //industry.SetStatsLen(cl);
+            let industryOpt = self.IndustryByIndexMut(Ix);
+            if industryOpt.is_none() {continue;}
+            let industry = industryOpt.unwrap();
+            industry.SetCarsNum(cn);
+            industry.SetCarsLen(cl);
+            industry.SetStatsLen(sl);
         }
+        for industry  in self.industries.values_mut() {
+            if self.statsPeriod == 1 {
+                industry.SetCarsNum(0);
+                industry.SetCarsLen(0);
+                industry.SetStatsLen(0);
+            }
+            industry.IncrementStatsLen(industry.TrackLen());
+        }
+            
         Ok(Gx)
     }
     fn RestartLoop(&mut self) {
@@ -865,7 +874,9 @@ impl <'system>System<'_> {
               printYards: false, printAlpha: false, 
               printAtwice: false, printList: false, 
               printLtwice: false, printDispatch: false, 
-              printem: false, messageBuffer: String::from("") };
+              printem: false, messageBuffer: String::from(""),
+              carDestIndex: 0, curDivIndex: 0, originYardIndex: 0,
+              trainLastLocationIndex: 0 };
 
         this.ReadDivisions(&mut reader).expect("Read error");
         this.ReadStations(&mut reader).expect("Read error");

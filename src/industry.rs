@@ -1,8 +1,7 @@
-use crate::car::Car;
 
 #[derive(Debug, Default, Clone)]
-pub struct Industry<'system> {
-    cars: Vec<&'system Car>,
+pub struct Industry {
+    cars: Vec<usize>,
     station_index: u8,
     mirror: usize,
     name: String,
@@ -25,7 +24,7 @@ pub struct Industry<'system> {
     hazard: char,
 }
 
-impl <'system>Industry<'system> {
+impl Industry {
     pub fn new(station_index: u8, mirror: usize, name: String,
                loadTypes: String, emptyTypes: String, 
                divisionControlList: String, trackLen: u32, assignLen: u32,
@@ -84,7 +83,7 @@ impl <'system>Industry<'system> {
     pub fn EmptiesAccepted(&self) -> String {
         self.emptyTypes.clone()
     }
-    pub fn TheCar(&self, i: usize) -> Option<&Car> {
+    pub fn TheCar(&self, i: usize) -> Option<usize> {
         if i < self.cars.len() {
             Some(self.cars[i])
         } else {
@@ -94,10 +93,13 @@ impl <'system>Industry<'system> {
     pub fn NumberOfCars(&self) -> usize {
         self.cars.len()
     }
-    pub fn AddCar(&'system mut self, car: &'system Car) {
-        self.cars.push(car);
+    pub fn AddCar(&mut self, carindex: usize) {
+        self.cars.push(carindex);
     }
-    pub fn IncrementStatsLen(&mut self) {
+    pub fn IncrementStatsLen(&mut self, i: u32) {
+        self.statsLen = self.statsLen + i;
+    }
+    pub fn IncrementStatsLen1(&mut self) {
         self.statsLen = self.statsLen + 1;
     }
     pub fn CarsNum(&self) -> u32 {self.carsNum}
@@ -110,7 +112,7 @@ impl <'system>Industry<'system> {
 }
 
 use std::fmt;
-impl fmt::Display for Industry<'_> {
+impl fmt::Display for Industry {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "<#Industry {}>", self.name)
     }
