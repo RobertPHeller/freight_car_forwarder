@@ -654,7 +654,6 @@ impl System {
                                String::from(comment)));
             count = count + 1;
         }
-        
         Ok(count)
     }
     fn DeleteAllExistingCars(&mut self) {
@@ -816,10 +815,37 @@ impl System {
             }
             industry.IncrementStatsLen(industry.TrackLen());
         }
-            
         Ok(Gx)
     }
     fn RestartLoop(&mut self) {
+        self.carsMoved = 0;
+        self.carsAtDest = 0;
+        self.carsNotMoved = 0;
+        self.carsMovedOnce = 0;
+        self.carsMovedTwice = 0;
+        self.carsMovedThree = 0;
+        self.carsMovedMore = 0;
+        self.carMovements = 0;
+        self.carsInTransit = 0;
+        self.carsAtWorkBench = 0;
+        for car in &self.cars {
+            if car.Location() == 0 {self.carsAtWorkBench += 1;}
+            else {
+                if car.Location() == car.Destination() {
+                    self.carsAtDest += 1;
+                } else {
+                    self.carsInTransit += 1;
+                }
+                self.carMovements += car.MovementsThisSession();
+                if car.MovementsThisSession() == 0 {self.carsNotMoved += 1;}
+                if car.MovementsThisSession() >  0 {self.carsMoved += 1;}
+                if car.MovementsThisSession() == 1 {self.carsMovedOnce += 1;}
+                if car.MovementsThisSession() == 2 {self.carsMovedTwice += 1;}
+                if car.MovementsThisSession() == 3 {self.carsMovedThree += 1;}
+                if car.MovementsThisSession() >  3 {self.carsMovedMore += 1;}
+            }
+        }
+        self.carsAtDest_carsInTransit = self.carsAtDest + self.carsInTransit;
     }
     pub fn new(systemfile: String) -> Self {
         let systemfilePath: PathBuf = fs::canonicalize(systemfile)
