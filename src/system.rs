@@ -594,10 +594,15 @@ impl System {
             }
             let trainname = String::from(items[0].trim());
             let trainorder = Self::StripQuotes(items[1].trim());
-            let tx = self.trainIndex.get(&trainname).expect("Unknown train");
-            self.trains.get_mut(&tx)
-                .expect("Unknown train")
-                .AddOrder(trainorder.clone());
+            //println!("In ReadTrainOrders(): trainname is {}, trainorder is {}",
+            //            trainname,trainorder);
+            let zero: &usize = &0;
+            let tx: &usize = self.trainIndex.get(&trainname).unwrap_or(&0);
+            if tx != zero {
+                self.trains.get_mut(&tx)
+                    .expect("Unknown train")
+                    .AddOrder(trainorder.clone());
+            }
             count = count + 1;
         }
         Ok(count)
@@ -709,8 +714,8 @@ impl System {
             let CrsLen: u8 = items[4].trim().parse::<u8>().expect("Syntax error");
             let CrsPlate: u8 = items[5].trim().parse::<u8>().expect("Syntax error");
             let CrsClass: u8 = items[6].trim().parse::<u8>().expect("Syntax error");
-            let CrsLtWt: u8 = items[7].trim().parse::<u8>().expect("Syntax error");
-            let CrsLdLmt: u8 = items[8].trim().parse::<u8>().expect("Syntax error");
+            let CrsLtWt: u32 = items[7].trim().parse::<u32>().expect("Syntax error");
+            let CrsLdLmt: u32 = items[8].trim().parse::<u32>().expect("Syntax error");
             let yesno: char = items[9].trim().chars().next().unwrap();
             let CrsStatus: bool = if yesno == 'L' || yesno == 'l' {
                                     true
@@ -788,6 +793,7 @@ impl System {
         self.statsPeriod = line.trim().parse::<u32>().expect("Syntax error");
         let mut Gx: usize = 0;
         loop {
+            line.clear();
             Gx += 1;
             let result = reader.read_line(&mut line);
             if result.is_err() {break;}
@@ -798,10 +804,11 @@ impl System {
             let sl: u32;
             if newformat {
                 let vlist: Vec<_> = line.split(',').collect();
-                Ix = vlist[0].parse::<usize>().expect("Syntax error");
-                cn = vlist[1].parse::<u32>().expect("Syntax error");
-                cl = vlist[2].parse::<u32>().expect("Syntax error");
-                sl = vlist[3].parse::<u32>().expect("Syntax error");
+                //println!("in LoadStats (newformat): vlist is {:?}", vlist);
+                Ix = vlist[0].trim().parse::<usize>().expect("Syntax error");
+                cn = vlist[1].trim().parse::<u32>().expect("Syntax error");
+                cl = vlist[2].trim().parse::<u32>().expect("Syntax error");
+                sl = vlist[3].trim().parse::<u32>().expect("Syntax error");
             } else {
                 let line = line.as_str();
                 let Ixword = &line[0..4].trim();

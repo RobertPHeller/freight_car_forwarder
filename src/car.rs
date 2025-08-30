@@ -12,8 +12,8 @@ pub struct Car {
     length: u8,
     plate: u8,
     weightclass: u8,
-    ltwt: u8,
-    ldlmt: u8,
+    ltwt: u32,
+    ldlmt: u32,
     trips: u32,
     moves: u32,
     assignments: u32,
@@ -36,7 +36,7 @@ impl fmt::Display for Car {
 
 impl Car {
     pub fn new(t: char, m: String, n: String, d: String, l: u8, p: u8, 
-               wc: u8, lw: u8, ldw: u8, lp: bool, mp: bool, fp: bool,
+               wc: u8, lw: u32, ldw: u32, lp: bool, mp: bool, fp: bool,
                own: String, dp: bool,lt: usize,mvs: u32, loc: usize,
                dest: usize, trps: u32, asgns: u32) -> Self {
         Self {owner: own, lasttrain: lt, prevtrain: lt, location: loc,
@@ -60,10 +60,10 @@ impl Car {
     pub fn SetPlate(&mut self, p: u8) {self.plate = p;}
     pub fn WeightClass(&self) -> u8 {self.weightclass}
     pub fn SetWeightClass(&mut self, wc: u8) {self.weightclass = wc;}
-    pub fn LtWt(&self) -> u8 {self.ltwt}
-    pub fn SetLtWt(&mut self, lw: u8) {self.ltwt = lw;}
-    pub fn LdLmt(&self) -> u8 {self.ldlmt}
-    pub fn SetLdLmt(&mut self, ldw: u8) {self.ldlmt = ldw;}
+    pub fn LtWt(&self) -> u32 {self.ltwt}
+    pub fn SetLtWt(&mut self, lw: u32) {self.ltwt = lw;}
+    pub fn LdLmt(&self) -> u32 {self.ldlmt}
+    pub fn SetLdLmt(&mut self, ldw: u32) {self.ldlmt = ldw;}
     pub fn LoadedP(&self) -> bool {self.loadedP}
     pub fn EmptyP(&self) -> bool {!self.loadedP}
     pub fn Load(&mut self) {self.loadedP = true;}
