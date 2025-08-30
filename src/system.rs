@@ -91,6 +91,19 @@ impl fmt::Display for System {
   }
 }
 
+pub enum CarTypeReport {
+    All,
+    Type,
+    Summary,
+}
+
+pub enum CarLocationType {
+    INDUSTRY,
+    STATION,
+    DIVISION,
+    ALL,
+}
+
 impl System {
     pub fn SystemName(&self) -> String {
         self.systemName.clone()
@@ -659,9 +672,9 @@ impl System {
     fn DeleteAllExistingCars(&mut self) {
         self.cars.clear();
     }
-    fn LoadCarFile(&mut self,filename: &PathBuf) -> std::io::Result<usize> {
+    fn LoadCarFile(&mut self) -> std::io::Result<usize> {
         let mut count = 0;
-        let f = File::open(filename.to_str().unwrap())
+        let f = File::open(&self.carsFile)
                 .expect("Cannot open cars file");
         let mut reader = BufReader::new(f);
         let line = Self::SkipCommentsReadLine(&mut reader)
@@ -756,8 +769,8 @@ impl System {
         }
         Ok(count)
     }
-    fn LoadStatsFile(&mut self,filename: &PathBuf) -> std::io::Result<usize> {
-        let f = File::open(filename.to_str().unwrap())
+    fn LoadStatsFile(&mut self) -> std::io::Result<usize> {
+        let f = File::open(&self.statsFile)
                 .expect("Cannot open stats file");
         let mut reader = BufReader::new(f);
         let mut line = String::new();
@@ -928,13 +941,60 @@ impl System {
         //println!("Read CarTypes");
         this.ReadOwners(&ownersfile).expect("Read error");
         //println!("Read Owners");
-        this.LoadCarFile(&carsfile).expect("Read error");
+        this.LoadCarFile().expect("Read error");
         //println!("Loaded Cars");
-        this.LoadStatsFile(&statsfile).expect("Read error");
+        this.LoadStatsFile().expect("Read error");
         //println!("Loaded Stats");
         this.RestartLoop();
         //println!("Restarted Loop");
         this        
     }
-    
+    pub fn SaveCars(&self) -> bool {
+        false
+    }
+    pub fn CarAssignment(&mut self) {
+    }
+    pub fn RunAllTrains(&mut self) {
+    }
+    pub fn RunBoxMoves(&mut self) {
+    }
+    pub fn PrintAllLists(&self) {
+    }
+    pub fn RunOneTrain(&mut self, train: usize, boxMove: bool) {
+    }
+    pub fn ShowCarsNotMoved(&self) {
+    }
+    pub fn ShowCarMovements(&self, showAll: bool) {
+    }
+    pub fn ShowTrainCars(&self,Tx: usize) {
+    }
+    pub fn ShowCarsInDivision(&self, division: u8) {
+    }
+    pub fn ShowTrainTotals(&self) {
+    }
+    pub fn ShowUnassignedCars(&self) {
+    }
+    pub fn ReLoadCarFile(&mut self) {
+        self.LoadCarFile().expect("Read error");
+        self.LoadStatsFile().expect("Read error");
+        self.RestartLoop();
+    }
+    pub fn ResetIndustryStats(&mut self) {
+    }
+    pub fn ReportIndustries(&self) {
+    }
+    pub fn ReportTrains(&self) {
+    }
+    pub fn ReportCars(&self) {
+    }
+    pub fn ReportCarsNotMoved(&self) {
+    }
+    pub fn ReportCarTypes(&self, rtype: CarTypeReport, carType: char) {
+    }
+    pub fn ReportCarLocations(&self, cltype: CarLocationType, index: usize) {
+    }
+    pub fn ReportAnalysis(&self) {
+    }
+    pub fn ReportCarOwners(&self, ownerInitials: String) {
+    }
 }
