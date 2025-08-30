@@ -1,4 +1,5 @@
 pub use freight_car_forwarder::system::System;
+//use freight_car_forwarder::switchlist::*;
 
 fn main() {
     let system = System::new(String::from("../../Deepwoods/ModelRRSystem/ChesapeakeSystem/system.dat"));
@@ -15,8 +16,9 @@ fn main() {
     //for (iind, ind) in system.IndustryIter() {
     //    println!("    {}: {}",iind,ind);
     //}
-    println!("Trains:");
-    for (itrn, trn) in system.TrainIter() {
-        println!("    {}: {}",itrn,trn);
-    }
+    //println!("Trains:");
+    //for (itrn, trn) in system.TrainIter() {
+    //    println!("    {}: {}",itrn,trn);
+    //}
+    
 }

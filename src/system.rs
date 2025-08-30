@@ -1,10 +1,11 @@
-pub use crate::division::Division;
-pub use crate::station::Station;
+pub use crate::division::*;
+pub use crate::station::*;
 pub use crate::train::*;
-pub use crate::industry::Industry;
-pub use crate::owner::Owner;
-pub use crate::car::Car;
+pub use crate::industry::*;
+pub use crate::owner::*;
+pub use crate::car::*;
 pub use crate::cartype::*;
+pub use crate::switchlist::*;
 use std::collections::HashMap;
 use std::collections::hash_map::Iter;
 use std::io::*;
@@ -37,7 +38,7 @@ pub struct System {
     carGroups: Vec<CarGroup>,
     owners: HashMap<String, Owner>,
     cars: Vec<Car>,
-    //switchList: SwitchList,
+    switchList: SwitchList,
     sessionNumber: u32,
     shiftNumber: u8,
     totalShifts: u32,
@@ -300,8 +301,12 @@ impl System {
         loop {
             buffer.clear();
             let result = reader.read_line(&mut buffer);
+            //println!("In SkipCommentsReadLine(): result is {:?}",result);
             if result.is_err() {
                 return Err(result.err().unwrap());
+            }
+            if buffer.len() == 0 && result.unwrap() == 0 {
+                return Err(Error::new(ErrorKind::Other,"EOF"));
             }
             buffer = buffer.trim().to_string();
             //println!("In SkipCommentsReadLine: buffer is {}",buffer);
@@ -564,16 +569,18 @@ impl System {
         let mut count: usize = 0;
         loop {
             let result = Self::SkipCommentsReadLine(&mut reader);
+            //println!("In ReadTrainOrders(): result is {:?}", result);
             if result.is_err() {
                 break;
             }
             let buffer = result.unwrap();
+            
             let items: Vec<_> = buffer.split(",").collect();
             if items.len() < 2 {
                 return Err(Error::new(ErrorKind::Other,"Syntax error"));
             }
             let trainname = String::from(items[0].trim());
-            let trainorder = String::from(items[1].trim());
+            let trainorder = Self::StripQuotes(items[1].trim());
             let tx = self.trainIndex.get(&trainname).expect("Unknown train");
             self.trains.get_mut(&tx)
                 .expect("Unknown train")
@@ -593,8 +600,9 @@ impl System {
             if items.len() < 5 {
                 return Err(Error::new(ErrorKind::Other,"Syntax error"));
             }
-            let symbol: char = items[0].trim().chars().next().unwrap();
-            let group: char = items[1].trim().chars().next().unwrap();
+            //println!("In ReadCarTypes(): items is {:?}", items);
+            let symbol: char = items[0].trim().chars().next().unwrap_or(' ');
+            let group: char = items[1].trim().chars().next().unwrap_or(' ');
             let type_name: String = String::from(items[2].trim());
             //let pad = items[3];
             let comment: String = String::from(items[4].trim());
@@ -771,6 +779,7 @@ impl System {
             Gx += 1;
             let result = reader.read_line(&mut line);
             if result.is_err() {break;}
+            if result.unwrap() == 0 {break;} 
             let Ix: usize;
             let cn: u32;
             let cl: u32;
@@ -855,7 +864,8 @@ impl System {
               industries: HashMap::new(), 
               carTypesOrder: Vec::new(), carTypes: HashMap::new(), 
               carGroups: Vec::new(), owners: HashMap::new(),
-              cars: Vec::new(), sessionNumber: 0, 
+              cars: Vec::new(), switchList: SwitchList::new(), 
+              sessionNumber: 0, 
               shiftNumber: 1, totalShifts: 0, 
               ranAllTrains: 0, totalPickups: 0, 
               totalLoads: 0, totalTons: 0, 
@@ -879,15 +889,25 @@ impl System {
               trainLastLocationIndex: 0 };
 
         this.ReadDivisions(&mut reader).expect("Read error");
+        //println!("Read divisions");
         this.ReadStations(&mut reader).expect("Read error");
+        //println!("Read Stations");
         this.ReadIndustries(&industriesfile).expect("Read error");
+        //println!("Read Industries");
         this.ReadTrains(&trainsfile).expect("Read error");
+        //println!("Read Trains");
         this.ReadTrainOrders(&ordersfile).expect("Read error");
+        //println!("Read TrainOrders");
         this.ReadCarTypes(&cartypesfile).expect("Read error");
+        //println!("Read CarTypes");
         this.ReadOwners(&ownersfile).expect("Read error");
+        //println!("Read Owners");
         this.LoadCarFile(&carsfile).expect("Read error");
+        //println!("Loaded Cars");
         this.LoadStatsFile(&statsfile).expect("Read error");
+        //println!("Loaded Stats");
         this.RestartLoop();
+        //println!("Restarted Loop");
         this        
     }
     

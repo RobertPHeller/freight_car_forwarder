@@ -1,4 +1,5 @@
 use std::fmt;
+use std::ops::{Index, IndexMut};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)] // Add traits for comparison, copy, print
 pub enum StationOrIndustry {
@@ -20,11 +21,18 @@ impl fmt::Display for StationOrIndustry {
     }
 }
 
-impl StationOrIndustry {
-    pub fn newStationStop(index: u8) -> Self {
+trait __NewSorI<T> {
+    fn new(index: T) -> Self;
+}
+
+impl __NewSorI<u8> for StationOrIndustry {
+    fn new(index: u8) -> Self {
         StationOrIndustry::StationStop(index)
     }
-    pub fn newIndustryStop(index: usize) -> Self {
+}
+
+impl __NewSorI<usize> for StationOrIndustry {
+    fn new(index: usize) -> Self {
         StationOrIndustry::IndustryStop(index)
     }
 }
@@ -56,20 +64,29 @@ impl Default for SwitchListElement {
               dropStop: StationOrIndustry::None }
     }
 }
-
-impl SwitchListElement {
-    pub fn newStation(pickLoc: usize, pickCar: usize, pickTrain: usize, 
+trait __NewSWElement<T> {
+    fn new(pickLoc: usize, pickCar: usize, pickTrain: usize,         
+                          lastTrain: usize, eletype: T) -> SwitchListElement;
+}
+impl __NewSWElement<u8> for SwitchListElement {
+    fn new(pickLoc: usize, pickCar: usize, pickTrain: usize, 
                       lastTrain: usize, station: u8) -> Self {
         Self {pickLoc: pickLoc, pickCar: pickCar, pickTrain: pickTrain,
               lastTrain: lastTrain, 
-              dropStop: StationOrIndustry::newStationStop(station) }
+              dropStop: StationOrIndustry::StationStop(station) }
     }
-    pub fn newIndustry(pickLoc: usize, pickCar: usize, pickTrain: usize, 
+}
+
+impl __NewSWElement<usize> for SwitchListElement {
+    fn new(pickLoc: usize, pickCar: usize, pickTrain: usize, 
                       lastTrain: usize, industry: usize) -> Self {
         Self {pickLoc: pickLoc, pickCar: pickCar, pickTrain: pickTrain,
               lastTrain: lastTrain, 
-              dropStop: StationOrIndustry::newIndustryStop(industry) }
+              dropStop: StationOrIndustry::IndustryStop(industry) }
     }
+}
+
+impl SwitchListElement {
     pub fn PickLocation(&self) -> usize {self.pickLoc}
     pub fn PickCar(&self) -> usize {self.pickCar}
     pub fn PickTrain(&self) -> usize {self.pickTrain}
@@ -90,4 +107,130 @@ impl SwitchListElement {
             StationOrIndustry::None => None, 
         }
     }
+    //pub fn DropStopEQ(&self, px:usize) -> bool {
+    //    if self.pickTrain == 0 {return false;}
+    //     
+    //}
 }
+
+#[derive(Debug, Clone)]
+pub struct SwitchList {
+    theList: Vec<SwitchListElement>,
+    pickIndex: usize,
+    limitCars: usize,
+    lastIndex: isize,
+}
+
+impl fmt::Display for SwitchList {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "<#SwitchList {} elements>", self.theList.len())
+    }
+}
+
+impl Default for SwitchList {
+    fn default() -> Self {
+        Self {theList: Vec::new(), pickIndex: 0, lastIndex: -1, limitCars: 0}
+    }
+}
+
+trait __StopType<T> {
+    fn AddSwitchListElement(&mut self,pickloc: usize, pickcar: usize, 
+                            picktrain: usize, lasttrain: usize, stop: T);
+}
+
+impl __StopType<u8> for SwitchList {
+    fn AddSwitchListElement(&mut self,pickloc: usize, pickcar: usize, 
+                                picktrain: usize, lasttrain: usize, stop: u8) {
+        let newele: SwitchListElement = 
+            SwitchListElement::new(pickloc, pickcar, picktrain, lasttrain,
+                                   stop);
+        if self.pickIndex >= self.theList.len() {
+            self.theList.push(newele);
+            self.pickIndex = self.theList.len();
+        } else {
+            self.theList[self.pickIndex] = newele;
+            self.pickIndex += 1;
+        }
+        self.limitCars = self.pickIndex;
+    }
+}
+
+impl __StopType<usize> for SwitchList {
+    fn AddSwitchListElement(&mut self,pickloc: usize, pickcar: usize,
+                                picktrain: usize, lasttrain: usize, 
+                                stop: usize) {
+        let newele: SwitchListElement = 
+            SwitchListElement::new(pickloc, pickcar, picktrain, lasttrain,
+                                   stop);
+        if self.pickIndex >= self.theList.len() {
+            self.theList.push(newele);
+            self.pickIndex = self.theList.len();
+        } else {
+            self.theList[self.pickIndex] = newele;
+            self.pickIndex += 1;
+        }
+        self.limitCars = self.pickIndex;
+    }
+}
+
+impl SwitchList {
+    pub fn new() -> Self {
+        Self {theList: Vec::new(), pickIndex: 0, lastIndex: -1, limitCars: 0}
+    }
+    pub fn ResetSwitchList(&mut self) {
+        self.pickIndex = 0;
+        self.lastIndex = -1;
+    }
+    pub fn DiscardSwitchList(&mut self) {
+        self.ResetSwitchList();
+        self.limitCars = 0;
+    }
+    
+    pub fn NextSwitchListForCarAndIndustry(&mut self, car: usize, 
+                                            industry: usize) -> isize {
+        let start: usize = self.lastIndex as usize + 1;
+        let end: usize = self.pickIndex;
+        for Gx in start..end {
+            let igx: usize = Gx;
+            if self.theList[igx].PickCar() == car &&
+               self.theList[igx].PickLocation() == industry {
+                self.lastIndex = Gx as isize;
+                return self.lastIndex;
+            }
+        }
+        self.lastIndex = -1;
+        self.lastIndex
+    }
+    pub fn PickIndex(&self) -> usize {self.pickIndex}
+    pub fn LimitCars(&self) -> usize {self.limitCars}
+    pub fn ResetLastIndex(&mut self) {self.lastIndex = -1;}
+    pub fn PickLocationEq(&self, Gx: isize, Ix: usize) -> bool {
+        if Gx < 0 || Gx as usize >= self.pickIndex {return false;}
+        else {return self.theList[Gx as usize].PickLocation() == Ix;}
+    }
+    pub fn PickCarEq(&self, Gx: isize, Cx: usize) -> bool {
+        if Gx < 0 || Gx as usize >= self.pickIndex {return false;}
+        else {return self.theList[Gx as usize].PickCar() == Cx;}
+    }
+    pub fn PickTrainEq(&self, Gx: isize, Tx: usize) -> bool {
+        if Gx < 0 || Gx as usize >= self.pickIndex {return false;}
+        else {return self.theList[Gx as usize].PickTrain() == Tx;}
+    }
+    
+}    
+
+impl Index<usize> for SwitchList {
+    type Output = SwitchListElement;
+    fn index(&self, i: usize) -> &Self::Output {
+        &self.theList[i]
+    }
+}
+
+impl IndexMut<usize> for SwitchList {
+    //type Output = SwitchListElement;
+    fn index_mut(&mut self, i: usize) -> &mut Self::Output {
+        &mut self.theList[i]
+    }
+}
+
+
