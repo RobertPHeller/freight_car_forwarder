@@ -10,5 +10,6 @@ pub mod cartype;
 pub mod owner;
 pub mod car;
 pub mod switchlist;
+pub mod fcfprintpdf;
 pub mod system;
 

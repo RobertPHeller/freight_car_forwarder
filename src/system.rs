@@ -16,7 +16,6 @@ use std::fs::File;
 use std::path::PathBuf;
 use std::fs;
 
-
 #[derive(Debug)]
 pub struct System {
     systemFile: String,

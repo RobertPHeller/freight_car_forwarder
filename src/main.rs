@@ -6,12 +6,17 @@ use std::io::{self, Write};
 
 
 pub use freight_car_forwarder::system::System;
+pub use freight_car_forwarder::fcfprintpdf::*;
 //use freight_car_forwarder::switchlist::*;
 
 fn print_usage(program: &str, opts: Options) {
     let brief = format!("Usage: {} FILE [options]", program);
     print!("{}", opts.usage(&brief));
 }
+
+// pipeline to go from ASCII to PDF
+// a2ps -1 -B --borders=no test.txt -o -|ps2pdf - test.pdf
+
 
 fn manage_trains_and_printing(system: &mut System) {
 }
@@ -37,14 +42,16 @@ fn main() {
         print_usage(&program, opts);
         return;
     };
-    //let output = matches.opt_str("o");
+    let output = matches.opt_str("o");
     let systemfile = if !matches.free.is_empty() {
         matches.free[0].clone()
     } else {
         print_usage(&program, opts);
         return;
     };
-    
+    {
+        let testprinter: Printer = Printer::new(output."This is a test",PageSize::Letter,
+    }
     let mut system = System::new(systemfile);
     
     loop {
