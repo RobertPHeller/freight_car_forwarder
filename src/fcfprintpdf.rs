@@ -68,7 +68,7 @@ impl Printer {
 
 impl Drop for Printer {
     fn drop(&mut self) {
-        let doc : genpdf::Document = self.document;
+        let doc : &genpdf::Document = &self.document;
         doc.render_to_file(self.filename.clone())
             .expect("Failed to write output file");
     }
