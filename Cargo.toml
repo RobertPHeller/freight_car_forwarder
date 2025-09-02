@@ -7,4 +7,9 @@ edition = "2021"
 
 [dependencies]
 getopts = "0.2"
-genpdf = "0.2"
+cairo-rs = { version = "0.21.1" , features = ["pdf"] }
+pango = "0.21.1"
+pango-sys = "0.21.1"
+pangocairo = "0.21.1"
+rand = "0.9.2"
+

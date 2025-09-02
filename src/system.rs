@@ -6,15 +6,18 @@ pub use crate::owner::*;
 pub use crate::car::*;
 pub use crate::cartype::*;
 pub use crate::switchlist::*;
+pub use crate::fcfprintpdf::*;
 use std::collections::HashMap;
 use std::collections::hash_map::Iter;
 use std::io::*;
 //use std::io::prelude::*;
 //use std::error::Error;
 use std::io::BufReader;
+use std::io::BufWriter;
 use std::fs::File;
 use std::path::PathBuf;
 use std::fs;
+use rand::prelude::*;
 
 #[derive(Debug)]
 pub struct System {
@@ -955,18 +958,159 @@ impl System {
         //println!("Restarted Loop");
         this        
     }
-    pub fn SaveCars(&self) -> bool {
-        false
+    fn WriteOneCarToDisk(&self,car: &Car,w: &mut BufWriter<File>) -> 
+            std::io::Result<()> {
+        writeln!(w,
+                "{:1},{:>9},{:<8},{:<18},{:5},{:1},{:1},{:4},{:5},{:1},{:1},{:1},{:3>},{:1},{:3},{:3},{:3},{:3},{:4},{:4}",
+                car.Type(),car.Marks(),
+                car.Number(),car.Divisions(),car.Length(),car.Plate(),
+                car.WeightClass(),car.LtWt(),car.LdLmt(),
+                if car.LoadedP() {'L'} else {'E'},
+                if car.OkToMirrorP() {'Y'} else {'N'},
+                if car.FixedRouteP() {'Y'} else {'N'},
+                car.Owner(),
+                if car.IsDoneP() {'Y'} else {'N'},
+                car.LastTrain(),car.MovementsThisSession(),
+                car.Location(),car.Destination(),
+                car.Trips(),car.Assignments())
+    }
+    pub fn SaveCars(&mut self) -> bool {
+        let mut backupfile = PathBuf::from(self.carsFile.clone());
+        backupfile.set_extension("bak");
+        let mut tempfile = PathBuf::from(self.carsFile.clone());
+        tempfile.set_file_name(format!("CARS{:06}",rand::rng().random_range(0..1000000)));
+        {
+            let junkf = File::create(tempfile.to_str().unwrap())
+                           .expect("Could not open junk file stream!");
+            let mut junkfilestream = BufWriter::new(junkf);
+            let oldf = File::open(self.carsFile.to_string())
+                            .expect("Could not open cars file (reading)");
+            let mut oldcarsstream = BufReader::new(oldf);
+            let backupf = File::create(backupfile.to_str().unwrap())
+                            .expect("Could not open backup file (write)");
+            let mut backupcarsstream = BufWriter::new(backupf);
+            let mut line = String::new();
+            oldcarsstream.read_line(&mut line)
+                        .expect("Could not read cars file (Session Number)");
+            let oldSessionNumber = line.trim().parse::<u32>()
+                        .expect("Syntax error");
+            line.clear();
+            oldcarsstream.read_line(&mut line)
+                        .expect("Could not read cars file (Shift Number)");
+            let oldShiftNumber = line.trim().parse::<u8>()
+                        .expect("Syntax error"); 
+            line.clear();
+            oldcarsstream.read_line(&mut line)
+                        .expect("Could not read cars file (Total Cars)");
+            let oldTotalCars = line.trim().parse::<u32>()
+                        .expect("Syntax error"); 
+            if self.ranAllTrains == 0 {
+                self.sessionNumber = oldSessionNumber;
+                self.shiftNumber = oldShiftNumber;
+            }
+            let totalCars = self.cars.len() + 10;
+            writeln!(junkfilestream," {}",self.sessionNumber)
+                    .expect("Error writing junk file");
+            writeln!(junkfilestream," {}",self.shiftNumber)
+                    .expect("Error writing junk file");
+            writeln!(junkfilestream," {}",totalCars)
+                    .expect("Error writing junk file");
+        
+            writeln!(backupcarsstream," {}",oldSessionNumber)
+                    .expect("Error writing backup file");
+            writeln!(backupcarsstream," {}",oldShiftNumber)
+                    .expect("Error writing backup file");
+            writeln!(backupcarsstream," {}",oldTotalCars)
+                    .expect("Error writing backup file");
+        
+            self.totalShifts += 1;
+            self.NextShift();
+        
+            let mut Cx = 0;
+            loop {
+                line.clear();
+                let result = oldcarsstream.read_line(&mut line);
+                if result.is_err() {
+                    return false;
+                }
+                if line.len() == 0 && result.unwrap() == 0 {
+                    break;
+                }
+                write!(backupcarsstream,"{}",line)
+                    .expect("Error writing backup file");
+                let trimline = line.trim();
+                if trimline.len() == 0 || trimline.starts_with("'") {
+                    write!(junkfilestream,"{}",line)
+                    .expect("Error writing junk file");
+                } else {
+                    let car = &self.cars[Cx]; Cx += 1;
+                    if car.Length() > 0 {
+                        if car.Destination() != 999 {
+                            self.WriteOneCarToDisk(&car,&mut junkfilestream)
+                                .expect("Error writing car");
+                        }
+                    }
+                }
+            }
+            while Cx < self.cars.len() {
+                let car = &self.cars[Cx]; Cx += 1;
+                if car.Length() > 0 {
+                    if car.Destination() != 999 {
+                        self.WriteOneCarToDisk(&car,&mut junkfilestream)
+                            .expect("Error writing car");
+                     }
+                }
+            }
+        }
+        {
+            let junkf = File::open(tempfile.to_str().unwrap())
+                                .expect("Could not open junk file stream!");
+            let mut junkfilestream = BufReader::new(junkf);
+            let newf = File::create(self.carsFile.to_string())
+                                .expect("Could not open cars file (writing)");
+            let mut newcarsstream = BufWriter::new(newf);
+            loop {
+                let mut line = String::new();
+                let result = junkfilestream.read_line(&mut line);
+                if result.is_err() {
+                    return false;
+                }
+                if line.len() == 0 && result.unwrap() == 0 {
+                    break;
+                }
+                write!(newcarsstream,"{}",line)
+                        .expect("Error writing cars file");
+            }
+        }
+        std::fs::remove_file(tempfile.to_str().unwrap())
+            .expect("Could not remove junk file");
+        {
+            let statf = File::create(self.statsFile.to_string())
+                                .expect("Could not open stats file (writing)");
+            let mut statsstream = BufWriter::new(statf);
+            self.statsPeriod += self.ranAllTrains;
+            writeln!(statsstream,"{},",self.statsPeriod)
+                .expect("Could not write stats file");
+            for (Ix, ind) in &self.industries {
+                writeln!(statsstream,"{},{},{},{}",
+                        Ix,ind.CarsNum(),ind.CarsLen(),ind.StatsLen())
+                        .expect("Could not write stats file");
+                 
+            }
+        }
+        self.ranAllTrains = 0;
+        true
     }
     pub fn CarAssignment(&mut self) {
     }
-    pub fn RunAllTrains(&mut self) {
+    pub fn RunAllTrains(&mut self, printer: &Printer) {
     }
-    pub fn RunBoxMoves(&mut self) {
+    pub fn RunBoxMoves(&mut self, printer: &Printer) {
     }
-    pub fn PrintAllLists(&self) {
+    pub fn PrintAllLists(&self, printer: &Printer) {
     }
-    pub fn RunOneTrain(&mut self, train: usize, boxMove: bool) {
+    pub fn RunOneTrain(&mut self, train: usize, boxMove: bool, 
+                        printer: &Printer) {
     }
     pub fn ShowCarsNotMoved(&self) {
     }
@@ -987,20 +1131,22 @@ impl System {
     }
     pub fn ResetIndustryStats(&mut self) {
     }
-    pub fn ReportIndustries(&self) {
+    pub fn ReportIndustries(&self, printer: &Printer) {
     }
-    pub fn ReportTrains(&self) {
+    pub fn ReportTrains(&self, printer: &Printer) {
     }
-    pub fn ReportCars(&self) {
+    pub fn ReportCars(&self, printer: &Printer) {
     }
-    pub fn ReportCarsNotMoved(&self) {
+    pub fn ReportCarsNotMoved(&self, printer: &Printer) {
     }
-    pub fn ReportCarTypes(&self, rtype: CarTypeReport, carType: char) {
+    pub fn ReportCarTypes(&self, rtype: CarTypeReport, carType: char, 
+                            printer: &Printer) {
     }
-    pub fn ReportCarLocations(&self, cltype: CarLocationType, index: usize) {
+    pub fn ReportCarLocations(&self, cltype: CarLocationType, index: usize, 
+                                printer: &Printer) {
     }
-    pub fn ReportAnalysis(&self) {
+    pub fn ReportAnalysis(&self, printer: &Printer) {
     }
-    pub fn ReportCarOwners(&self, ownerInitials: String) {
+    pub fn ReportCarOwners(&self, ownerInitials: String, printer: &Printer) {
     }
 }
