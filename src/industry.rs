@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:14:28
-//  Last Modified : <250902.2106>
+//  Last Modified : <250904.1053>
 //
 //  Description	
 //
@@ -149,7 +149,15 @@ impl Industry {
     pub fn SetStatsLen(&mut self, sl: u32) {self.statsLen = sl;}
     pub fn UsedLen(&self) -> u32 {self.usedLen}
     pub fn SetUsedLen(&mut self, ul: u32) {self.usedLen = ul;}
-    
+    pub fn AddToUsedLen(&mut self, cl: u32) {self.usedLen += cl;}
+    pub fn RemoveCar(&mut self,Cx: usize) {
+        for c in 0..self.cars.len() {
+            if self.cars[c] == Cx {
+                self.cars.remove(c);
+                return;
+            }
+        }
+    }
 }
 
 use std::fmt;

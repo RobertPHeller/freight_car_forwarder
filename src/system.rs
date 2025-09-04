@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250903.2238>
+//  Last Modified : <250904.1140>
 //
 //  Description	
 //
@@ -1830,19 +1830,14 @@ impl System {
     /// - Cx The car to check.
     ///
     /// __Returns__ true if this industry can take the specified car.
-    fn IndustryTakesCar(Ix: Option<&Industry>,car: &Car) -> bool {
-        if Ix.is_none()  {return false;}
-        let industry = Ix.unwrap();
-        if car.TmpStatus() {
-            match industry.LoadsAccepted().find(car.Type()) {
-                None => {return false;},
-                Some(usize) => {return true;},
-            }
+    fn IndustryTakesCar(&self,Ix: usize,car: usize) -> bool {
+        let industry = self.industries.get(&Ix);
+        if industry.is_none() {return false;}
+        let industry = industry.unwrap();
+        if self.cars[car].TmpStatus() {
+            industry.LoadsAccepted().contains(self.cars[car].Type())
         } else {
-            match industry.EmptiesAccepted().find(car.Type()) {
-                None => {return false;},
-                Some(usize) => {return true;},
-            }
+            industry.EmptiesAccepted().contains(self.cars[car].Type())
         }
     }
     /// Check to see if a certain car can be mirrored on a fixed route at a 
@@ -1854,10 +1849,11 @@ impl System {
     ///
     /// __Returns__ true if this car can be mirrored on a fixed route at this
     /// industry.
-    fn FixedRouteMirrorCheck(&self,car: &Car,Ix: Option<&Industry>) -> bool {
-        if Ix.is_none() {return false;}
-        if !car.FixedRouteP() {return true;}
-        let industry = Ix.unwrap();
+    fn FixedRouteMirrorCheck(&self,Cx: usize,Ix: usize) -> bool {
+        let industryOpt = self.industries.get(&Ix);
+        if industryOpt.is_none() {return false;}
+        if !self.cars[Cx].FixedRouteP() {return true;}
+        let industry = industryOpt.unwrap();
         let mystation = industry.MyStationIndex();
         let station = self.StationByIndex(mystation);
         if station.is_none() {return false;}
@@ -1869,8 +1865,8 @@ impl System {
         // if  the car is loaded --
         //
         //  Make sure the industry's division is included in this car's home list.
-        if car.TmpStatus() {
-            if car.Divisions().find(MirrorDivS).is_none() {
+        if self.cars[Cx].TmpStatus() {
+            if !self.cars[Cx].Divisions().contains(MirrorDivS) {
                 return false;
             }
         } else {
@@ -1882,7 +1878,7 @@ impl System {
             //  empty fixed route  car is directed by the industry's division 
             //  list and it's own home list.
             for pxdiv in industry.DivisionControlList().chars() {
-                if !car.Divisions().find(pxdiv).is_none() {return true;}
+                if self.cars[Cx].Divisions().contains(pxdiv) {return true;}
             }
             return false;
         }
@@ -1895,45 +1891,158 @@ impl System {
     /// they could be moved to, based on a number of critiera, such as whether 
     /// they are loaded or empty,
     /// 
+    /// Main car assignment function.  Loops through all cars looking for cars*    /// that are unassigned and trys to find assignments for those cars.
+    /// Assignments are based on things like car type and whether it is loaded
+    /// or empty.  Loaded cars are forwarded to industries that consume the
+    /// type of load and empty cars are forwarded either to their home yards
+    /// or to industries that produce loads for that sort of car.
+    ///
+    /// Checks are made to be sure that an industry does not get more cars
+    /// than it can handle and so on.
+    ///
     /// ## Parameters:
     /// None.
     ///
     /// __Returns__ nothing.
     pub fn CarAssignment(&mut self) {
-        for AssignLoop in 1..3 {
+        for AssignLoop in 1..3 { // 1
             println!("{} ({})",self.SystemName(),AssignLoop);
-            for (_, ind) in self.industries.iter_mut() {
+            // ----------- Outer Loop Initialization --------------
+            for (_, ind) in self.industries.iter_mut() { // 2
                 ind.SetUsedLen(0);
-            }
-            for Cx in 0..self.cars.len() {
-                let car: &mut Car = self.cars.get_mut(Cx).unwrap();
-                if car.Destination() == IND_SCRAP_YARD {continue;}
-                if car.Location() == IND_RIP_TRACK {continue;}
-                if car.Location() == IND_RIP_TRACK {car.SetDestination(car.Location());}
-                car.SetTmpStatus(car.LoadedP());
-                if car.Destination() == car.Location() {
-                    car.SetDestination(IND_RIP_TRACK);
+            } // 2
+            for Cx in 0..self.cars.len() { // 2
+                //let car: &mut Car = self.cars.get_mut(Cx).unwrap();
+                if self.cars[Cx].Destination() == IND_SCRAP_YARD {continue;}
+                if self.cars[Cx].Location() == IND_RIP_TRACK {continue;}
+                if self.cars[Cx].Destination() == IND_RIP_TRACK { // 3
+                    let newlocation = self.cars[Cx].Location();
+                    self.cars[Cx].SetDestination(newlocation);
+                } // 3
+                { // 3
+                    let temp = self.cars[Cx].LoadedP();
+                    self.cars[Cx].SetTmpStatus(temp);
+                } // 3
+                if self.cars[Cx].Destination() == self.cars[Cx].Location() { // 3
+                    // This marks the car for assignment
+                    self.cars[Cx].SetDestination(IND_RIP_TRACK);
+                    // --------------------------------------------------------------
+                    // If this is a MIRROR industry, the car moves to a new location,
+                    // but it does not change its status - if it was loaded then the
+                    // mirror target must load such cars, and so on.
+                    // --------------------------------------------------------------
+                    let mut CarWasMirrored: bool = false;
+                    //let LocInd: &Industry = self.industries
+                    //                           .get_mut(&self.cars[Cx].Location())
+                    //                                    .expect("internal error");
+                    let mut LocIndIx = self.cars[Cx].Location();
+                    if LocIndIx != IND_RIP_TRACK && self.industries
+                                                        .get(&LocIndIx)
+                                                        .unwrap()
+                                                        .MyMirrorIndex() != 0 { // 4
+                        if self.cars[Cx].OkToMirrorP() { // 5
+                            let MirrorInd = self.industries
+                                                .get(&LocIndIx)
+                                                .unwrap()
+                                                .MyMirrorIndex();
+                            // -----------------------------------------------------------
+                            // First check to see that the industry would receive this car
+                            // in its mirrored loaded or empty state ...  
+                            // -----------------------------------------------------------
+                            { // 6
+                                let temp = !self.cars[Cx].LoadedP();
+                                self.cars[Cx].SetTmpStatus(temp);
+                            } // 6
+                            if self.IndustryTakesCar(MirrorInd,Cx) { // 6
+                                // ------------------------------------------------------
+                                // Fixed route check then uses the car state that will be
+                                // used for making an assignment from the mirrored 
+                                // industry ...
+                                // ------------------------------------------------------
+                                { // 7
+                                    let temp = self.cars[Cx].LoadedP();
+                                    self.cars[Cx].SetTmpStatus(temp);
+                                } // 7
+                                if self.FixedRouteMirrorCheck(Cx,MirrorInd) { // 7
+                                    // Success! This car can in fact be mirrored! It will soon
+                                    // be assigned from this new location.
+                                    self.industries
+                                        .get_mut(&LocIndIx)
+                                        .unwrap()
+                                        .RemoveCar(Cx);
+                                    self.cars[Cx].SetLocation(MirrorInd);
+                                    LocIndIx = self.cars[Cx].Location();
+                                    self.industries
+                                        .get_mut(&MirrorInd)
+                                        .unwrap()
+                                        .AddCar(Cx);
+                                    CarWasMirrored = true;
+                                } // 7 
+                            } // 6
+                        } // 5
+                    } // 4
+                    if !CarWasMirrored { // 4
+                        if self.cars[Cx].EmptyP() { // 5
+                            // ---------------------------------------------------------
+                            // An empty car in a yard, will remain empty for purpose of
+                            // finding an assignment. Otherwise this car becomes a load.
+                            // ---------------------------------------------------------
+                            if self.industries.get(&LocIndIx).unwrap().Type() != 'Y' { // 6
+                                self.cars[Cx].SetTmpStatus(true);
+                            } else { // 6
+                                self.cars[Cx].SetTmpStatus(false);
+                            } // 6
+                        } else { // 5
+                            // ---------------------------------------------------------
+                            // If this is a RELOAD industry, the car is loaded again,
+                            // but only if the industry ships out this type of car.
+                            //  ---------------------------------------------------------
+                            self.cars[Cx].SetTmpStatus(false);
+                            if self.industries
+                                .get(&LocIndIx)
+                                .unwrap()
+                                .Reload() { // 6
+                                if self.industries
+                                    .get(&LocIndIx)
+                                    .unwrap()
+                                    .EmptiesAccepted()
+                                    .contains(self.cars[Cx].Type()) { // 7
+                                    self.cars[Cx].SetTmpStatus(true);
+                                } // 7
+                            } // 6
+                        } // 5
+                    } // 4
+                } // 3
+                // Car has no assignment
+	        // ========================================================================
+	        // If the car has a destination then add this car's
+                // length to the destination's assigned track space
+                if self.cars[Cx].Destination() != IND_RIP_TRACK { // 3
+                    let dest = self.cars[Cx].Destination();
+                    let carlen = self.cars[Cx].Length();
+                    self.industries
+                        .get_mut(&dest)
+                        .unwrap()
+                        .AddToUsedLen(carlen as u32);
+                 } // 3
+            } // 2
+            let mut reverse: bool = false;
+            if rand::random_bool(0.5) { // 3
+                reverse = true;
+                println!("Checking cars from {} to {}",self.cars.len()-1,0);
+            } else { // 3
+                println!("Checking cars from {} to {}",0,self.cars.len()-1);
+            } // 3
+            let mut CountCars = 0;
+            for CxI in 0..self.cars.len() {
+                let mut Cx = CxI;
+                if reverse {
+                    Cx = (self.cars.len()-1) - CxI;
                 }
-                let CarWasMirrored: bool = false;
-                let LocInd: &Industry = self.industries
-                                           .get_mut(&car.Location())
-                                                    .expect("internal error");
-                if car.OkToMirrorP() {
-                    let MirrorInd = LocInd.MyMirrorIndex();
-                    car.SetTmpStatus(!car.LoadedP());
-                    if Self::IndustryTakesCar(self.industries
-                                    .get(&MirrorInd),&car) {
-                        car.SetTmpStatus(!car.LoadedP());
-                        
-                        if self.FixedRouteMirrorCheck(car,self.industries
-                                        .get(&MirrorInd)) {
-                            
-                        }
-                    }
-                }
-            }
-        }
-    }
+                println!("{}", Cx);
+            } // 3
+        } // 2
+    } // 1
     /// Run all trains procedure.  
     ///
     /// The is another workhorse procedure.  This procedure runs the initial 
