@@ -1,3 +1,42 @@
+// -!- rust -!- //////////////////////////////////////////////////////////////
+//
+//  System        : 
+//  Module        : 
+//  Object Name   : $RCSfile$
+//  Revision      : $Revision$
+//  Date          : $Date$
+//  Author        : $Author$
+//  Created By    : Robert Heller
+//  Created       : 2025-09-02 15:15:09
+//  Last Modified : <250903.2238>
+//
+//  Description	
+//
+//  Notes
+//
+//  History
+//	
+/////////////////////////////////////////////////////////////////////////////
+//    Copyright (C) 2025  Robert Heller D/B/A Deepwoods Software
+//			51 Locke Hill Road
+//			Wendell, MA 01379-9728
+//
+//    This program is free software; you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation; either version 2 of the License, or
+//    (at your option) any later version.
+//
+//    This program is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with this program; if not, write to the Free Software
+//    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+// 
+//
+//////////////////////////////////////////////////////////////////////////////
 pub use crate::division::*;
 pub use crate::station::*;
 pub use crate::train::*;
@@ -19,69 +58,152 @@ use std::path::PathBuf;
 use std::fs;
 use rand::prelude::*;
 
+/// Scrap yard index (cars marked as scrap).
+const IND_SCRAP_YARD: usize = 999;
+/// RIP track (aka workbench) cars taken out of service for repairs.
+const IND_RIP_TRACK: usize = 1;
+
+/// This is the main Freight Car Forwarder struct.
+///
+/// It implements all of the basic data and algorithms used in the the 
+/// Freight Car Forwarder system.
+///
+/// This class includes code to load a model railroad "system"
+/// (divisions, stations, industries, cars, and trains) along with code to
+/// assign cars to trains, run trains, generate yard switch lists, and
+/// various reports.  Basically everything you need run realistic trains
+/// on a layout.
+///
+/// This is my third port of Tim O'Connors Freight Car Forwarding system,
+/// originally written in QBasic for use with the North Shore Model RR
+/// Club "Chesapeake System".
+///
+/// Author: Robert Heller <heller@deepsoft.com>
+///
+///
 #[derive(Debug)]
 pub struct System {
-    systemFile: String,
-    systemName: String,
-    industriesFile: String,
-    trainsFile: String,
-    ordersFile: String,
-    ownersFile: String,
-    carTypesFile: String,
-    carsFile: String,
-    statsFile: String,
-    divisions: HashMap<u8, Division>,
-    stations: HashMap<u8, Station>,
-    trains: HashMap<usize, Train>,
-    trainIndex: HashMap<String, usize>,
-    industries: HashMap<usize, Industry>,
-    carTypesOrder: Vec<char>,
-    carTypes: HashMap<char, CarType>,
-    carGroups: Vec<CarGroup>,
-    owners: HashMap<String, Owner>,
-    cars: Vec<Car>,
-    switchList: SwitchList,
-    sessionNumber: u32,
-    shiftNumber: u8,
-    totalShifts: u32,
-    ranAllTrains: u32,
-    totalPickups: u32,
-    totalLoads: u32,
-    totalTons: u32,
-    totalRevenueTons: u32,
-    trainPrintOK: bool,
-    wayFreight: bool,
-    deliver: bool,
-    trainLength: u32,
-    numberCars: u32,
-    trainTons: u32,
-    trainLoads: u32,
-    trainEmpties: u32,
-    trainLongest: u32,
-    curDivIndex: u8,
-    originYardIndex: usize,
-    trainLastLocationIndex: usize,
-    carDestIndex: usize,
-    statsPeriod: u32,
-    carsMoved: u32,
-    carsAtDest: u32,
-    carsNotMoved: u32,
-    carsMovedOnce: u32,
-    carsMovedTwice: u32,
-    carsMovedThree: u32,
-    carsMovedMore: u32,
-    carMovements: u32,
-    carsInTransit: u32,
-    carsAtWorkBench: u32,
-    carsAtDest_carsInTransit: u32,
-    printYards: bool,
-    printAlpha: bool,
-    printAtwice: bool,
-    printList: bool,
-    printLtwice: bool,
-    printDispatch: bool,
-    printem: bool,
-    messageBuffer: String,
+    /// Full pathname of the system file.
+    systemFile: String,             
+    /// The system name.
+    systemName: String,             
+    /// Full pathname of the industries file.
+    industriesFile: String,         
+    /// Full pathname of the trains file.
+    trainsFile: String,             
+    /// Full pathname of the train orders file. 
+    ordersFile: String,             
+    /// Full pathname of the car owners file.
+    ownersFile: String,             
+    /// Full pathname of the car types file.
+    carTypesFile: String,           
+    /// Full pathname of the cars file. 
+    carsFile: String,               
+    /// Full pathname of the stats file.
+    statsFile: String,              
+    /// Division map. 
+    divisions: HashMap<u8, Division>, 
+    /// Station map.
+    stations: HashMap<u8, Station>, 
+    /// Train map.
+    trains: HashMap<usize, Train>,  
+    /// Train name map.
+    trainIndex: HashMap<String, usize>, 
+    /// Industries map.
+    industries: HashMap<usize, Industry>, 
+    /// Car type order vector.
+    carTypesOrder: Vec<char>,       
+    /// Car type map.
+    carTypes: HashMap<char, CarType>, 
+    /// Car group vector.
+    carGroups: Vec<CarGroup>,       
+    /// Car owner map.
+    owners: HashMap<String, Owner>, 
+    /// Car vector. 
+    cars: Vec<Car>,                 
+    /// Switch lists.
+    switchList: SwitchList,         
+    /// Current session number. 
+    sessionNumber: u32,             
+    /// Current shift number.
+    shiftNumber: u8,                
+    /// The total number of shifts.
+    totalShifts: u32,               
+    /// The ran all trains flag.
+    ranAllTrains: u32,              
+    /// The total number of pickups. 
+    totalPickups: u32,              
+    /// The total number of loads. 
+    totalLoads: u32,                
+    /// The total number of tons.
+    totalTons: u32,                 
+    /// The total number of revenue tons. 
+    totalRevenueTons: u32,          
+    /// Train print flag. 
+    trainPrintOK: bool,             
+    ///  Way freight flag.
+    wayFreight: bool,               
+    /// Deliver flag.
+    deliver: bool,                  
+    /// Train length.
+    trainLength: u32,               
+    /// The number of cars on a train.
+    numberCars: u32,                
+    /// The number of tons on a train.
+    trainTons: u32,                 
+    /// The number of loads on a train.
+    trainLoads: u32,                
+    /// The number of empties on a train.
+    trainEmpties: u32,              
+    /// The longest a train has been.
+    trainLongest: u32,              
+    /// Current division. 
+    curDivIndex: u8,                
+    /// Origin Yard. 
+    originYardIndex: usize,         
+    /// A trains last location.
+    trainLastLocationIndex: usize,  
+    /// A temporary for a car's location.
+    carDestIndex: usize,            
+    /// The current stats period.
+    statsPeriod: u32,               
+    /// The number of cars moved. 
+    carsMoved: u32,                 
+    /// The number of cars at their destinations. 
+    carsAtDest: u32,                
+    /// The number of cars not moved. 
+    carsNotMoved: u32,              
+    /// The number of cars moved one time.
+    carsMovedOnce: u32,             
+    /// The number of cars moved two times.
+    carsMovedTwice: u32,            
+    /// The number of cars moved three times.
+    carsMovedThree: u32,            
+    /// The number of cars moved more then three times.
+    carsMovedMore: u32,             
+    /// The number of cars movements.
+    carMovements: u32,              
+    /// The number of cars in transit.
+    carsInTransit: u32,             
+    /// The number of cars at the workbench.
+    carsAtWorkBench: u32,           
+    ///  The number of cars at their destinations and still in transit.
+    carsAtDest_carsInTransit: u32,  
+    /// Flag for printing yard switch lists.
+    printYards: bool,               
+    /// Flag for printing alphabetical lists.
+    printAlpha: bool,               
+    /// Flag for printing a second copy of alphabetical lists.
+    printAtwice: bool,              
+    /// Flag for printing train switch lists.
+    printList: bool,                
+    /// Flag for printing a second copy of train switch lists.
+    printLtwice: bool,              
+    /// Flag for printing a dispatcher's report.
+    printDispatch: bool,            
+    /// Flag for printing train movements.
+    printem: bool,                  
+    //messageBuffer: String,
     //whitespace: String,
     //indScrapYard: &Industry::Industry,
 }
@@ -93,53 +215,137 @@ impl fmt::Display for System {
   }
 }
 
+///  Types of car type reports.
+
 pub enum CarTypeReport {
-    All,
+    /// Report on all car types.
+    All,    
+    /// Report on one type. 
     Type,
+    /// Report summary.
     Summary,
 }
 
+///  Types of location report.
 pub enum CarLocationType {
+    /// Report by industry. 
     INDUSTRY,
+    ///  Report by station.
     STATION,
+    /// Report by division.
     DIVISION,
+    /// Report on all locations. 
     ALL,
 }
 
 impl System {
+    /// Return the system name.  This is read from the system file.
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the system name.
     pub fn SystemName(&self) -> String {
         self.systemName.clone()
     }
+    /// Return the system file's full path name.
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the system file name.
     pub fn SystemFile(&self) -> String {
         self.systemFile.clone()
     }
+    /// Return the industry file's full path name.
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the industry file name.
     pub fn IndustriesFile(&self) -> String {
         self.industriesFile.clone()
     }
+    /// Return the trains file's full path name.
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the trains file name.
     pub fn TrainsFile(&self) -> String {
         self.trainsFile.clone()
     }
+    /// Return the train orders file's full path name.
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the train orders  file name.
     pub fn OrdersFile(&self) -> String {
         self.ordersFile.clone()
     }
+    /// Return the owners file's full path name.
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the owners file name.
     pub fn OwnersFile(&self) -> String {
         self.ownersFile.clone()
     }
+    /// Return the car types file's full path name.
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the car types file name.
     pub fn CarTypesFile(&self) -> String {
         self.carTypesFile.clone()
     }
+    /// Return the cars file's full path name.
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the cars file name.
     pub fn CarsFile(&self) -> String {
         self.carsFile.clone()
     }
+    /// Return the statistics file's full path name.
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the statistics file name.
     pub fn StatsFile(&self) -> String {
         self.statsFile.clone()
     }
+    /// Return the number of divisions loaded.
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the number of divisions.
     pub fn NumberOfDivisions(&self) -> usize {
         self.divisions.len()
     }
+    /// Find a division by its index.  Returns either a reference to the 
+    /// division or None.
+    ///
+    /// ## Parameters:
+    /// - i The division index to look for.
+    ///
+    /// __Returns__ A reference to the division struct or None.
     pub fn DivisionByIndex(&self, i: u8) -> Option<&Division> {
         self.divisions.get(&i)
     }
+    /// Find a division by its symbol. Returns either a reference to the
+    /// to the division or None.
+    ///
+    /// ## Parameters:
+    /// - symbol The division symbol to look for.
+    ///
+    /// __Returns__ A reference to the division struct or None.
     pub fn FindDivisionBySymbol(&self, symbol: char) -> Option<&Division> {
         for (id, div) in self.divisions.iter() {
             if div.Symbol() == symbol {
@@ -148,17 +354,39 @@ impl System {
         }
         None
     }
-
+    /// Return an iterator into the divisions.
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ An interator into the divisions.
     pub fn DivisionIter(&self) ->  Iter<'_, u8, Division> {
         self.divisions.iter()
-    }    
+    }
+    /// Return the number of stations.
+    ///
+    /// ## Parameters:
+    /// None.
+    /// 
+    /// __Returns__ the number of stations.
     pub fn NumberOfStations(&self) -> usize {
         self.stations.len()
     }
+    /// Return a station by index.
+    ///
+    /// ## Parameters:
+    /// - i the station index.
+    ///
+    /// __Returns__ a reference to a station or None.
     pub fn StationByIndex(&self, i: u8) -> Option<&Station> {
         self.stations.get(&i)
     }
-    
+    /// Return a station by name.
+    ///
+    /// ## Parameters:
+    /// - name the name of the station.
+    ///
+    /// __Returns__ a reference to a station or None.
     pub fn FindStationByName(&self, name: String) -> Option<&Station> {
         for (id, sta) in self.stations.iter() {
             if sta.Name() == name {
@@ -167,16 +395,39 @@ impl System {
         }
         None
     }
+    /// Return an iterator into the stations.
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ An interator into the stations.
     pub fn StationIter(&self) ->  Iter<'_, u8, Station> {
         self.stations.iter()
     }
+    /// Return the number of trains.
+    ///
+    /// ## Parameters:
+    /// None.
+    /// 
+    /// __Returns__ the number of trains.
     pub fn NumberOfTrains(&self) -> usize {
         self.trains.len()
     }
-    
+    /// Return a train by index.
+    ///
+    /// ## Parameters:
+    /// - i the train index.
+    ///
+    /// __Returns__ a reference to a train or None.
     pub fn TrainByIndex(&self, i: usize) -> Option<&Train> {
         self.trains.get(&i)
     }
+    /// Return a train by name.
+    ///
+    /// ## Parameters:
+    /// - name the name of the train.
+    ///
+    /// __Returns__ a reference to a train or None.
     pub fn TrainByName(&self, name: String) -> Option<&Train> {
         let result = self.trainIndex.get(&name);
         if result == None {
@@ -184,18 +435,49 @@ impl System {
         }
         self.trains.get(result.unwrap())
     }
+    /// Return an iterator into the trains.
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ An interator into the trains.
     pub fn TrainIter(&self) ->  Iter<'_, usize, Train> {
         self.trains.iter()
     }
+    /// Return the number of industries.
+    ///
+    /// ## Parameters:
+    /// None.
+    /// 
+    /// __Returns__ the number of industries.
     pub fn NumberOfIndustries(&self) -> usize {
         self.industries.len()
     }
+    
+    /// Return an industry by index.
+    ///
+    /// ## Parameters:
+    /// - i the industry index.
+    ///
+    /// __Returns__ a reference to an industry or None.
     pub fn IndustryByIndex(&self, i: usize) -> Option<&Industry> {
         self.industries.get(&i)
     }
+    /// Return a mutable industry by index.
+    ///
+    /// ## Parameters:
+    /// - i the industry index.
+    ///
+    /// __Returns__ a mutable reference to an industry or None.
     pub fn IndustryByIndexMut(&mut self, i: usize) -> Option<&mut Industry> {
         self.industries.get_mut(&i)
     }
+    /// Return an industry by name.
+    ///
+    /// ## Parameters:
+    /// - name the industry name.
+    ///
+    /// __Returns__ a  reference to an industry or None.
     pub fn FindIndustryByName(&self, name: String) -> Option<&Industry> {
         for (id, ind) in self.industries.iter() {
             if ind.Name() == name {
@@ -204,21 +486,57 @@ impl System {
         }
         None
     }
+    /// Return an iterator into the industries.
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ An interator into the industries.
     pub fn IndustryIter(&self) ->  Iter<'_, usize, Industry> {
         self.industries.iter()
-    }        
+    }
+    /// Return the number of cars.
+    ///
+    /// ## Parameters:
+    /// None.
+    /// 
+    /// __Returns__ the number of cars.
     pub fn NumberOfCars(&self) -> usize {
         self.cars.len()
     }
+    /// Return the session number.
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the session number.
     pub fn SessionNumber(&self) -> u32 {
         self.sessionNumber
     }
+    /// Return the shift number.
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the shift number.
     pub fn ShiftNumber(&self) -> u8 {
         self.shiftNumber
     }
+    /// Return the total shifts.
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the total shifts.
     pub fn TotalShifts(&self) -> u32 {
         self.totalShifts
     }
+    /// Advance the shift number.
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the next shift number.
     pub fn NextShift(&mut self) -> u8 {
         self.shiftNumber = self.shiftNumber + 1;
         self.totalShifts = self.totalShifts + 1;
@@ -228,88 +546,258 @@ impl System {
         }
         self.shiftNumber
     }
+    /// Return the total number of cars.
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the total number of cars.
     pub fn TotalCars(&self) -> usize {
         self.cars.len()
     }
+    /// Return the statistics period.
+    ///
+    /// ## Parameters:
+    /// None. 
+    ///
+    /// __Returns__ the statistics period.
     pub fn StatsPeriod(&self) -> u32 {
         self.statsPeriod
     }
+    /// Return the number of cars moved. 
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the number of cars moved.
     pub fn CarsMoved(&self) -> u32 {
         self.carsMoved
     }
+    /// Return the number of cars at their destinations. 
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the number of cars at their destinations.
     pub fn CarsAtDest(&self) -> u32 {
         self.carsAtDest
     }
+    /// Return the number of cars not moved. 
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the number of cars not moved.
     pub fn CarsNotMoved(&self) -> u32 {
         self.carsNotMoved
     }
+    /// Return the number of cars moved once. 
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the number of cars moved once.
     pub fn CarsMovedOnce(&self) -> u32 {
         self.carsMovedOnce
     }
+    /// Return the number of cars moved twice. 
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the number of cars moved twice.
     pub fn CarsMovedTwice(&self) -> u32 {
         self.carsMovedTwice
     }
+    /// Return the number of cars moved three times. 
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the number of cars moved three times.
     pub fn CarsMovedThree(&self) -> u32 {
         self.carsMovedThree
     }
+    /// Return the number of cars moved more than three times. 
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the number of cars moved more than three times.
     pub fn CarsMovedMore(&self) -> u32 {
         self.carsMovedMore
     }
+    /// Return the number of movements. 
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the number of movements.
     pub fn CarMovements(&self) -> u32 {
         self.carMovements
     }
+    /// Return the number of cars in transit. 
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the number of cars in transit.
     pub fn CarsInTransit(&self) -> u32 {
         self.carsInTransit
     }
+    /// Return the number of cars on the workbench. 
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the number of cars on the workbench.
     pub fn CarsAtWorkBench(&self) -> u32 {
         self.carsAtWorkBench
     }
+    /// Return the number of cars in transit at at their destination. 
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the number of cars at at their destination.
     pub fn CarsAtDest_CarsInTransit(&self) -> u32 {
         self.carsAtDest_carsInTransit
     }
+    /// Return the print yards flag.
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the print yards flag. 
     pub fn PrintYards(&self) -> bool {
         self.printYards
     }
+    /// Set the print yards flag.
+    ///
+    /// ## Parameters:
+    /// - flag the new flag value.
+    ///
+    /// __Returns__ nothing.
     pub fn SetPrintYards(&mut self,flag: bool) {
         self.printYards = flag;
     }
+    /// Return the print alpha flag.
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the print alpha flag. 
     pub fn PrintAlpha(&self) -> bool {
         self.printAlpha
     }
+    /// Set the print alpha flag.
+    ///
+    /// ## Parameters:
+    /// - flag the new flag value.
+    ///
+    /// __Returns__ nothing.
     pub fn SetPrintAlpha(&mut self,flag: bool) {
         self.printAlpha = flag;
     }
+    /// Return the print alpha twice flag.
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the print alpha twice flag. 
     pub fn PrintAtwice(&self) -> bool {
         self.printAtwice
     }
+    /// Set the print alpha twice flag.
+    ///
+    /// ## Parameters:
+    /// - flag the new flag value.
+    ///
+    /// __Returns__ nothing.
     pub fn SetPrintAtwice(&mut self,flag: bool) {
         self.printAtwice = flag;
     }
+    /// Return the print list flag.
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the print list flag. 
     pub fn PrintList(&self) -> bool {
         self.printList
     }
+    /// Set the print list flag.
+    ///
+    /// ## Parameters:
+    /// - flag the new flag value.
+    ///
+    /// __Returns__ nothing.
     pub fn SetPrintList(&mut self,flag: bool) {
         self.printList = flag;
     }
+    /// Return the print list twice flag.
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the print list twice flag. 
     pub fn PrintLtwice(&self) -> bool {
         self.printLtwice
     }
+    /// Set the print list twice flag.
+    ///
+    /// ## Parameters:
+    /// - flag the new flag value.
+    ///
+    /// __Returns__ nothing.
     pub fn SetPrintLtwice(&mut self,flag: bool) {
         self.printLtwice = flag;
     }
+    /// Return the print dispatcher flag.
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the print dispatcher flag. 
     pub fn PrintDispatch(&self) -> bool {
         self.printDispatch
     }
+    /// Set the print dispatcher flag.
+    ///
+    /// ## Parameters:
+    /// - flag the new flag value.
+    ///
+    /// __Returns__ nothing.
     pub fn SetPrintDispatch(&mut self,flag: bool) {
         self.printDispatch = flag;
     }
+    /// Return the printem flag.
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the printem flag. 
     pub fn Printem(&self) -> bool {
         self.printem
     }
+    /// Set the printem flag.
+    ///
+    /// ## Parameters:
+    /// - flag the new flag value.
+    ///
+    /// __Returns__ nothing.
     pub fn SetPrintem(&mut self,flag: bool) {
         self.printem = flag;
     }
-    
+    /// Utility to get a line after skipping any intervening comments.
+    ///
+    /// Read the next line from a datafile, skipping any intervening comment 
+    /// lines. Save the line of text and return the line if successfull.  If 
+    /// EOF reached, return an error.
+    /// ## Parameters:
+    /// - reader The input buffer to read from.
+    ///
+    /// __Returns__ the read line or an Err    
     fn SkipCommentsReadLine(reader: &mut BufReader<File>) -> 
             std::io::Result<String> {
         let mut buffer = String::new();
@@ -332,13 +820,34 @@ impl System {
         //println!("Returning from SkipCommentsReadLine");
         Ok(buffer)
     }
-    
+    /// Read in the division map.
+    ///
+    ///    Basically, a division has a numeric identifier, a symbolic name, and
+    ///    a "home" -- which can be a YARD or an INDUSTRY.
+    ///
+    ///    The purpose of a division is that cars destined for industries are
+    ///    routed --> to the industry's station --> to the station's division
+    ///    --> to the division's home. It's just a way of clumping industries
+    ///    together into a logical unit.
+    ///  
+    ///    - \#          Numeric identifier
+    ///    - Symbol     Symbolic alphanumeric identifier (A-Z a-z 0-9)
+    ///    - Home       Numeric Home yard of the division
+    ///    - Area       Symbolic alphanumeric Area identifier
+    ///    - Name       Text name of the division
+    /// ## Parameters:
+    /// - reader The input buffer to read from.
+    ///
+    /// __Returns__ the number of divisions read or an Err
     fn ReadDivisions(&mut self, reader: &mut BufReader<File>) ->
             std::io::Result<u8> {
         let mut count: u8 = 0;
         let buffer = Self::SkipCommentsReadLine(reader)
                     .expect("Read Error");
         let temp = buffer.split_once("=").unwrap();
+        // The file starts with a mac count of divisions.  Originally used to
+        // dimension the QBASIC arrays, but with C++ and rust that is not 
+        // needed except as a termination check.
         if temp.0.trim() != "Divisions" {
             return Err(Error::new(ErrorKind::Other,"Missing Divisions = "));
         }
@@ -349,9 +858,11 @@ impl System {
         loop {
             let line = Self::SkipCommentsReadLine(reader)
                     .expect("Read Error");
+            // A -1 on a line by itself terminates the Division data,
             if line == "-1" || count >= divcount {
                 break;
             }
+            // Each line is a comma separated list of 5 values
             let items: Vec<_> = line.split(",").collect();
             //println!("items is {:?}",items);
             let div = Division::new(items[4].to_string(),
@@ -366,7 +877,31 @@ impl System {
         }
         Ok(count)
     }
-
+    /// Read in the station map.
+    ///
+    /// Allocate memory for stations, and read in definitions
+    ///
+    ///    Basically, a station has a symbolic name, and is based in a "division".
+    ///    This means that freight cars destined for an industry at this station
+    ///    are usually routed to the "division yard" (see below) first. Then the
+    ///    wayfreight (or boxmove) takes the car from the yard to the station and
+    ///    then to the industry.
+    ///
+    ///    Note you are free to create several "stations" with the same name, and
+    ///    yet with different "divisions". The purpose of this flexibility is to
+    ///    allow you to serve industries on your layout in a flexible manner - so
+    ///    the same physical "layout station" may be represented by several of the
+    ///    "logical stations" in the database.
+    ///
+    ///    Another trick is to define "trailing point" sidings in one direction as
+    ///    one station, and then trailing point sidings in the opposite direction
+    ///    as another station (with the same name, I mean). Then an "out and back"
+    ///    wayfreight can then be set up to serve only trailing point sidings, as
+    ///    it travels out, turns, and returns thru the same area.
+    /// ## Parameters:
+    /// - reader The input buffer to read from.
+    ///
+    /// __Returns__ the number of stations read or an Err
     fn ReadStations(&mut self,reader: &mut BufReader<File>) ->
             std::io::Result<u8> {
         let mut count: u8 = 0;
@@ -397,6 +932,49 @@ impl System {
         }
         Ok(count)
     }
+    /// Read in the industries file.
+    ///
+    /// Allocate memory for industries, and read in definitions
+    ///
+    /// -  IndsType        type of location
+    ///
+    ///     -                     "Y"   Yard
+    ///     -                     "S"   Stage
+    ///     -                     "I"   Industry Online
+    ///     -                     "O"   Industry Offline
+    ///
+    /// -  IndsStation     station location of this yard or industry
+    /// -  IndsName        symbolic name (may be duplicated)
+    /// -  IndsTrackLen    physical track space available
+    ///
+    /// -  IndsAssignLen   assignable length -- the combined length of all the cars
+    ///                     destinated for an industry at one time - often larger
+    ///                     than TrackLen
+    ///
+    /// -  IndsPriority    priority of car assignment to this industry -- 1 is the
+    ///                     highest priority, while MaxPriority is the lowest --
+    ///                     this assures car supply to more important customers
+    ///
+    /// -  IndsReload      "Y" means cars delivered as loads, may leave as loads --
+    ///                     provided the industry accepts the car type as empty
+    ///
+    /// -  IndsMirror      the identity of the industry that "mirrors" this one --
+    ///                     a car delivered to this industry will be "relocated"
+    ///                     immediately to the "mirror" location
+    ///
+    ///                     Typical mirrors: power plant --> coal mine (loads)
+    ///                                      coal mine --> power plant (empties)
+    ///
+    /// -  IndsPlate       maximum clearance plate of cars for this industry
+    /// -  IndsClass       maximum weight class of cars for this industry
+    /// -  IndsDivList     where this industry will ship its loads
+    /// -  IndsCarLen      maximum car length of cars for this industry
+    /// -  IndsLoadTypes   what CarTypes are accepted as loads
+    /// -  IndsEmptyTypes  what CarTypes are accepted as empties
+    /// ## Parameters:
+    /// - filename the file to read the industries from.
+    ///
+    /// __Returns__ the number of industries read or an Err
     fn ReadIndustries(&mut self,filename: &PathBuf) ->
             std::io::Result<usize> {
         let f = File::open(filename.to_str().unwrap())
@@ -475,6 +1053,12 @@ impl System {
         }
         Ok(count)
     }
+    /// Strip quotation marks from a string.
+    ///
+    /// ## Parameters:
+    /// - s the string to strip quotes from.
+    ///
+    /// __Returns__ the string without the quotes.
     fn StripQuotes(s: &str) -> String {
         if s.chars().next() == Some('"') {
             let l = s.len() - 1;
@@ -484,6 +1068,28 @@ impl System {
             String::from(s)
         }
     }
+    /// Read in the trains file.
+    ///
+    /// Allocate memory for trains, and read in definitions
+    ///
+    /// -   TrnType        "M"anifest "W"ayfreight "P"assenger "B"oxmove
+    /// -   TrnShift       shift number 1 or 2 or 3
+    /// -   TrnDone        "N" means cars "Car Done" is not set by move in train
+    /// -   TrnName        symbolic name of the train
+    /// -   TrnMxCars      maximum number of cars in the train at once
+    /// -   TrnDivList     "forwarding list" of divisions (MANIFESTS)
+    /// -   TrnStops       stops (industries, or stations)
+    /// -   TrnOnDuty      scheduled time of start
+    /// -   TrnPrint()     "P" means print the train order, else not
+    /// -   TrnMxClear     maximum clearance plate of cars in this train
+    /// -   TrnMxWeigh     maximum weight class of cars in this train
+    /// -   TrnCarTypes    which car types are allowed in the train
+    /// -   TrnMxLen       maximum length of the train in feet
+    /// -   TrnDesc        one line text description for train orders printout
+    /// ## Parameters:
+    /// - filename the file to read the trains from.
+    ///
+    /// __Returns__ the number of trains read or an Err
     fn ReadTrains(&mut self,filename: &PathBuf) -> std::io::Result<usize> {
         let f = File::open(filename.to_str().unwrap())
                 .expect("Cannot open trains file");
@@ -576,6 +1182,12 @@ impl System {
         }
         Ok(count)
     }
+    /// Read in the train orders file.
+    ///
+    /// ## Parameters:
+    /// - filename the file to read the train orders from.
+    ///
+    /// __Returns__ the number of train orders read or an Err
     fn ReadTrainOrders(&mut self,filename: &PathBuf) -> 
             std::io::Result<usize> {
         let f = File::open(filename.to_str().unwrap())
@@ -609,6 +1221,12 @@ impl System {
         }
         Ok(count)
     }
+    /// Read in the car types file.
+    ///
+    /// ## Parameters:
+    /// - filename the file to read the car types from.
+    ///
+    /// __Returns__ () or an Err
     fn ReadCarTypes(&mut self,filename: &PathBuf) ->  std::io::Result<()> {
         let f = File::open(filename.to_str().unwrap())
                 .expect("Cannot open cartypes file");
@@ -646,6 +1264,12 @@ impl System {
         }
         Ok(())
     }
+    /// Read in the owners file.
+    ///
+    /// ## Parameters:
+    /// - filename the file to read the owners from.
+    ///
+    /// __Returns__ the number of owners read or an Err
     fn ReadOwners(&mut self,filename: &PathBuf) ->  
         std::io::Result<usize> {
         let mut count = 0;
@@ -676,9 +1300,47 @@ impl System {
         }
         Ok(count)
     }
+    /// Delete all existing cars.
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ nothing.
     fn DeleteAllExistingCars(&mut self) {
         self.cars.clear();
     }
+    /// Load car file
+    ///
+    /// Allocate memory for cars, and read in definitions
+    ///
+    /// -  CrsType        car type from TypesFile
+    /// -  CrsRR          railroad reporting mark symbols or lessor/lessee string
+    /// -  CrsNum         car number or car number/units -- a string not a number
+    /// -  CrsDivList     division assignment list for empty -- or no restriction
+    /// -  CrsLen         extreme car (or multi-car) length over couplers
+    /// -  CrsPlate       clearance plate -- see PLATE.TXT file
+    /// -  CrsClass       car weight class -- see WEIGHT.TXT file
+    /// -  CrsLtWt        car light weight in tons
+    /// -  CrsLdLmt       car load limit in tons
+    /// -  CrsStatus      loaded or empty status is "L" or "E"
+    /// -  CrsOkToMirror  Y means car may be mirrored
+    /// -  CrsFixedRoute  Y means car can only be routed to home divisions
+    /// -  CrsOwner       car owner's initials -- see OWNERS.TXT
+    /// -  CrsDone        car is done moving -- receives TrnDone value
+    /// -  CrsTrain       last train to move this car
+    /// -  CrsMoves       number of times car was moved this session
+    /// -  CrsLoc         car's current location
+    /// -  CrsDest        car's destination
+    /// -  CrsTrips       number of moves for this car
+    /// -  CrsAssigns     number of assignments for this car
+    ///
+    /// -  CrsPeek        temporary look-ahead array for car handling
+    /// -  CrsTmpStatus   status during assignment
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the number of cars read or Err.
     fn LoadCarFile(&mut self) -> std::io::Result<usize> {
         let mut count = 0;
         let f = File::open(&self.carsFile)
@@ -776,6 +1438,12 @@ impl System {
         }
         Ok(count)
     }
+    /// Load statistics file
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the number of statistics read or Err.
     fn LoadStatsFile(&mut self) -> std::io::Result<usize> {
         let f = File::open(&self.statsFile)
                 .expect("Cannot open stats file");
@@ -839,6 +1507,12 @@ impl System {
         }
         Ok(Gx)
     }
+    /// Restart loop numbers.
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ nothing.
     fn RestartLoop(&mut self) {
         self.carsMoved = 0;
         self.carsAtDest = 0;
@@ -869,6 +1543,18 @@ impl System {
         }
         self.carsAtDest_carsInTransit = self.carsAtDest + self.carsInTransit;
     }
+    /// The constructor for the system.  
+    ///
+    /// Takes the path to a system file (typically _system.dat_) and loads the 
+    /// complete system. The system file contains the names of the additional 
+    /// files, containing the remaining system data.  All of the files are 
+    /// presumbed to exist in the same directory as the system file.  All of 
+    /// the files are loaded and a sanity check is made to insure that the 
+    /// data is sane.
+    /// ## Parameters:
+    /// - systemfile Pathname to the system file.
+    ///
+    /// __Returns__ a freshly initialized System struct.
     pub fn new(systemfile: String) -> Self {
         let systemfilePath: PathBuf = fs::canonicalize(systemfile)
                 .expect("Path not found");
@@ -876,25 +1562,38 @@ impl System {
         let f = File::open(systemfilePath.to_str().unwrap())
                 .expect("Cannot open system file");
         let mut reader = BufReader::new(f);
+        //============================================================================
+        //
+        // Read System and File names
+        //
+        //============================================================================
+	// Get system name
         let systemname = Self::SkipCommentsReadLine(&mut reader).expect("Read error");
+	// Get name of industries file.
         let industriesfile: PathBuf = systemfilePath
                        .with_file_name(Self::SkipCommentsReadLine(&mut reader)
                                         .expect("Read error"));
+	// Get name of trains file
         let trainsfile: PathBuf = systemfilePath
                        .with_file_name(Self::SkipCommentsReadLine(&mut reader)
                                         .expect("Read error"));
+	// Get name of Train Orders file.
         let ordersfile: PathBuf = systemfilePath
                        .with_file_name(Self::SkipCommentsReadLine(&mut reader)
                                         .expect("Read error"));
+	// Get name of owners file
         let ownersfile: PathBuf = systemfilePath
                        .with_file_name(Self::SkipCommentsReadLine(&mut reader)
                                         .expect("Read error"));
+	// Get name of car types file
         let cartypesfile: PathBuf = systemfilePath
                        .with_file_name(Self::SkipCommentsReadLine(&mut reader)
                                         .expect("Read error"));
+	// Get name of cars file
         let carsfile: PathBuf = systemfilePath
                        .with_file_name(Self::SkipCommentsReadLine(&mut reader)
                                         .expect("Read error"));
+	// Get name of stats file
         let statsfile: PathBuf = systemfilePath
                        .with_file_name(Self::SkipCommentsReadLine(&mut reader)
                                         .expect("Read error"));
@@ -932,32 +1631,49 @@ impl System {
               printYards: false, printAlpha: false, 
               printAtwice: false, printList: false, 
               printLtwice: false, printDispatch: false, 
-              printem: false, messageBuffer: String::from(""),
+              printem: false, 
               carDestIndex: 0, curDivIndex: 0, originYardIndex: 0,
               trainLastLocationIndex: 0 };
 
+	// Read in divisions
         this.ReadDivisions(&mut reader).expect("Read error");
         //println!("Read divisions");
+	// Read in stations.
         this.ReadStations(&mut reader).expect("Read error");
         //println!("Read Stations");
+	// Read industries file
         this.ReadIndustries(&industriesfile).expect("Read error");
         //println!("Read Industries");
+	// Read in trains file
         this.ReadTrains(&trainsfile).expect("Read error");
         //println!("Read Trains");
+	// Read in Train Orders file
         this.ReadTrainOrders(&ordersfile).expect("Read error");
         //println!("Read TrainOrders");
+	// Read in car types file
         this.ReadCarTypes(&cartypesfile).expect("Read error");
         //println!("Read CarTypes");
+	// Read in owners file
         this.ReadOwners(&ownersfile).expect("Read error");
         //println!("Read Owners");
+	// Load in Cars file)
         this.LoadCarFile().expect("Read error");
         //println!("Loaded Cars");
+	// Load in stats file.
         this.LoadStatsFile().expect("Read error");
         //println!("Loaded Stats");
+	// Initialize assignment loop variables.
         this.RestartLoop();
         //println!("Restarted Loop");
         this        
     }
+    ///   Function to write one car to disk.
+    ///
+    /// ## Parameters:
+    /// - car The car to write.
+    /// - w The buffer to write the car to.
+    ///
+    /// __Returns__ () or an Err.
     fn WriteOneCarToDisk(&self,car: &Car,w: &mut BufWriter<File>) -> 
             std::io::Result<()> {
         writeln!(w,
@@ -974,6 +1690,12 @@ impl System {
                 car.Location(),car.Destination(),
                 car.Trips(),car.Assignments())
     }
+    /// Save cars (and statistics).
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ true if the save was successful, false otherwise.
     pub fn SaveCars(&mut self) -> bool {
         let mut backupfile = PathBuf::from(self.carsFile.clone());
         backupfile.set_extension("bak");
@@ -1045,7 +1767,7 @@ impl System {
                 } else {
                     let car = &self.cars[Cx]; Cx += 1;
                     if car.Length() > 0 {
-                        if car.Destination() != 999 {
+                        if car.Destination() != IND_SCRAP_YARD {
                             self.WriteOneCarToDisk(&car,&mut junkfilestream)
                                 .expect("Error writing car");
                         }
@@ -1055,7 +1777,7 @@ impl System {
             while Cx < self.cars.len() {
                 let car = &self.cars[Cx]; Cx += 1;
                 if car.Length() > 0 {
-                    if car.Destination() != 999 {
+                    if car.Destination() != IND_SCRAP_YARD {
                         self.WriteOneCarToDisk(&car,&mut junkfilestream)
                             .expect("Error writing car");
                      }
@@ -1101,52 +1823,300 @@ impl System {
         self.ranAllTrains = 0;
         true
     }
-    pub fn CarAssignment(&mut self) {
+    /// Check if an industry takes a certain car.
+    ///
+    /// ## Parameters:
+    /// - Ix The industry to check.
+    /// - Cx The car to check.
+    ///
+    /// __Returns__ true if this industry can take the specified car.
+    fn IndustryTakesCar(Ix: Option<&Industry>,car: &Car) -> bool {
+        if Ix.is_none()  {return false;}
+        let industry = Ix.unwrap();
+        if car.TmpStatus() {
+            match industry.LoadsAccepted().find(car.Type()) {
+                None => {return false;},
+                Some(usize) => {return true;},
+            }
+        } else {
+            match industry.EmptiesAccepted().find(car.Type()) {
+                None => {return false;},
+                Some(usize) => {return true;},
+            }
+        }
     }
+    /// Check to see if a certain car can be mirrored on a fixed route at a 
+    /// certain industry. 
+    ///
+    /// ## Parameters:
+    /// - Ix The industry to check.
+    /// - Cx The car to check.
+    ///
+    /// __Returns__ true if this car can be mirrored on a fixed route at this
+    /// industry.
+    fn FixedRouteMirrorCheck(&self,car: &Car,Ix: Option<&Industry>) -> bool {
+        if Ix.is_none() {return false;}
+        if !car.FixedRouteP() {return true;}
+        let industry = Ix.unwrap();
+        let mystation = industry.MyStationIndex();
+        let station = self.StationByIndex(mystation);
+        if station.is_none() {return false;}
+        let station = station.unwrap();
+        let division = self.DivisionByIndex(station.DivisionIndex());
+        if division.is_none() {return false;}
+        let MirrorDivI = division.unwrap();
+        let MirrorDivS = MirrorDivI.Symbol();
+        // if  the car is loaded --
+        //
+        //  Make sure the industry's division is included in this car's home list.
+        if car.TmpStatus() {
+            if car.Divisions().find(MirrorDivS).is_none() {
+                return false;
+            }
+        } else {
+            // If the car is empty --
+            //
+            //  The industry's division list (normally only applicable to 
+            //  loaded cars) must have a division in common with the car's 
+            //  home division list. When an assignment is made (later), this 
+            //  empty fixed route  car is directed by the industry's division 
+            //  list and it's own home list.
+            for pxdiv in industry.DivisionControlList().chars() {
+                if !car.Divisions().find(pxdiv).is_none() {return true;}
+            }
+            return false;
+        }
+        true
+    }
+    /// Car assignment procedure.  
+    ///
+    /// The is one of the main workhorse procedures.  It goes through all of 
+    /// the cars, finding ones that are ready to be moved and determines where 
+    /// they could be moved to, based on a number of critiera, such as whether 
+    /// they are loaded or empty,
+    /// 
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ nothing.
+    pub fn CarAssignment(&mut self) {
+        for AssignLoop in 1..3 {
+            println!("{} ({})",self.SystemName(),AssignLoop);
+            for (_, ind) in self.industries.iter_mut() {
+                ind.SetUsedLen(0);
+            }
+            for Cx in 0..self.cars.len() {
+                let car: &mut Car = self.cars.get_mut(Cx).unwrap();
+                if car.Destination() == IND_SCRAP_YARD {continue;}
+                if car.Location() == IND_RIP_TRACK {continue;}
+                if car.Location() == IND_RIP_TRACK {car.SetDestination(car.Location());}
+                car.SetTmpStatus(car.LoadedP());
+                if car.Destination() == car.Location() {
+                    car.SetDestination(IND_RIP_TRACK);
+                }
+                let CarWasMirrored: bool = false;
+                let LocInd: &Industry = self.industries
+                                           .get_mut(&car.Location())
+                                                    .expect("internal error");
+                if car.OkToMirrorP() {
+                    let MirrorInd = LocInd.MyMirrorIndex();
+                    car.SetTmpStatus(!car.LoadedP());
+                    if Self::IndustryTakesCar(self.industries
+                                    .get(&MirrorInd),&car) {
+                        car.SetTmpStatus(!car.LoadedP());
+                        
+                        if self.FixedRouteMirrorCheck(car,self.industries
+                                        .get(&MirrorInd)) {
+                            
+                        }
+                    }
+                }
+            }
+        }
+    }
+    /// Run all trains procedure.  
+    ///
+    /// The is another workhorse procedure.  This procedure runs the initial 
+    /// box moves, then the way freights and manifest trains.  It is necessary 
+    /// to run the box moves again after running this procedure, unless 
+    /// additional sections of the way freights or manifest trains need to be 
+    /// run first. 
+    ///
+    /// ## Parameters:
+    /// - printer Printer device.
+    ///
+    /// __Returns__ nothing.
     pub fn RunAllTrains(&mut self, printer: &Printer) {
     }
+    /// Run all boxmove trains.  
+    /// The is another workhorse procedure.  This procedure runs all of the 
+    /// box moves.
+    ///
+    /// ## Parameters:
+    /// - printer Printer device.
+    ///
+    /// __Returns__ nothing.
     pub fn RunBoxMoves(&mut self, printer: &Printer) {
     }
+    ///  Print all of the various yard and switch lists.
+    ///
+    /// ## Parameters:
+    /// - printer Printer device.
+    ///
+    /// __Returns__ nothing.	  */
     pub fn PrintAllLists(&self, printer: &Printer) {
     }
+    /// Run one single train.
+    ///
+    /// ## Parameters:
+    /// - train The train to run.
+    /// - boxMove Is this a box move?
+    /// - printer Printer device.
+    ///
+    /// __Returns__ nothing.
     pub fn RunOneTrain(&mut self, train: usize, boxMove: bool, 
                         printer: &Printer) {
     }
+    /// Display cars not moved. 
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ nothing.
     pub fn ShowCarsNotMoved(&self) {
     }
-    pub fn ShowCarMovements(&self, showAll: bool) {
+    /// Show all car movements.
+    ///
+    /// ## Parameters:
+    /// - showAll Show all movements?
+    /// - Ix Show movements by industry.
+    /// - Tx Show movements by train.
+    ///
+    /// __Returns__ nothing.
+    pub fn ShowCarMovements(&self, showAll: bool, Ix: Option<usize>, 
+                            Tx: Option<usize>) {
     }
+    /// Show cars moved by a specific train.
+    ///
+    /// ## Parameters:
+    /// - Tx The specific train.
+    ///
+    /// __Returns__ nothing.
     pub fn ShowTrainCars(&self,Tx: usize) {
     }
+    /// Show cars in a specificed division.
+    ///
+    /// ## Parameters: 
+    /// - division The specific division.
+    ///
+    /// __Returns__ nothing.
     pub fn ShowCarsInDivision(&self, division: u8) {
     }
+    /// Show train totals.
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ nothing.
     pub fn ShowTrainTotals(&self) {
     }
+    /// Show unassigned cars.
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ nothing.
     pub fn ShowUnassignedCars(&self) {
     }
+    /// Reload car file. 
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ nothing.
     pub fn ReLoadCarFile(&mut self) {
         self.LoadCarFile().expect("Read error");
         self.LoadStatsFile().expect("Read error");
         self.RestartLoop();
     }
+    /// Reset industry statistics. 
+    ///
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ nothing.
     pub fn ResetIndustryStats(&mut self) {
     }
+    /// Report on all industries. 
+    ///
+    /// ## Parameters: 
+    /// - printer Printer device.
+    ///
+    /// __Returns__ nothing.
     pub fn ReportIndustries(&self, printer: &Printer) {
     }
+    /// Report on all trains.
+    ///
+    /// ## Parameters: 
+    /// - printer Printer device.
+    ///
+    /// __Returns__ nothing.
     pub fn ReportTrains(&self, printer: &Printer) {
     }
+    /// Report on all cars.
+    ///
+    /// ## Parameters: 
+    /// - printer Printer device.
+    ///
+    /// __Returns__ nothing.
     pub fn ReportCars(&self, printer: &Printer) {
     }
+    /// Report on cars not moved.
+    ///
+    /// ## Parameters: 
+    /// - printer Printer device.
+    ///
+    /// __Returns__ nothing.
     pub fn ReportCarsNotMoved(&self, printer: &Printer) {
     }
+    /// Report on car types.
+    ///
+    /// ## Parameters: 
+    /// - rtype Type of report to produce. 
+    /// - carType Car type to report on (only used when the report type is for 
+    ///             a single type).
+    /// - printer Printer device.
+    ///
+    /// __Returns__ nothing.
     pub fn ReportCarTypes(&self, rtype: CarTypeReport, carType: char, 
                             printer: &Printer) {
     }
+    /// Car location report.
+    ///
+    /// ## Parameters: 
+    /// - cltype Type of report. 
+    /// - index Index of thing to report by (industry, station, or division).
+    /// - printer Printer device.
+    ///
+    /// __Returns__ nothing.
     pub fn ReportCarLocations(&self, cltype: CarLocationType, index: usize, 
                                 printer: &Printer) {
     }
+    /// Industry analysis report. 
+    ///
+    /// ## Parameters: 
+    /// - printer Printer device.
+    ///
+    /// __Returns__ nothing.
     pub fn ReportAnalysis(&self, printer: &Printer) {
     }
+    /// Report on a specified car owner. 
+    ///
+    /// ## Parameters: 
+    /// - ownerInitials Car owner's initials to report on.
+    /// - printer Printer device.
+    ///
+    /// __Returns__ nothing.
     pub fn ReportCarOwners(&self, ownerInitials: String, printer: &Printer) {
     }
 }
