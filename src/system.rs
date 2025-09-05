@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250904.1140>
+//  Last Modified : <250905.1708>
 //
 //  Description	
 //
@@ -1375,7 +1375,7 @@ impl System {
             let CrsRR = items[1].trim();
             let CrsNum = items[2].trim();
             let CrsDivList = items[3].trim(); 
-            let CrsLen: u8 = items[4].trim().parse::<u8>().expect("Syntax error");
+            let CrsLen: u32 = items[4].trim().parse::<u32>().expect("Syntax error");
             let CrsPlate: u8 = items[5].trim().parse::<u8>().expect("Syntax error");
             let CrsClass: u8 = items[6].trim().parse::<u8>().expect("Syntax error");
             let CrsLtWt: u32 = items[7].trim().parse::<u32>().expect("Syntax error");
@@ -1884,6 +1884,32 @@ impl System {
         }
         true
     }
+    /// Get a car type class instance pointer given a car type.
+    ///
+    /// ## Parameters:
+    /// - c The car type character.
+    ///
+    /// __Returns__ a reference to a CarType or None
+    fn TheCarType(&self, c: char) -> Option<&CarType> {
+        self.carTypes.get(&c)
+    }
+    ///  Return car status information. 
+    ///
+    /// ## Parameters:
+    /// - Cx the car index
+    ///
+    /// __Returns__ a tuple containing two Strings, the car's status (loaded or 
+    /// empty) and its car type description.
+    fn GetCarStatus(&self, Cx: usize) -> (String, String) {
+        let car: &Car = &self.cars[Cx];
+        let Ct = self.carTypes.get(&car.Type());
+        (if car.LoadedP() {String::from("LOADED")} else {String::from("EMPTY")},
+         match Ct {
+            Some(val) => val.Type(),
+            None => String::from("Unknown")
+         })
+        
+    }
     /// Car assignment procedure.  
     ///
     /// The is one of the main workhorse procedures.  It goes through all of 
@@ -1905,20 +1931,31 @@ impl System {
     ///
     /// __Returns__ nothing.
     pub fn CarAssignment(&mut self) {
+        let mut RouteCars: i32 = 0;
+        let mut IxVec: Vec<usize> = Vec::new();
+        for IIX in self.industries.keys() {
+            IxVec.push(*IIX);
+        }
+        let mut LastIx = 0;
         for AssignLoop in 1..3 { // 1
             println!("{} ({})",self.SystemName(),AssignLoop);
             // ----------- Outer Loop Initialization --------------
-            for (_, ind) in self.industries.iter_mut() { // 2
-                ind.SetUsedLen(0);
+            for IX in &IxVec { // 2
+                if let Some(val) = self.industries.get_mut(&IX) { 
+                    val.SetUsedLen(0);
+                };
             } // 2
             for Cx in 0..self.cars.len() { // 2
                 //let car: &mut Car = self.cars.get_mut(Cx).unwrap();
+                //eprintln!("*** Outer Loop: car {} has Destination {}",self.cars[Cx],self.cars[Cx].Destination());
                 if self.cars[Cx].Destination() == IND_SCRAP_YARD {continue;}
+                //eprintln!("*** Outer Loop: car {} has Location {}",self.cars[Cx],self.cars[Cx].Location());
                 if self.cars[Cx].Location() == IND_RIP_TRACK {continue;}
                 if self.cars[Cx].Destination() == IND_RIP_TRACK { // 3
                     let newlocation = self.cars[Cx].Location();
                     self.cars[Cx].SetDestination(newlocation);
                 } // 3
+                //eprintln!("*** Outer Loop(2): car {} has Destination {}",self.cars[Cx],self.cars[Cx].Destination());
                 { // 3
                     let temp = self.cars[Cx].LoadedP();
                     self.cars[Cx].SetTmpStatus(temp);
@@ -1932,18 +1969,11 @@ impl System {
                     // mirror target must load such cars, and so on.
                     // --------------------------------------------------------------
                     let mut CarWasMirrored: bool = false;
-                    //let LocInd: &Industry = self.industries
-                    //                           .get_mut(&self.cars[Cx].Location())
-                    //                                    .expect("internal error");
                     let mut LocIndIx = self.cars[Cx].Location();
-                    if LocIndIx != IND_RIP_TRACK && self.industries
-                                                        .get(&LocIndIx)
-                                                        .unwrap()
+                    if LocIndIx != IND_RIP_TRACK && self.industries[&LocIndIx]
                                                         .MyMirrorIndex() != 0 { // 4
                         if self.cars[Cx].OkToMirrorP() { // 5
-                            let MirrorInd = self.industries
-                                                .get(&LocIndIx)
-                                                .unwrap()
+                            let MirrorInd = self.industries[&LocIndIx]
                                                 .MyMirrorIndex();
                             // -----------------------------------------------------------
                             // First check to see that the industry would receive this car
@@ -1987,7 +2017,7 @@ impl System {
                             // An empty car in a yard, will remain empty for purpose of
                             // finding an assignment. Otherwise this car becomes a load.
                             // ---------------------------------------------------------
-                            if self.industries.get(&LocIndIx).unwrap().Type() != 'Y' { // 6
+                            if self.industries[&LocIndIx].Type() != 'Y' { // 6
                                 self.cars[Cx].SetTmpStatus(true);
                             } else { // 6
                                 self.cars[Cx].SetTmpStatus(false);
@@ -1998,13 +2028,9 @@ impl System {
                             // but only if the industry ships out this type of car.
                             //  ---------------------------------------------------------
                             self.cars[Cx].SetTmpStatus(false);
-                            if self.industries
-                                .get(&LocIndIx)
-                                .unwrap()
+                            if self.industries[&LocIndIx]
                                 .Reload() { // 6
-                                if self.industries
-                                    .get(&LocIndIx)
-                                    .unwrap()
+                                if self.industries[&LocIndIx]
                                     .EmptiesAccepted()
                                     .contains(self.cars[Cx].Type()) { // 7
                                     self.cars[Cx].SetTmpStatus(true);
@@ -2039,9 +2065,328 @@ impl System {
                 if reverse {
                     Cx = (self.cars.len()-1) - CxI;
                 }
-                println!("{}", Cx);
-            } // 3
-        } // 2
+                let mut HaveDest = false;
+                self.cars[Cx].SetNotDone();
+                self.cars[Cx].ClearMovementsThisSession();
+                self.cars[Cx].SetLastTrain(0);
+                //eprintln!("*** in assignment loop: car {} has destination {}",self.cars[Cx],self.cars[Cx].Destination());
+                //eprintln!("*** in assignment loop: car {} has location {}",self.cars[Cx],self.cars[Cx].Location());
+                if self.cars[Cx].Destination() != IND_RIP_TRACK {continue;}
+                if self.cars[Cx].Location() == IND_RIP_TRACK {continue;}
+                CountCars += 1;
+                println!("Processing car {}",self.cars[Cx]);
+                println!("Cars inspected {}",CountCars);
+	        println!("Cars Assigned  {}",RouteCars);
+                println!("Last Industry  {}",IxVec[LastIx]);
+                println!("");
+                println!("");
+                println!("{} {} at {}",
+                    if self.cars[Cx].TmpStatus() {"Loaded"} else {"Empty"},
+                    self.cars[Cx],
+                    self.industries[&self.cars[Cx].Location()]
+                            .Name());
+                let mut Ix = LastIx;
+                let mut IIx = self.cars[Cx].Location();
+                for IndPriorityLoop in 1..5 {
+                    // ----------- Inner Loop --------------
+                    // The purpose of the PassLoop is to try to reload cars in the
+                    // same division where they are, whether they are "offline" or
+                    // are "online"
+                    for PassLoop in 1..3 {
+                        for IndLoop in 0..self.industries.len() {
+                            Ix += 1;
+                            if Ix >= IxVec.len() {Ix = 0;}
+                            IIx = IxVec[Ix];
+                            if !self.industries.contains_key(&IIx) {continue;}
+                            if self.industries[&IIx].Priority() != IndPriorityLoop {continue;}
+                            if self.industries[&IIx].AssignLen() == 0 {continue;}
+                            // Cars are never assigned to yards
+                            //  --------------------------------
+                            if self.industries[&IIx].Type() == 'Y' {continue;}
+                            // If the car is at an industry that mirrors, never route
+                            // the car to the mirror itself. This does not apply when
+                            // the car is not allowed to mirror.
+                            // ------------------------------------------------------
+                            if self.industries[&self.cars[Cx].Location()].MyMirrorIndex() != 0 {
+                                if self.industries[&self.cars[Cx].Location()].MyMirrorIndex() == IIx {
+                                    if self.cars[Cx].OkToMirrorP() {continue;} 
+                                }
+                            }
+                            // Does industry accept this car ?
+                            // -------------------------------
+                            if !self.IndustryTakesCar(IIx,Cx) {continue;}
+                            // Eliminate incompatible industries for this car
+                            // ----------------------------------------------
+                            if self.cars[Cx].Plate() > self.industries[&IIx].MaxPlate() {continue;}
+                            if self.cars[Cx].WeightClass() > self.industries[&IIx].MaxWeightClass() {continue;}
+                            if self.cars[Cx].Length() > self.industries[&IIx].MaxCarLen() {continue;}
+                            // Is there space available for this car ?
+                            // -------------------------------------
+                            if self.industries[&IIx].UsedLen() + 
+                                self.cars[Cx].Length() > 
+                                    self.industries[&IIx].AssignLen() {continue;}
+                            let CarDivI = &self.divisions[
+                                    &self.stations[
+                                        &self.industries[
+                                            &self.cars[Cx].Location()]
+                                                .MyStationIndex()].DivisionIndex()];
+                            let CarDivS = CarDivI.Symbol();
+                            let IndDivI = &self.divisions[
+                                            &self.stations[
+                                                &self.industries[&IIx]
+                                                    .MyStationIndex()]
+                                                        .DivisionIndex()];
+                            let IndDivS = IndDivI.Symbol();
+                            // -------------------------------------------------
+                            // If the car has a fixed route then the destination
+                            // must be in the car's home list.
+                            // -------------------------------------------------
+                            if self.cars[Cx].FixedRouteP() {
+                                // AND the destination ALSO must be in the current car
+                                // location's destination list - regardless of whether
+                                // the car is loaded/empty -- unless the list is empty.
+                                // ---------------------------------------------------
+                                let DCL_temp = self.industries[
+                                    &self.cars[Cx]
+                                        .Location()]
+                                            .DivisionControlList();
+                                if DCL_temp.len() > 0 {
+                                    if !DCL_temp.contains(IndDivS) {continue;}
+                                }
+                            }
+                            // Car has a FIXED route
+                            // ===========================================================
+                            // EMPTY CARS
+                            // ===========================================================
+                            if !self.cars[Cx].TmpStatus() {
+                                if self.industries[&IIx].Type() == 'O' &&
+                                   self.industries[&self.cars[Cx].Location()].Type() != 'I' {
+                                   LastIx = Ix;
+                                   self.industries
+                                        .get_mut(&self.cars[Cx].Location())
+                                        .unwrap()
+                                        .RemoveCar(Cx);
+                                    self.cars[Cx].SetLocation(IIx);
+                                    if let Some(val) = self.industries.get_mut(&IIx) { val.AddCar(Cx); };
+                                    HaveDest = true;
+                                    break;
+                                }
+                                // ----------------------------------------------------
+                                //
+                                // Ok! The Car and Industry -ARE- in the same area.
+                                // The empty car will travel a shorter distance to
+                                // be reloaded.
+                                //
+                                // NOTE a key assumption is that from this area, it is
+                                // possible to route the car back to its HOME division
+                                // when the industry is not in a home div.
+                                //
+                                // ----------------------------------------------------
+                                if self.cars[Cx].Divisions().len() > 0 &&
+                                   self.industries[&IIx].DivisionControlList().len() > 0 {
+                                    // If the car is in a home division, we're ok
+                                    let mut YesNo: bool;
+                                    if !self.cars[Cx].Divisions().contains(CarDivS) {
+                                        YesNo = false;
+                                        for PxDiv in self.industries[&IIx].DivisionControlList().chars() {
+                                            if self.cars[Cx].Divisions().contains(PxDiv) {
+                                                YesNo = true;
+                                                break;
+                                            }
+                                        }
+                                        if YesNo {continue;}
+                                    }
+                                    LastIx = Ix;
+                                    RouteCars += 1;
+                                    HaveDest = true;
+                                    break;
+                                }
+                                // Car and Industry are in SAME AREA
+                                // -------------------------------------------------
+                                // On the first pass for empty cars, skip industries
+                                // that are outside the car's present AREA.
+                                // -------------------------------------------------
+                                if PassLoop == 1 && self.cars[Cx].FixedRouteP() {continue;}    
+                                // ------------------------------------------------------
+                                //
+                                // The EMPTY and an Industry are not in the same area, so
+                                // check the Car's Division List to see whether it can be
+                                // routed to the Industry for loading.
+                                //
+                                // ------------------------------------------------------
+                                if self.cars[Cx].Divisions().len() == 0 ||
+                                   self.cars[Cx].Divisions().contains(IndDivS) {
+                                    LastIx = Ix;
+                                    RouteCars += 1;
+                                    HaveDest = true;
+                                    break;
+                                }
+                                if self.cars[Cx].FixedRouteP() {continue;}
+                                // ------------------------------------------------------
+                                //
+                                // Last chance for an empty -- if the car is offline then
+                                // we let it go to any destination where it can be loaded.
+                                // 
+                                // ------------------------------------------------------
+                                if AssignLoop == 2 && PassLoop == 2 {
+                                    if self.industries[&self.cars[Cx].Location()].Type() == 'O' {
+                                        LastIx = Ix;
+                                        RouteCars += 1;
+                                        HaveDest = true;
+                                        break;
+                                    }
+                                }
+                                // END of Empty Car case
+                                // ===========================================================
+                                // LOADED CARS
+                                // ===========================================================
+                            } else {
+                                // self.cars[Cx].tmpStatus == true (loaded)
+                                // If the Car and the Industry are in the same area AND
+                                // the Industry is Offline and the Car is Offline, then
+                                // do not assign the Car to the Industry.
+                                // --------------------------------------------------------
+                                if CarDivI.Area() == IndDivI.Area() {
+                                    if self.industries[&IIx].Type() == 'O' &&
+                                       self.industries[
+                                            &self.cars[Cx].Location()].Type() == 'I' {continue;}
+                                }
+                                // When the Car is loaded where it can go is under control
+                                // of the Industry's Division List
+                                // -------------------------------------------------------
+                                let mut DestList = self.industries[&self.cars[Cx].Location()].DivisionControlList();
+                                // 
+                                // CHANGE 6/24/96 -- As a last resort, use the car's list
+                                // of home divisions as possible destinations. Usually we
+                                // got this far because the car is at an industry outside
+                                // of its home divisions, that does NOT ship to the car's
+                                // home divisions.
+                                // ------------------------------------------------------
+                                if AssignLoop == 2 && PassLoop == 2 {
+                                    // Oops! Since I allow an offline car to be routed to
+                                    // any destination of the shipper, I do not use a car
+                                    // home division list in that case.
+                                    // --------------------------------------------------
+                                    // if (car->Location()->Type() == 'I') {
+                                        DestList = self.cars[Cx].Divisions();
+                                    // }
+                                }
+                                // END CHANGE 6/24/96
+                                // ------------------
+                                if DestList.len() == 0 ||
+                                   DestList.contains(IndDivS) {
+                                    // ----------------------------------------------------
+                                    //
+                                    // The car's current industry can ship to this industry
+                                    //
+                                    // Normally if the car itself is NOT in a home division
+                                    // then it must be routed BACK to a home division
+                                    //
+                                    // Now I make an exception -- if the car is offline, it
+                                    // may be routed to any valid destination division from
+                                    // the current industry.
+                                    //
+                                    // The reason for this is that cars at offline industry
+                                    // may be "relocated" somewhere in the same area, and I
+                                    // don't check home divisions when I do it (see above).
+                                    //
+                                    // ----------------------------------------------------
+                                    if AssignLoop == 2 && PassLoop == 2 {
+                                        if self.industries[&self.cars[Cx].Location()].Type() == 'O' {
+                                            // GOTO IndustryIsOk
+                                            LastIx = Ix;
+                                            RouteCars += 1;
+                                            HaveDest = true;
+                                            break;
+                                        }
+                                    }
+                                    if self.cars[Cx].Divisions().len() > 0 {
+                                        // If the car is not now in a home division ..
+                                        // -------------------------------------------
+                                        if !self.cars[Cx].Divisions().contains(CarDivS) {
+                                            // ANd the industry is not in a home division ..
+                                            // ---------------------------------------------
+                                            if !self.cars[Cx].Divisions().contains(IndDivS) {
+                                                // This industry cannot receive this car
+                                                continue;
+                                            }
+                                        }
+                                    }
+                                    LastIx = Ix;
+                                    RouteCars += 1;
+                                    HaveDest = true;
+                                    break;
+                                } // If you get here you have failed
+                            } // Loaded Car case
+                        } // IndLoop
+                        if HaveDest {break;}
+                    } // PassLoop    
+                    if HaveDest {break;}
+                } // IndPriorityLoo
+                if !HaveDest {
+                    // We failed to find a destination. If the car is EMPTY and if the
+                    // car is sitting at an ONLINE industry, then assign this car just
+                    // to move to the industry's home yard.
+                    // IF AssignLoop% = 2 THEN
+                    //   IF CrsTmpStatus(Cx%) = "E" AND IndsType(CrsLoc%(Cx%)) = "I" THEN
+                    //     Ix% = DivsHome%(StnsDiv%(IndsStation%(CrsLoc%(Cx%))))
+                    //     GOTO HaveDest
+                    //   END IF
+                    // END IF ' AssignLoop% = 2 i.e. last chance
+                    //
+                    // If we fall into this code, then we have failed to find any
+                    // destination for this car -- so just leave it alone for now.
+                    IIx = self.cars[Cx].Location();
+                    {
+                        let temp = self.cars[Cx].LoadedP();
+                        self.cars[Cx].SetTmpStatus(temp);
+                    }
+                }
+                // HaveDest:
+                self.cars[Cx].SetDestination(IIx);
+                if self.cars[Cx].TmpStatus() {
+                    self.cars[Cx].Load();
+                } else {
+                    self.cars[Cx].UnLoad();
+                }
+                // Adjust the used assignment space for this industry -
+                // Should I do this only if the car is not at its dest?
+                // ----------------------------------------------------
+                self.industries
+                    .get_mut(&IIx).unwrap()
+                    .AddToUsedLen(self.cars[Cx].Length());
+                if IIx != self.cars[Cx].Location() {
+                    // Whenever a car receives an assignment to move somewhere else
+                    // we count this as 1 assignment for our statistics.
+                    self.cars[Cx].IncrementAssignments();
+                    let (Status, CarTypeDesc) = self.GetCarStatus(Cx);
+                    println!("{} {} is {}",self.cars[Cx],CarTypeDesc,Status);
+                    println!(" Now at {}",
+                        self.industries[&self.cars[Cx].Location()].Name());
+                    println!(" Send to {}",
+                        self.industries[&self.cars[Cx].Destination()].Name());
+                    //println!(" IndsAssignLen = {} IndsUsedLen = {}",
+                    //    self.industries[&self.cars[Cx].Destination()].AssignLen(),
+                    //    self.industries[&self.cars[Cx].Destination()].UsedLen());
+                }
+            } // 3 For Cx loop
+        } // 2 AssignLoop
+        let mut hflag = true;
+        for Cx in 0..self.cars.len() {
+            let car: &Car = &self.cars[Cx];
+            if car.Location() == car.Destination() {
+                if hflag {
+                    println!("\n\nCars without assignments");
+                    hflag = false;
+                }
+                let typeDescr = match self.TheCarType(car.Type()) {
+                    Some(val) => val.Type(),
+                    None => String::from("Unknown"),
+                };
+                println!("{} {} @ {}",car,typeDescr,
+                       self.industries[&car.Location()].Name());
+            }
+        }
     } // 1
     /// Run all trains procedure.  
     ///
@@ -2072,7 +2417,7 @@ impl System {
     /// ## Parameters:
     /// - printer Printer device.
     ///
-    /// __Returns__ nothing.	  */
+    /// __Returns__ nothing.
     pub fn PrintAllLists(&self, printer: &Printer) {
     }
     /// Run one single train.

@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:14:54
-//  Last Modified : <250902.2152>
+//  Last Modified : <250905.1047>
 //
 //  Description	
 //
@@ -59,7 +59,7 @@ pub struct Car {
     marks: String,
     number: String,
     divisions: String,
-    length: u8,
+    length: u32,
     plate: u8,
     weightclass: u8,
     ltwt: u32,
@@ -80,12 +80,12 @@ use std::fmt;
 
 impl fmt::Display for Car {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}{}", self.marks, self.number)
+        write!(f, "{} {}", self.marks, self.number)
     }
 }
 
 impl Car {
-    pub fn new(t: char, m: String, n: String, d: String, l: u8, p: u8, 
+    pub fn new(t: char, m: String, n: String, d: String, l: u32, p: u8, 
                wc: u8, lw: u32, ldw: u32, lp: bool, mp: bool, fp: bool,
                own: String, dp: bool,lt: usize,mvs: u32, loc: usize,
                dest: usize, trps: u32, asgns: u32) -> Self {
@@ -104,8 +104,8 @@ impl Car {
     pub fn SetNumber(&mut self,n: String) {self.number = n;}
     pub fn Divisions(&self) -> String {self.divisions.clone()}
     pub fn SetDivisions(&mut self,d: String) {self.divisions = d;}
-    pub fn Length(&self) -> u8 {self.length}
-    pub fn SetLength(&mut self,l: u8) {self.length = l;}
+    pub fn Length(&self) -> u32 {self.length}
+    pub fn SetLength(&mut self,l: u32) {self.length = l;}
     pub fn Plate(&self) -> u8 {self.plate}
     pub fn SetPlate(&mut self, p: u8) {self.plate = p;}
     pub fn WeightClass(&self) -> u8 {self.weightclass}
