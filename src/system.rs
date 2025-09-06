@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250905.1708>
+//  Last Modified : <250905.2052>
 //
 //  Description	
 //
@@ -2438,6 +2438,42 @@ impl System {
     ///
     /// __Returns__ nothing.
     pub fn ShowCarsNotMoved(&self) {
+        let mut Total = 0;
+        let mut CarCount = 0;
+        for Cx in 0..self.cars.len() {
+            let car = &self.cars[Cx];
+            if car.MovementsThisSession() == 0 && !car.IsDoneP() &&
+            car.Location() != IND_SCRAP_YARD && 
+            car.Location() != IND_RIP_TRACK {
+                if Total == 0 {
+                    println!("{}",self.SystemName());
+                    println!("{:<20}{:<12}{:<29} {}","Cars Not Moved","Car type",
+                             "Status  Location","Destination");
+                    println!("{:-<78}","");
+                }
+                let (status, carTypeDescr) = self.GetCarStatus(Cx);
+                let Loc = car.Location();
+                let LocName = match self.industries.get(&Loc) {
+                    Some(val) => val.Name(),
+                    None      => String::from("-"),
+                };
+                let Dest = car.Destination();
+                let DestName = if Loc == Dest {String::from("-")} else {
+                    match self.industries.get(&Dest) {
+                        Some(val) => val.Name(),
+                        None      => String::from("-"),
+                    }
+                };
+                println!("{:<11}{:<9}{:<18}{:<8}{:<21} {}", car.Marks(),
+                         car.Number(), carTypeDescr, status, LocName, 
+                         DestName);
+                Total += 1;
+                CarCount += 1;
+                if Total == 18 {Total = 0;}
+            }
+        }
+        if CarCount == 0 {return;}
+        println!("\n                                                    Cars subtotal: {}",CarCount);
     }
     /// Show all car movements.
     ///
@@ -2481,6 +2517,26 @@ impl System {
     ///
     /// __Returns__ nothing.
     pub fn ShowUnassignedCars(&self) {
+        let mut Total = 0;
+        for Cx in 0..self.cars.len() {
+            let car = &self.cars[Cx];
+            if car.Location() == car.Destination() {
+                if Total == 0 {
+                    println!("{}",self.SystemName());
+                    println!("{:<50}{}\n","Cars Without Assignments",
+                             "Location");
+                }
+                let (status, carTypeDescr) = self.GetCarStatus(Cx);
+                let LocName = match self.industries.get(&car.Location()) {
+                    Some(val) => val.Name(),
+                    None      => String::from("-"),
+                };
+                println!("{:<10}{:<9}{:<31}{}",car.Marks(),car.Number(),
+                         carTypeDescr,LocName);
+                Total += 1;
+                if Total == 18 {Total = 0;}
+            }
+        }
     }
     /// Reload car file. 
     ///
