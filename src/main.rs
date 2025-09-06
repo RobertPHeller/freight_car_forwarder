@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:14:13
-//  Last Modified : <250905.2229>
+//  Last Modified : <250906.0856>
 //
 //  Description	
 //
@@ -100,7 +100,7 @@ fn show_car_movements(system: &System) {
         println!("Enter <C>     to compile car movements");
         println!("Enter <D>     to show cars in division");
         println!("Enter <A>     to show train totals");
-        println!("Enter <U>     to mark ALL cars in use");
+        //println!("Enter <U>     to mark ALL cars in use");
         println!("Enter <?>     to list train names\n");
         println!("Enter train name for a single train\n");
         println!("Enter <other> to exit\n");
@@ -166,20 +166,20 @@ fn main() {
     loop {
         println!("{}",system.SystemName());
         println!("");
-        println!("Load cars file {}",system.CarsFile());
-        println!("Save cars file {}",system.CarsFile());
-        //println!("Groups = {}", SelectGroups$);
-        println!("Manage trains/printing");
-        //println!("View car information");
-        //println!("Edit car information");
-        //println!("Add a New car");
-        //println!("Delete an existing car");
-        println!("Show Unassigned cars");
-        println!("Run the car Assignment procedure");
-        println!("Show Cars on screen");
-        println!("Go to Reports Menu");
-        println!("Reset Industry statistics");
-        println!("Quit -- exit NOW");
+        println!("Enter <L> Load cars file {}",system.CarsFile());
+        println!("Enter <S> Save cars file {}",system.CarsFile());
+        //println!("Enter <G> Groups = {}", SelectGroups$);
+        println!("Enter <M> Manage trains/printing");
+        //println!("Enter <V> View car information");
+        //println!("Enter <E> Edit car information");
+        //println!("Enter <N> Add a New car");
+        //println!("Enter <D> Delete an existing car");
+        println!("Enter <U> Show Unassigned cars");
+        println!("Enter <A> Run the car Assignment procedure");
+        println!("Enter <C> Show Cars on screen");
+        println!("Enter <R> Go to Reports Menu");
+        println!("Enter <I> Reset Industry statistics");
+        println!("Enter <Q> Quit -- exit NOW");
         let mut command = String::new();
         println!("");
         print!("Enter [LSMUACRIQ]: ");

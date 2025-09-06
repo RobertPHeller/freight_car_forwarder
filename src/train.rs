@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:10:46
-//  Last Modified : <250902.2105>
+//  Last Modified : <250906.1000>
 //
 //  Description	
 //
@@ -109,7 +109,7 @@ impl fmt::Display for Stop {
     }
 }
 
-#[derive(Debug, Default, Clone)] 
+#[derive(Debug, PartialEq, Default, Clone)] 
 pub struct Train {
     orders: Vec<String>,
     stops: Vec<Stop>,

@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:14:28
-//  Last Modified : <250904.1053>
+//  Last Modified : <250906.1110>
 //
 //  Description	
 //
@@ -38,7 +38,7 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, PartialEq, Default, Clone)]
 pub struct Industry {
     cars: Vec<usize>,
     station_index: u8,

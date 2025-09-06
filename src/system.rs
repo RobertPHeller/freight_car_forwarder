@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250905.2223>
+//  Last Modified : <250906.1118>
 //
 //  Description	
 //
@@ -2447,9 +2447,9 @@ impl System {
             car.Location() != IND_RIP_TRACK {
                 if Total == 0 {
                     println!("{}",self.SystemName());
-                    println!("{:<20}{:<12}{:<29} {}","Cars Not Moved","Car type",
+                    println!("{:<20}{:<18}{:<29} {}","Cars Not Moved","Car type",
                              "Status  Location","Destination");
-                    println!("{:-<78}","");
+                    println!("{:-<79}","");
                 }
                 let (status, carTypeDescr) = self.GetCarStatus(Cx);
                 let Loc = car.Location();
@@ -2475,6 +2475,30 @@ impl System {
         if CarCount == 0 {return;}
         println!("\n                                                    Cars subtotal: {}",CarCount);
     }
+    /// Get the train index, given a Train reference.
+    ///
+    /// ## Parameters:
+    /// - train a reference to a Train.
+    ///
+    /// __Returns__ a train index.
+    fn TrainIndex(&self, train: &Train) -> usize {
+        for (Tx, atrain) in self.trains.iter() {
+            if atrain == train {return *Tx;}
+        }
+        0
+    }
+    /// Get the industry index, given an Industry reference.
+    ///
+    /// ## Parameters:
+    /// - industry a reference to a Industry.
+    ///
+    /// __Returns__ an industry index.
+    fn IndustryIndex(&self, industry: &Industry) -> usize {
+        for (Ix, anindustry) in self.industries.iter() {
+            if anindustry == industry {return *Ix;}
+        }
+        0
+    }
     /// Show all car movements.
     ///
     /// ## Parameters:
@@ -2483,8 +2507,95 @@ impl System {
     /// - Tx Show movements by train.
     ///
     /// __Returns__ nothing.
-    pub fn ShowCarMovements(&self, showAll: bool, train: Option<&Train>, 
-                            industry: Option<&Industry>) {
+    pub fn ShowCarMovements(&self, showAll: bool, TOption: Option<&Train>, 
+                            IOption: Option<&Industry>) {
+        let mut Total = 0;
+        let mut CarCount = 0;
+        let mut trains = [String::from(""), String::from(""), 
+                          String::from("")];
+        for Cx in 0..self.cars.len() {
+            let car: &Car = &self.cars[Cx];
+            if car.Location() == IND_SCRAP_YARD ||
+               car.Location() == IND_RIP_TRACK {continue;}
+            if !showAll {
+                if car.MovementsThisSession() == 0 {continue;}
+            }
+            if TOption.is_some() {
+                let train: &Train = TOption.unwrap();
+                let Tx = self.TrainIndex(train);
+                let Gx = self.switchList.LimitCars();
+                // Only show moves if the car travelled in this train!
+                for Gx in 0..self.switchList.LimitCars() {
+                    if self.switchList.PickCarEq(Gx as isize,Cx) &&
+                       self.switchList.PickTrainEq(Gx as isize,Tx) {break;}
+                }
+                if Gx >= self.switchList.LimitCars() {continue;}
+            } else if IOption.is_some() {
+                let industry: &Industry = IOption.unwrap();
+                let Ix = self.IndustryIndex(industry);
+                if Ix != car.Location() {continue;}
+            }
+            if Total == 0 {
+                println!("{}",self.SystemName());
+                println!("{:<21}{:<7}{:<8}{:<8}{:<8}{:<8}{}\n{:-<79}",
+                        "Cars Moved","Type","Prv","1st","2nd","3rd",
+                        "Destination","");
+            }
+            let (Status, CarTypeDesc) = self.GetCarStatus(Cx);
+            let DestName = match self.industries.get(&car.Destination()) {
+                Some(ind) => ind.Name(),
+                Nome      => String::from("-"),
+            };
+            let mut carid = car.Marks();
+            while carid.len() < 11 {
+                carid.push(' ');
+            }
+            carid += &car.Number();
+            while carid.len() < 21 {
+                carid.push(' ');
+            }
+            let mut typeName = CarTypeDesc;
+            let tail = typeName.split_off(5);
+            while typeName.len() < 7 {
+                typeName.push(' ');
+            }
+            let mut prev = String::from("-");
+            if car.PrevTrain() > 0 {
+                prev = self.trains[&car.PrevTrain()].Name();
+                let tail = prev.split_off(7);
+            }
+            while prev.len() < 8 {
+                prev.push(' ');
+            } 
+            let mut Count = 0;
+            for Gx in 0..self.switchList.LimitCars() {
+                if self.switchList.PickCarEq(Gx as isize,Cx) {
+                    let Tx = self.switchList[Gx].PickTrain();
+                    trains[Count] = self.trains[&Tx].Name();
+                    let tail = trains[Count].split_off(7);
+                    while trains[Count].len() < 8 {
+                        trains[Count].push(' ');
+                    }
+                    Count += 1;
+                    if Count == 3 {break;}
+                }
+            }
+            while Count < 3 {
+                trains[Count] = String::from("-");
+                while trains[Count].len() < 8 {
+                    trains[Count].push(' ');
+                }
+                Count += 1;
+            }
+            println!("{}{}{}{}{}{}{}",carid,typeName,prev,trains[0],trains[1],
+                    trains[2],DestName);
+            Total += 1;
+            CarCount += 1;
+            if Total == 18 {Total = 0;}
+        } // for Cx in ...
+        if CarCount > 0 {
+            println!("\n                                                    Cars subtotal: {}",CarCount);
+        }
     }
     /// Show cars moved by a specific train.
     ///
