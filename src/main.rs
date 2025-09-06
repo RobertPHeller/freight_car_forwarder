@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:14:13
-//  Last Modified : <250903.1441>
+//  Last Modified : <250905.2229>
 //
 //  Description	
 //
@@ -71,11 +71,66 @@ fn print_usage(program: &str, opts: Options) {
         //println!("Print yard lists, etc");
 //}
 
-//fn reports_menu(system: &mut System) {
+//fn reports_menu(system: &System) {
 //}
 
-//fn show_car_movements(system: &system) {
-//}
+fn movements_by_train(system: &System) { 
+}
+
+fn movements_by_location(system: &System) {
+}
+
+fn compile_car_movements(system: &System) {
+}
+
+fn show_cars_in_division(system: &System) {
+}
+
+fn list_train_names(system: &System) {
+}
+
+fn show_car_movements(system: &System) {
+    loop {
+        println!("{}\n",system.SystemName());
+        println!("Enter <N>     to show cars NOT moved");
+        println!("Enter <M>     to show car movements");
+        println!("Enter <T>     to show car movements by train");
+        println!("Enter <L>     to show car movements by location");
+        println!("Enter <E>     to show cars moved and NOT moved");
+        println!("Enter <C>     to compile car movements");
+        println!("Enter <D>     to show cars in division");
+        println!("Enter <A>     to show train totals");
+        println!("Enter <U>     to mark ALL cars in use");
+        println!("Enter <?>     to list train names\n");
+        println!("Enter train name for a single train\n");
+        println!("Enter <other> to exit\n");
+        let mut command = String::new();
+        print!("Your command: "); io::stdout().flush().unwrap();
+        let status = match io::stdin().read_line(&mut command) {
+            Ok(m) => { m },
+            Err(f) => { panic!("{}", f.to_string()) },
+        };
+        if status == 0 {break;}
+        let key = command.chars().next().unwrap_or(' ');
+        match key {
+            'N' | 'n' => system.ShowCarsNotMoved(),
+            'M' | 'm' => system.ShowCarMovements(true, None, None),
+            'T' | 't' => movements_by_train(&system),
+            'L' | 'l' => movements_by_location(&system),
+            'E' | 'e' => {  system.ShowCarMovements(true, None, None);
+                            system.ShowCarsNotMoved(); },
+            'C' | 'c' => compile_car_movements(&system),
+            'D' | 'd' => show_cars_in_division(&system),
+            'A' | 'a' => system.ShowTrainTotals(),
+            //'U' | 'u' => system.MarkAllCarsInUse(),
+            '?'         => list_train_names(&system),
+            _ => match system.TrainByName(command.trim().to_string()) {
+                        Some(val) => system.ShowCarMovements(false,Some(val),None),
+                        None => break,
+                  },
+        }
+    }
+}
 
 /// Main program.
 ///
@@ -145,8 +200,8 @@ fn main() {
              //'M' | 'm' => manage_trains_and_printing(&mut system),
              'U' | 'u' => system.ShowUnassignedCars(),
              'A' | 'a' => system.CarAssignment(),
-             //'C' | 'c' => show_car_movements(&system);
-             //'R' | 'r' => reports_menu(&mut system),
+             'C' | 'c' => show_car_movements(&system),
+             //'R' | 'r' => reports_menu(&system),
              'I' | 'i' => system.ResetIndustryStats(),
              'Q' | 'q' => break,
              _ => println!("Unreconized command character: {}",cmd),

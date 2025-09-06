@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250905.2052>
+//  Last Modified : <250905.2223>
 //
 //  Description	
 //
@@ -2483,16 +2483,16 @@ impl System {
     /// - Tx Show movements by train.
     ///
     /// __Returns__ nothing.
-    pub fn ShowCarMovements(&self, showAll: bool, Ix: Option<usize>, 
-                            Tx: Option<usize>) {
+    pub fn ShowCarMovements(&self, showAll: bool, train: Option<&Train>, 
+                            industry: Option<&Industry>) {
     }
     /// Show cars moved by a specific train.
     ///
     /// ## Parameters:
-    /// - Tx The specific train.
+    /// - train The specific train.
     ///
     /// __Returns__ nothing.
-    pub fn ShowTrainCars(&self,Tx: usize) {
+    pub fn ShowTrainCars(&self,train: &Train) {
     }
     /// Show cars in a specificed division.
     ///
@@ -2556,6 +2556,12 @@ impl System {
     ///
     /// __Returns__ nothing.
     pub fn ResetIndustryStats(&mut self) {
+        self.statsPeriod = 1;
+        for Ix in self.industries.values_mut() {
+            Ix.SetCarsNum(0);
+            Ix.SetCarsLen(0);
+            Ix.SetStatsLen(0);
+        }
     }
     /// Report on all industries. 
     ///
