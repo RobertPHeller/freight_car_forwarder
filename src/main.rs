@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:14:13
-//  Last Modified : <250906.0856>
+//  Last Modified : <250906.1647>
 //
 //  Description	
 //
@@ -75,9 +75,37 @@ fn print_usage(program: &str, opts: Options) {
 //}
 
 fn movements_by_train(system: &System) { 
+    println!("{}",system.SystemName());
+    println!("\nEnter train name to show car movements\n");
+    let mut key = String::new();
+    print!("Train: "); io::stdout().flush().unwrap();
+    let status = match io::stdin().read_line(&mut key) {
+        Ok(m) => { m },
+        Err(f) => { eprintln!("{}", f.to_string()); 0 },
+    };
+    if status == 0 {return;}
+    match system.TrainByName(key.trim().to_string()) {
+        Some(val) => system.ShowCarMovements(false,Some(val),None),
+        None => (),
+    };
 }
 
 fn movements_by_location(system: &System) {
+    println!("{}",system.SystemName());
+    println!("\nEnter location code to show car movements\n");
+    let mut key = String::new();
+    print!("Location: "); io::stdout().flush().unwrap();
+    let status = match io::stdin().read_line(&mut key) {
+        Ok(m) => { m },
+        Err(f) => { eprintln!("{}", f.to_string()); 0 },
+    };
+    if status == 0 {return;}
+    match key.trim().parse::<usize>() {
+        Ok(Ix) => system.ShowCarMovements(false,None,
+                                             system.IndustryByIndex(Ix)),
+        Err(f) => { eprintln!("{}", f.to_string()); () },
+    };
+    
 }
 
 fn compile_car_movements(system: &System) {
@@ -108,26 +136,22 @@ fn show_car_movements(system: &System) {
         print!("Your command: "); io::stdout().flush().unwrap();
         let status = match io::stdin().read_line(&mut command) {
             Ok(m) => { m },
-            Err(f) => { panic!("{}", f.to_string()) },
+            Err(f) => { eprintln!("{}", f.to_string()); 0 },
         };
         if status == 0 {break;}
         let key = command.chars().next().unwrap_or(' ');
         match key {
             'N' | 'n' => system.ShowCarsNotMoved(),
-            'M' | 'm' => system.ShowCarMovements(true, None, None),
+            'M' | 'm' => system.ShowCarMovements(false, None, None),
             'T' | 't' => movements_by_train(&system),
             'L' | 'l' => movements_by_location(&system),
-            'E' | 'e' => {  system.ShowCarMovements(true, None, None);
-                            system.ShowCarsNotMoved(); },
+            'E' | 'e' => system.ShowCarMovements(true, None, None),
             'C' | 'c' => compile_car_movements(&system),
             'D' | 'd' => show_cars_in_division(&system),
             'A' | 'a' => system.ShowTrainTotals(),
             //'U' | 'u' => system.MarkAllCarsInUse(),
             '?'         => list_train_names(&system),
-            _ => match system.TrainByName(command.trim().to_string()) {
-                        Some(val) => system.ShowCarMovements(false,Some(val),None),
-                        None => break,
-                  },
+            _ => {break;},
         }
     }
 }
@@ -147,7 +171,7 @@ fn main() {
     opts.optflag("h", "help", "print this help menu");
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => { m }
-        Err(f) => { panic!("{}", f.to_string()) }
+        Err(f) => { panic!("{}", f.to_string());  }
     };
     if matches.opt_present("h") {
         print_usage(&program, opts);
@@ -186,7 +210,7 @@ fn main() {
         io::stdout().flush().unwrap();
         let status = match io::stdin().read_line(&mut command) {
             Ok(m) => { m }
-            Err(f) => { panic!("{}", f.to_string()) }
+            Err(f) => { eprintln!("{}", f.to_string()); 0 }
         };
         if status == 0 {break;}
         let cmd = command.chars().next().unwrap_or(' ');

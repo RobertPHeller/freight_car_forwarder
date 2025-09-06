@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250906.1118>
+//  Last Modified : <250906.1518>
 //
 //  Description	
 //
@@ -2604,6 +2604,40 @@ impl System {
     ///
     /// __Returns__ nothing.
     pub fn ShowTrainCars(&self,train: &Train) {
+        let mut Total = 0;
+        let mut CarCount = 0;
+        let Tx = self.TrainIndex(train);
+        for Gx in 0..self.switchList.PickIndex() {
+            if self.switchList.PickTrainEq(Gx as isize,Tx) {
+                let Cx = self.switchList[Gx].PickCar();
+                let car = &self.cars[Cx];
+                if Total == 0 {
+                    println!("{:<10}{:<10}{:<18}{:<29} {}",
+                             train.Name(),"pickups","Car type",
+                             "Status  Location","Destination");
+                }
+                let (status, carTypeDescr) = self.GetCarStatus(Cx);
+                let LocName = match self.industries.get(&car.Location()) {
+                    Some(ind) => ind.Name(),
+                    None      => String::from("-"),
+                };
+                let DestName = if car.Location() == car.Destination() {
+                                    String::from("-")
+                                } else {
+                                    match self.industries.get(&car.Destination()) {
+                                        Some(ind) => ind.Name(),
+                                        None      => String::from("-"),
+                                    }
+                                 };
+                println!("{:<11}{:<9}{:<18}{:<8}{:<21} {}",car.Marks(),
+                         car.Number(),carTypeDescr,status,LocName,DestName);
+                Total += 1;
+                CarCount += 1;
+                if Total == 18 {Total = 0;}
+            }
+        }
+        if CarCount == 0 {return;}
+        println!("\n                                                    Cars subtotal: {}",CarCount);
     }
     /// Show cars in a specificed division.
     ///
@@ -2612,6 +2646,39 @@ impl System {
     ///
     /// __Returns__ nothing.
     pub fn ShowCarsInDivision(&self, division: u8) {
+        let mut Total = 0;
+        let mut CarCount = 0;
+        for Cx in 0..self.cars.len() {
+            let car = &self.cars[Cx];
+            let iLoc = self.industries.get(&car.Location());
+            if iLoc.is_none() {continue;}
+            let Loc = iLoc.unwrap();
+            let LocName = Loc.Name();
+            let istation = &self.stations[&Loc.MyStationIndex()];
+            if istation.DivisionIndex() == division {
+                if Total == 0 {
+                    println!("{}",self.SystemName());
+                    println!("{:<18}{} {:<18}{:<29} {}",
+                             "Cars In Div",self.divisions[&division].Symbol(),
+                             "Car type","Status  Location","Destination");
+                }
+                let (status,carTypeDescr) = self.GetCarStatus(Cx);
+                let DestName = if car.Location() == car.Destination() {
+                        String::from("-")
+                    } else {
+                        match self.industries.get(&car.Destination()) {
+                            Some(ind) => ind.Name(),
+                            None      => String::from("-"),
+                        }
+                    };
+                println!("{:<11}{:<9}{:<18}{:<8}{:<21} {}n", car.Marks(), 
+                         car.Number(), carTypeDescr, status, LocName, 
+                         DestName);
+                Total += 1;
+                CarCount += 1;
+                if Total == 18 {Total = 0;}
+            }
+        }
     }
     /// Show train totals.
     ///
@@ -2620,6 +2687,40 @@ impl System {
     ///
     /// __Returns__ nothing.
     pub fn ShowTrainTotals(&self) {
+        println!("{}",self.SystemName());
+        let mut line = String::from("Train");
+        while line.len() < 11 {line.push(' ');}
+        line += &String::from("Cars");
+        while line.len() < 31 {line.push(' ');}
+        line += &String::from("Train");
+        while line.len() < 41 {line.push(' ');}
+        line += &String::from("Cars\n");
+        let mut dashes = String::new();
+        while dashes.len() < 78 {dashes.push('-');}
+        line += &dashes;
+        println!("{}",line);
+
+        let mut TrainCount = 0;
+        for (Tx, train) in self.trains.iter() {
+            if train.Shift() == self.shiftNumber {
+                let mut Count = 0;
+                TrainCount += 1;
+                for Gx in 0..self.switchList.LimitCars() {
+                    if self.switchList.PickTrainEq(Gx as isize,*Tx) {Count += 1;}
+                }
+                let z = TrainCount & 1;
+                let mut halfLine = train.Name();
+                while halfLine.len() < 11 {halfLine.push(' ');}
+                halfLine += &format!("{}",Count);
+                while halfLine.len() < 31 {halfLine.push(' ');}
+                if z == 1 {
+                    line = halfLine;
+                } else {
+                    line += &halfLine;
+                    println!("{}",line);
+                }
+            }
+        }
     }
     /// Show unassigned cars.
     ///
