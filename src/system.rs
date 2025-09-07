@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250906.1518>
+//  Last Modified : <250907.1449>
 //
 //  Description	
 //
@@ -353,6 +353,51 @@ impl System {
             }
         }
         None
+    }
+    /// Find a division index by its symbol. Returns either a reference to the
+    /// to the division or None.
+    ///
+    /// ## Parameters:
+    /// - symbol The division symbol to look for.
+    ///
+    /// __Returns__ A division index or None.
+    pub fn FindDivisionIndexBySymbol(&self, symbol: char) -> Option<u8> {
+        for (id, div) in self.divisions.iter() {
+            if div.Symbol() == symbol {
+                return Some(*id);
+            }
+        }
+        None
+    }
+    /// List train names
+    ///
+    /// ## Parameters:
+    /// - all List all trains reguarless of shift or only list trains this shift.
+    /// - trainType List only this type or all types is None.
+    ///
+    /// __Returns__ nothing
+    pub fn ListTrainNames(&self, all: bool, trainType: Option<TrainType>) {
+        let mut TrainCount = 0;
+        println!("{}",self.SystemName());
+        //eprintln!("*** in System::ListTrainNames(): self.shiftNumber is {}",self.shiftNumber);
+        for train in self.trains.values() {
+            let trainName = train.Name();
+            let trainShift = train.Shift();
+            //eprintln!("*** in System::ListTrainNames(): trainName is {}, trainShift is {}, train.Type() is {}",trainName,trainShift,train.Type());
+            if !all && trainShift != self.shiftNumber {continue;}
+            if trainType.is_some() &&
+               trainType.unwrap() != train.Type() {continue;}
+            if train.Type() == TrainType::BoxMove {continue;}
+            TrainCount += 1;
+            let mut buffer = trainName.clone();
+            while buffer.len() < 11 {buffer.push(' ');}
+            buffer += format!("<{}>", trainShift).as_str();
+            while buffer.len() < 20 {buffer.push(' ');}
+            print!("{}",buffer);
+            if (TrainCount % 4) == 0 {println!("");}
+        }
+        if (TrainCount % 4) != 0 {println!("");}
+        println!("\nTotal Trains: {}\n", TrainCount);
     }
     /// Return an iterator into the divisions.
     ///
@@ -1126,7 +1171,7 @@ impl System {
             let mut tword  = String::from(items[1].trim());
             tword.make_ascii_uppercase();
             let TrnType = TrainType::new(tword.chars().next().unwrap());
-            let TrnShift = items[5].trim().parse::<u8>().expect("Syntax error");
+            let TrnShift = items[2].trim().parse::<u8>().expect("Syntax error");
             //println!("In ReadTrains(): train {} is a {}",Tx, TrnType);
             let yesno = items[3].trim().chars().next().unwrap();
             //println!("In ReadTrains(): yesno (TrnDone) is {}",yesno);
@@ -2520,6 +2565,7 @@ impl System {
             if !showAll {
                 if car.MovementsThisSession() == 0 {continue;}
             }
+            let mut banner1 = String::from("");
             if TOption.is_some() {
                 let train: &Train = TOption.unwrap();
                 let Tx = self.TrainIndex(train);
@@ -2531,12 +2577,17 @@ impl System {
                 }
                 if Gx >= self.switchList.LimitCars() {continue;}
             } else if IOption.is_some() {
+                //eprintln!("*** in ShowCarMovements(): IOption is {:?}",IOption);
                 let industry: &Industry = IOption.unwrap();
+                if banner1.len() == 0 {
+                    banner1 = format!("Cars at {}",industry.Name());
+                }
                 let Ix = self.IndustryIndex(industry);
                 if Ix != car.Location() {continue;}
             }
             if Total == 0 {
                 println!("{}",self.SystemName());
+                if banner1.len() > 0 {println!("{}",banner1);}
                 println!("{:<21}{:<7}{:<8}{:<8}{:<8}{:<8}{}\n{:-<79}",
                         "Cars Moved","Type","Prv","1st","2nd","3rd",
                         "Destination","");

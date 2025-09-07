@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:14:13
-//  Last Modified : <250906.1647>
+//  Last Modified : <250907.1454>
 //
 //  Description	
 //
@@ -101,20 +101,36 @@ fn movements_by_location(system: &System) {
     };
     if status == 0 {return;}
     match key.trim().parse::<usize>() {
-        Ok(Ix) => system.ShowCarMovements(false,None,
-                                             system.IndustryByIndex(Ix)),
-        Err(f) => { eprintln!("{}", f.to_string()); () },
+        Ok(Ix) => { let IOpt = system.IndustryByIndex(Ix);
+                    if IOpt.is_none() {
+                        println!("No such industry: {}",Ix);
+                    } else {
+                        system.ShowCarMovements(true,None,IOpt);
+                    };
+                   },
+        Err(f) => { eprintln!("{}", f.to_string());},
     };
     
 }
 
-fn compile_car_movements(system: &System) {
-}
+//fn compile_car_movements(system: &System) {
+//}
 
 fn show_cars_in_division(system: &System) {
-}
-
-fn list_train_names(system: &System) {
+    println!("{}",system.SystemName());
+    println!("\nEnter division symbol to show car movements\n");
+    let mut key = String::new();
+    print!("Division symbol: "); io::stdout().flush().unwrap();
+    let status = match io::stdin().read_line(&mut key) {
+        Ok(m) => { m },
+        Err(f) => { eprintln!("{}", f.to_string()); 0 },
+    };
+    if status == 0 {return;}
+    let divindex = system.FindDivisionIndexBySymbol(key.chars().next().unwrap_or(' '));
+    match divindex {
+        Some(Dx) => system.ShowCarsInDivision(Dx),
+        None => (),
+    };
 }
 
 fn show_car_movements(system: &System) {
@@ -125,12 +141,12 @@ fn show_car_movements(system: &System) {
         println!("Enter <T>     to show car movements by train");
         println!("Enter <L>     to show car movements by location");
         println!("Enter <E>     to show cars moved and NOT moved");
-        println!("Enter <C>     to compile car movements");
+        //println!("Enter <C>     to compile car movements");
         println!("Enter <D>     to show cars in division");
         println!("Enter <A>     to show train totals");
         //println!("Enter <U>     to mark ALL cars in use");
         println!("Enter <?>     to list train names\n");
-        println!("Enter train name for a single train\n");
+        //println!("Enter train name for a single train\n");
         println!("Enter <other> to exit\n");
         let mut command = String::new();
         print!("Your command: "); io::stdout().flush().unwrap();
@@ -146,11 +162,11 @@ fn show_car_movements(system: &System) {
             'T' | 't' => movements_by_train(&system),
             'L' | 'l' => movements_by_location(&system),
             'E' | 'e' => system.ShowCarMovements(true, None, None),
-            'C' | 'c' => compile_car_movements(&system),
+            //'C' | 'c' => compile_car_movements(&system),
             'D' | 'd' => show_cars_in_division(&system),
             'A' | 'a' => system.ShowTrainTotals(),
             //'U' | 'u' => system.MarkAllCarsInUse(),
-            '?'         => list_train_names(&system),
+            '?'         => system.ListTrainNames(false,None),
             _ => {break;},
         }
     }
