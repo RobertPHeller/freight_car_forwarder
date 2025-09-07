@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:14:13
-//  Last Modified : <250907.1454>
+//  Last Modified : <250907.1734>
 //
 //  Description	
 //
@@ -64,12 +64,106 @@ fn print_usage(program: &str, opts: Options) {
 //fn run_one_train(system: &mut System) {
 //}
 
-//fn manage_trains_and_printing(system: &mut System) {
-        //println!("Run all Trains in Operating session");
-        //println!("Run the Boxmove trains");
-        //println!("Run Trains one at a time");
-        //println!("Print yard lists, etc");
-//}
+fn ask_for_filename(prompt: &str, extension: &str) -> String {
+    String::from("")
+}
+
+fn manage_trains_and_printing(system: &mut System) {
+    let mut printfile = String::from("");
+    loop {
+        println!("{}\n",system.SystemName()); 
+        if printfile.len() == 0 {
+            println!("Print file name is unset\n");
+            println!("Enter <N> To set print filename");
+        } else {
+            println!("Print file name is {}\n",printfile);
+        }
+        println!("Enter <O> Run all Trains in Operating session");
+        println!("Enter <B> Run the Boxmove trains");
+        println!("Enter <T> Run Trains one at a time");
+        println!("Enter <P> Print yard lists, etc");
+        println!("Enter <other> To return to the main menu");
+        let mut command = String::new();
+        print!("Your command: "); io::stdout().flush().unwrap();
+        let status = match io::stdin().read_line(&mut command) {
+            Ok(m) => { m },
+            Err(f) => { eprintln!("{}", f.to_string()); 0 },
+        };
+        if status == 0 {break;}
+        let key = command.chars().next().unwrap_or(' ');
+        match key {
+            'N' | 'n' => { 
+                        if printfile.len() != 0 {
+                            loop {
+                                println!("Print file name is {}\n",printfile);
+                                print!("Do you really want to change it (y|N)?");
+                                io::stdout().flush().unwrap();
+                                let status = match io::stdin().read_line(&mut command) {
+                                     Ok(m) => { m },
+                                    Err(f) => { eprintln!("{}", f.to_string()); 0 }, 
+                                };
+                                if status == 0 {break;}
+                                let key = command.chars().next().unwrap_or(' ');
+                                match key {
+                                    'Y' | 'y' => {
+                                        printfile = ask_for_filename("Print file","pdf");
+                                        break;
+                                        },
+                                    'N' | 'n' | '\n' => {break;}
+                                    _ => {println!("Please anser Y or N");},
+                                };
+                            }
+                        } else {
+                            printfile = ask_for_filename("Print file","pdf");
+                        } },
+            'O' | 'o' => {
+                        if printfile.len() == 0 {
+                            println!("Select a PDF file to print to!");
+                        } else {
+                            let printer: Printer = Printer::new(&printfile,
+                                                                "All train in operating session",
+                                                                 PageSize::Letter);
+                            system.RunAllTrains(&printer);
+                            printfile = String::new();
+                        }
+                      },
+            'B' | 'b' => {
+                        if printfile.len() == 0 {
+                            println!("Select a PDF file to print to!");
+                        } else {
+                            let printer: Printer = Printer::new(&printfile,
+                                                                "All boxmoves",
+                                                                PageSize::Letter);
+                            system.RunBoxMoves(&printer);
+                            printfile = String::new();
+                        }
+                      },
+            'T' | 't' => {
+                        if printfile.len() == 0 {
+                            println!("Select a PDF file to print to!");
+                        } else {
+                            let printer: Printer = Printer::new(&printfile,
+                                                                "One train",
+                                                                PageSize::Letter);
+                            //system.RunOneTrain(Tx,true,&printer);
+                            printfile = String::new();
+                        }
+                      },
+            'P' | 'p' => {
+                        if printfile.len() == 0 {
+                            println!("Select a PDF file to print to!");
+                        } else {
+                            let printer: Printer = Printer::new(&printfile,
+                                                                "Yard lists",
+                                                                PageSize::Letter);
+                            system.PrintAllLists(&printer);
+                            printfile = String::new();
+                        }
+                      },
+            _ => {break;},
+        }
+    }
+}
 
 //fn reports_menu(system: &System) {
 //}
@@ -145,9 +239,9 @@ fn show_car_movements(system: &System) {
         println!("Enter <D>     to show cars in division");
         println!("Enter <A>     to show train totals");
         //println!("Enter <U>     to mark ALL cars in use");
-        println!("Enter <?>     to list train names\n");
-        //println!("Enter train name for a single train\n");
-        println!("Enter <other> to exit\n");
+        println!("Enter <?>     to list train names");
+        //println!("Enter train name for a single train");
+        println!("Enter <other> To return to the main menu");
         let mut command = String::new();
         print!("Your command: "); io::stdout().flush().unwrap();
         let status = match io::stdin().read_line(&mut command) {
@@ -237,7 +331,7 @@ fn main() {
                     true => println!("Cars saved."),
                     false => println!("Cars not saved."),
                 }, 
-             //'M' | 'm' => manage_trains_and_printing(&mut system),
+             'M' | 'm' => manage_trains_and_printing(&mut system),
              'U' | 'u' => system.ShowUnassignedCars(),
              'A' | 'a' => system.CarAssignment(),
              'C' | 'c' => show_car_movements(&system),
