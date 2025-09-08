@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:14:13
-//  Last Modified : <250907.2133>
+//  Last Modified : <250907.2235>
 //
 //  Description	
 //
@@ -44,6 +44,7 @@ use std::env;
 use std::io::{self, Write};
 use std::path::PathBuf;
 use std::ffi::OsStr;
+use std::fs;
 
 pub use freight_car_forwarder::system::System;
 pub use freight_car_forwarder::fcfprintpdf::*;
@@ -77,7 +78,28 @@ fn ask_for_filename(prompt: &str, extension: &str) -> String {
             Err(f) => { eprintln!("{}", f.to_string()); 0 },
         };
         if status == 0 {break;}
-        let mut path = PathBuf::from(answer.trim());
+        let origpath = PathBuf::from(answer.trim());
+        //eprintln!("*** ask_for_filename(), origpath is {:?}", origpath);
+        //eprintln!("*** ask_for_filename(), origpath.parent() is {:?}", origpath.parent());
+        let parent = match origpath.parent() {
+            Some(parent) => if parent.to_str().unwrap_or("") == "" {
+                                PathBuf::from(".")
+                            } else {
+                                PathBuf::from(parent)
+                            },
+            None         => PathBuf::from("."),
+        };
+        //eprintln!("*** ask_for_filename(), parent is {:?}",parent);
+        let mut path = match fs::canonicalize(parent) {
+                                Ok(parentpath) => parentpath,
+                                Err(f)      => {eprintln!("{}", f.to_string()); continue;},
+                              };
+        //eprintln!("*** ask_for_filename(), (before set_file_name) path is {:?}", path);
+        match origpath.file_name() {
+            Some(filename) => path.set_file_name(filename),
+            None           => (),
+        };
+        //eprintln!("*** ask_for_filename(), (after set_file_name) path is {:?}", path);
         if path.extension().is_none() {
             path.set_extension(extension);
             match path.to_str() {
