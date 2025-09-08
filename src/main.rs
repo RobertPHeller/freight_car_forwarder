@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:14:13
-//  Last Modified : <250907.1734>
+//  Last Modified : <250907.2133>
 //
 //  Description	
 //
@@ -42,7 +42,8 @@ use getopts::Options;
 use std::env;
 //use std::io;
 use std::io::{self, Write};
-
+use std::path::PathBuf;
+use std::ffi::OsStr;
 
 pub use freight_car_forwarder::system::System;
 pub use freight_car_forwarder::fcfprintpdf::*;
@@ -65,7 +66,48 @@ fn print_usage(program: &str, opts: Options) {
 //}
 
 fn ask_for_filename(prompt: &str, extension: &str) -> String {
-    String::from("")
+    let mut result: String = String::new();
+    let os_extension = OsStr::new(extension);
+    loop {
+        let mut answer = String::new();
+        print!("{} name (*.{})? ",prompt,extension); 
+        io::stdout().flush().unwrap();
+        let status = match io::stdin().read_line(&mut answer) {
+            Ok(m) => { m },
+            Err(f) => { eprintln!("{}", f.to_string()); 0 },
+        };
+        if status == 0 {break;}
+        let mut path = PathBuf::from(answer.trim());
+        if path.extension().is_none() {
+            path.set_extension(extension);
+            match path.to_str() {
+                Some(pathname) => {result = String::from(pathname);break;},
+                None => (),
+            };
+        } else if path.extension() != Some(os_extension) {
+            print!("File has wrong extension, use anyway (yN)? ");
+            io::stdout().flush().unwrap();
+            let status = match io::stdin().read_line(&mut answer) {
+                Ok(m) => { m },
+                Err(f) => { eprintln!("{}", f.to_string()); 0 },
+            };
+            if status == 0 {break;}
+            match answer.chars().next().unwrap_or('N') {
+                'Y' | 'y' => match path.to_str() {
+                                Some(pathname) => 
+                                        {result = String::from(pathname);break;},
+                                None => (),
+                              },
+                 _ => (),
+            };
+        } else {
+            match path.to_str() {
+                Some(pathname) => {result = String::from(pathname);break;},
+                None => (),
+            };
+        }
+    }
+    result
 }
 
 fn manage_trains_and_printing(system: &mut System) {
