@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250907.1722>
+//  Last Modified : <250908.0900>
 //
 //  Description	
 //
@@ -103,14 +103,22 @@ pub struct System {
     statsFile: String,              
     /// Division map. 
     divisions: HashMap<u8, Division>, 
+    /// Max Division
+    maxDivision: u8,
     /// Station map.
     stations: HashMap<u8, Station>, 
+    /// Max station
+    maxStation: u8,
     /// Train map.
-    trains: HashMap<usize, Train>,  
+    trains: HashMap<usize, Train>,
+    /// Max train number
+    maxTrain: usize,
     /// Train name map.
     trainIndex: HashMap<String, usize>, 
     /// Industries map.
     industries: HashMap<usize, Industry>, 
+    /// Max industry.
+    maxIndustry: usize,
     /// Car type order vector.
     carTypesOrder: Vec<char>,       
     /// Car type map.
@@ -899,6 +907,7 @@ impl System {
         let divcount: u8 = temp.1.trim()
                 .parse::<u8>()
                 .expect("Syntax error");
+        self.maxDivision = divcount;
         //println!("divcount is {}",divcount);
         loop {
             let line = Self::SkipCommentsReadLine(reader)
@@ -959,6 +968,7 @@ impl System {
         let stacount: u8 = temp.1.trim()
                 .parse::<u8>()
                 .expect("Syntax error");
+        self.maxStation = stacount;
         loop {
             let line = Self::SkipCommentsReadLine(reader)
                     .expect("Read Error");
@@ -1035,6 +1045,7 @@ impl System {
         let indcount: usize = temp.1.trim()
                 .parse::<usize>()
                 .expect("Syntax error");
+        self.maxIndustry = indcount;
         loop {
             let mut line = Self::SkipCommentsReadLine(&mut reader)
                     .expect("Read Error");
@@ -1149,6 +1160,7 @@ impl System {
         let traincount: usize = temp.1.trim()
                  .parse::<usize>()
                  .expect("Syntax error");
+        self.maxTrain = traincount;
         loop {
             let mut line = Self::SkipCommentsReadLine(&mut reader)
                     .expect("Read Error");
@@ -1651,9 +1663,10 @@ impl System {
               carTypesFile: cartypesfile.to_str().unwrap().to_string(), 
               carsFile: carsfile.to_str().unwrap().to_string(), 
               statsFile: statsfile.to_str().unwrap().to_string(), 
-              divisions: HashMap::new(), stations: HashMap::new(), 
-              trains: HashMap::new(), trainIndex: HashMap::new(), 
-              industries: HashMap::new(), 
+              divisions: HashMap::new(), maxDivision: 0,
+              stations: HashMap::new(), maxStation: 0,
+              trains: HashMap::new(), maxTrain: 0, trainIndex: HashMap::new(), 
+              industries: HashMap::new(), maxIndustry: 0,
               carTypesOrder: Vec::new(), carTypes: HashMap::new(), 
               carGroups: Vec::new(), owners: HashMap::new(),
               cars: Vec::new(), switchList: SwitchList::new(), 
@@ -2433,6 +2446,26 @@ impl System {
             }
         }
     } // 1
+    /// Update industry car counts.
+    ///
+    /// ## Parameters:
+    /// None
+    ///
+    /// __Returns__ nothing.
+    fn GetIndustryCarCounts(&mut self) {
+    }
+    ///  Internal function to run a single train.
+    /// 
+    /// ## Parameters:
+    /// - Tx The index of the train to run.
+    /// - boxMove Is this a box move?
+    /// - printer Printer device.
+    ///
+    /// __Returns__ nothing.
+    fn InternalRunOneTrain(&mut self,Tx: usize,boxMove: bool, 
+                           printer: &mut Printer) {
+    }
+    
     /// Run all trains procedure.  
     ///
     /// The is another workhorse procedure.  This procedure runs the initial 
@@ -2441,11 +2474,50 @@ impl System {
     /// additional sections of the way freights or manifest trains need to be 
     /// run first. 
     ///
+    /// Run all of the trains in an operating session.  This simulates all   
+    /// movements.  Assuming the session went smoothly, the results of this  
+    /// will mirror what actually happens on the layout and all cars that were
+    /// moved this session will be at whereever they would be after the      
+    /// session.								
+    ///
+    /// We can then save the car state and/or run the car assignment for the 
+    /// next session.  In practice, what will happen is after running this   
+    /// code (and manually run the box moves afterward), some of the cars will
+    /// be edited to reflect mistakes and problems encounted durring the     
+    /// the operating system.  That is, the car data will be fixed to reflect
+    /// what really happened.  Presumably a large part of what happened was  
+    ///
+    /// was supposed to happen.						
+    /// This code also creates information about things like switch lists    
+    /// relating to switching that the train crew(s) will perform durring the
+    /// operating session.							
+    ///
     /// ## Parameters:
     /// - printer Printer device.
     ///
     /// __Returns__ nothing.
-    pub fn RunAllTrains(&mut self, printer: &Printer) {
+    pub fn RunAllTrains(&mut self, printer: &mut Printer) {
+        // Get the initial car counts.
+        self.GetIndustryCarCounts();
+        // Reset the switch lists.
+        self.switchList.ResetSwitchList();
+        // Flag that we were called.
+        self.ranAllTrains += 1;
+        // Display our banner.
+        println!("{}",self.SystemName());
+        // First runn all of the box moves (yard locals).
+        self.RunBoxMoves(printer);
+        let boxMove = false;
+        // For every train...
+        for Tx in 1..self.maxTrain+1 {
+            if !self.trains.contains_key(&Tx) {continue;}
+            if self.trains[&Tx].Type() == TrainType::Manifest ||
+               self.trains[&Tx].Type() == TrainType::Wayfreight {
+                if self.trains[&Tx].Shift() == self.shiftNumber {
+                    self.InternalRunOneTrain(Tx,boxMove,printer);
+                }
+            }
+        }
     }
     /// Run all boxmove trains.  
     /// The is another workhorse procedure.  This procedure runs all of the 
@@ -2455,7 +2527,7 @@ impl System {
     /// - printer Printer device.
     ///
     /// __Returns__ nothing.
-    pub fn RunBoxMoves(&mut self, printer: &Printer) {
+    pub fn RunBoxMoves(&mut self, printer: &mut Printer) {
     }
     ///  Print all of the various yard and switch lists.
     ///
@@ -2463,7 +2535,7 @@ impl System {
     /// - printer Printer device.
     ///
     /// __Returns__ nothing.
-    pub fn PrintAllLists(&self, printer: &Printer) {
+    pub fn PrintAllLists(&self, printer: &mut Printer) {
     }
     /// Run one single train.
     ///
@@ -2474,7 +2546,7 @@ impl System {
     ///
     /// __Returns__ nothing.
     pub fn RunOneTrain(&mut self, train: usize, boxMove: bool, 
-                        printer: &Printer) {
+                        printer: &mut Printer) {
     }
     /// Display cars not moved. 
     ///
@@ -2832,7 +2904,7 @@ impl System {
     /// - printer Printer device.
     ///
     /// __Returns__ nothing.
-    pub fn ReportIndustries(&self, printer: &Printer) {
+    pub fn ReportIndustries(&self, printer: &mut Printer) {
     }
     /// Report on all trains.
     ///
@@ -2840,7 +2912,7 @@ impl System {
     /// - printer Printer device.
     ///
     /// __Returns__ nothing.
-    pub fn ReportTrains(&self, printer: &Printer) {
+    pub fn ReportTrains(&self, printer: &mut Printer) {
     }
     /// Report on all cars.
     ///
@@ -2848,7 +2920,7 @@ impl System {
     /// - printer Printer device.
     ///
     /// __Returns__ nothing.
-    pub fn ReportCars(&self, printer: &Printer) {
+    pub fn ReportCars(&self, printer: &mut Printer) {
     }
     /// Report on cars not moved.
     ///
@@ -2856,7 +2928,7 @@ impl System {
     /// - printer Printer device.
     ///
     /// __Returns__ nothing.
-    pub fn ReportCarsNotMoved(&self, printer: &Printer) {
+    pub fn ReportCarsNotMoved(&self, printer: &mut Printer) {
     }
     /// Report on car types.
     ///
@@ -2868,7 +2940,7 @@ impl System {
     ///
     /// __Returns__ nothing.
     pub fn ReportCarTypes(&self, rtype: CarTypeReport, carType: char, 
-                            printer: &Printer) {
+                            printer: &mut Printer) {
     }
     /// Car location report.
     ///
@@ -2879,7 +2951,7 @@ impl System {
     ///
     /// __Returns__ nothing.
     pub fn ReportCarLocations(&self, cltype: CarLocationType, index: usize, 
-                                printer: &Printer) {
+                                printer: &mut Printer) {
     }
     /// Industry analysis report. 
     ///
@@ -2887,7 +2959,7 @@ impl System {
     /// - printer Printer device.
     ///
     /// __Returns__ nothing.
-    pub fn ReportAnalysis(&self, printer: &Printer) {
+    pub fn ReportAnalysis(&self, printer: &mut Printer) {
     }
     /// Report on a specified car owner. 
     ///
@@ -2896,6 +2968,6 @@ impl System {
     /// - printer Printer device.
     ///
     /// __Returns__ nothing.
-    pub fn ReportCarOwners(&self, ownerInitials: String, printer: &Printer) {
+    pub fn ReportCarOwners(&self, ownerInitials: String, printer: &mut Printer) {
     }
 }

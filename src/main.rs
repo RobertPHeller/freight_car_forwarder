@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:14:13
-//  Last Modified : <250907.2235>
+//  Last Modified : <250908.0905>
 //
 //  Description	
 //
@@ -63,8 +63,8 @@ fn print_usage(program: &str, opts: Options) {
 }
 
 
-//fn run_one_train(system: &mut System) {
-//}
+fn run_one_train(system: &mut System, printer: &Printer) {
+}
 
 fn ask_for_filename(prompt: &str, extension: &str) -> String {
     let mut result: String = String::new();
@@ -184,10 +184,10 @@ fn manage_trains_and_printing(system: &mut System) {
                         if printfile.len() == 0 {
                             println!("Select a PDF file to print to!");
                         } else {
-                            let printer: Printer = Printer::new(&printfile,
+                            let mut printer: Printer = Printer::new(&printfile,
                                                                 "All train in operating session",
                                                                  PageSize::Letter);
-                            system.RunAllTrains(&printer);
+                            system.RunAllTrains(&mut printer);
                             printfile = String::new();
                         }
                       },
@@ -195,10 +195,10 @@ fn manage_trains_and_printing(system: &mut System) {
                         if printfile.len() == 0 {
                             println!("Select a PDF file to print to!");
                         } else {
-                            let printer: Printer = Printer::new(&printfile,
+                            let mut printer: Printer = Printer::new(&printfile,
                                                                 "All boxmoves",
                                                                 PageSize::Letter);
-                            system.RunBoxMoves(&printer);
+                            system.RunBoxMoves(&mut printer);
                             printfile = String::new();
                         }
                       },
@@ -206,10 +206,10 @@ fn manage_trains_and_printing(system: &mut System) {
                         if printfile.len() == 0 {
                             println!("Select a PDF file to print to!");
                         } else {
-                            let printer: Printer = Printer::new(&printfile,
+                            let mut printer: Printer = Printer::new(&printfile,
                                                                 "One train",
                                                                 PageSize::Letter);
-                            //system.RunOneTrain(Tx,true,&printer);
+                            run_one_train(system,&mut printer);
                             printfile = String::new();
                         }
                       },
@@ -217,10 +217,10 @@ fn manage_trains_and_printing(system: &mut System) {
                         if printfile.len() == 0 {
                             println!("Select a PDF file to print to!");
                         } else {
-                            let printer: Printer = Printer::new(&printfile,
+                            let mut printer: Printer = Printer::new(&printfile,
                                                                 "Yard lists",
                                                                 PageSize::Letter);
-                            system.PrintAllLists(&printer);
+                            system.PrintAllLists(&mut printer);
                             printfile = String::new();
                         }
                       },
