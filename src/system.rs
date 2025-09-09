@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250908.0900>
+//  Last Modified : <250908.2059>
 //
 //  Description	
 //
@@ -57,6 +57,7 @@ use std::fs::File;
 use std::path::PathBuf;
 use std::fs;
 use rand::prelude::*;
+use std::mem;
 
 /// Scrap yard index (cars marked as scrap).
 const IND_SCRAP_YARD: usize = 999;
@@ -2453,6 +2454,208 @@ impl System {
     ///
     /// __Returns__ nothing.
     fn GetIndustryCarCounts(&mut self) {
+        for Ix in self.industries.values_mut() {
+            Ix.SetUsedLen(0);
+        }
+        for Cx in 0..self.cars.len() {
+            let car = &self.cars[Cx];
+            match self.industries.get_mut(&car.Location()) {
+                Some(location) => {location.AddToUsedLen(car.Length());},
+                None           => (),
+            }
+        }
+    }
+    ///  Print a train's current location.
+    /// Print/display our current location and status
+    /// ## Parameters:
+    /// - train The train to print.
+    /// - Px The stop number that train is at. 
+    ///
+    /// __Returns__ nothing
+    fn PrintTrainLoc(&mut self,train: &Train,Px: usize) {
+    }
+    ///  Make up a local train.
+    /// Basically, starting from the origin, to the next to last stop, pick
+    /// up every car in the origin yard that is destined for an industry at
+    /// that particular stop -- IF possible.
+    ///
+    /// A car may not necessarily be picked up - if the destination already
+    /// has too many cars, or the train cannot handle this type of car, etc.
+    /// ## Parameters:
+    /// - train The train to make up.
+    /// - boxMove Is this a box move?
+    /// - Px The stop number that train is at. 
+    /// - consist The train's consist.
+    /// - printer Printer device.
+    ///
+    /// __Returns__ true if something was done, false if not.
+    fn TrainLocalOriginate(&mut self,train: &Train,boxMove: bool,
+                           Px: usize, consist: &mut Vec<usize>,
+                           printer: &mut Printer) -> bool {
+        false
+    }
+    /// Print a train's consist summary.
+    /// ## Parameters:
+    /// - train The train to print a summary for.
+    /// - consist The train's consist.
+    /// -printer Printer device.
+    ///
+    /// __Returns__ nothing.
+    fn TrainPrintConsistSummary(&mut self,train: &Train,
+                                consist: &mut Vec<usize>,
+                                printer: &mut Printer) {
+    }
+    ///  Drop cars from a local (box move or way freight).
+    /// Drop cars destined for the current (local) industry.
+    /// ## Parameters:
+    /// - train The train to drop cars from.
+    /// - Px The stop number that train is at. 
+    /// - consist The train's consist.
+    /// - printer Printer device.
+    ///
+    /// __Returns__ true if cars were dropped otherwise false.
+    fn TrainLocalDrops(&mut self,train: &Train,Px: usize,
+                        consist: &mut Vec<usize>,
+                        printer: &mut Printer) -> bool {
+        false
+    }
+    /// Pick up cars for a local train (box move or way freight).
+    /// Basically, look at each industry at the current station. For each
+    /// car at the industry, see if there is a logical place to take that
+    /// car -- i.e. a stop where we can drop the car.
+    /// ## Parameters:
+    /// - train The train to pick up cars for.
+    /// - boxMove Is this a box move?
+    /// - Px The stop number that train is at. 
+    /// - consist The train's consist.
+    /// - printer Printer device.
+    ///
+    /// __Returns__ true if cars were picked up, false otherwise.
+    fn TrainLocalPickups(&mut self,train: &Train,boxMove: bool,
+                        Px: usize, consist: &mut Vec<usize>,
+                        printer: &mut Printer) -> bool {
+        false
+    }
+    /// Drop all cars from a train at the current stop (usually
+    /// the last stop). 
+    /// Drop all cars from a train.  This happens when we get to our final
+    /// location.
+    /// ## Parameters:
+    /// - train The train to drop cars from.
+    /// - Px The stop number that train is at. 
+    /// - consist The train's consist.
+    /// - printer Printer device.
+    ///
+    /// __Returns__ nothing.
+    fn TrainDropAllCars(&mut self,train: &Train,Px: usize,
+                        consist: &mut Vec<usize>,
+                        printer: &mut Printer) {
+    }
+    /// Print a train's final summary.
+    /// ## Parameters:
+    /// - train The train to print the final summary for.
+    /// - printer Printer device.
+    ///
+    /// __Returns__ nothing.
+    fn TrainPrintFinalSummary(&mut self,train: &Train,printer: &mut Printer) {
+    }
+    ///  One one local train.
+    /// A local train runs YARD to STATION(S) to YARD
+    ///
+    /// ## Parameters:
+    /// - train The train to run.
+    /// - boxMove Is this a box move?
+    /// - consist The train's consist.
+    /// - printer Printer device.
+    ///
+    /// __Returns__ nothing.
+    fn RunOneLocal(&mut self,train: &Train,boxMove: bool,
+                    consist: &mut Vec<usize>,printer: &mut Printer) {
+        let mut didAction; // = false;
+
+        self.wayFreight = true;
+        self.deliver = true;
+        self.curDivIndex = match train.Stop(0) {
+                        None => 0,
+                        Some(theStop) => match theStop {
+                            Stop::StationStop(station) => self.stations[&station].DivisionIndex(),
+                            Stop::IndustryStop(Ix) => {
+                                let station = self.industries[&Ix].MyStationIndex();
+                                self.stations[&station].DivisionIndex()
+                            },
+                        },
+        };
+        self.originYardIndex = self.divisions[&self.curDivIndex].Home();
+        let lastLocDivI = 
+            match train.Stop(train.NumberOfStops()-1) {
+                None => 0,
+                Some(theStop) => match theStop {
+                    Stop::StationStop(station) => self.stations[&station].DivisionIndex(),
+                    Stop::IndustryStop(Ix) => {
+                        let station = self.industries[&Ix].MyStationIndex();
+                        self.stations[&station].DivisionIndex()
+                    },
+                },
+        };
+        self.trainLastLocationIndex = self.divisions[&lastLocDivI].Home();
+        // Print and display our starting location.
+        self.PrintTrainLoc(train,0);
+       	// Originate the train, picking up all of the cars at the originating
+        // yard.
+        didAction = self.TrainLocalOriginate(train,boxMove,0,consist,printer);
+        // Display our summary if anything happened
+        if didAction {
+            self.TrainPrintConsistSummary(train,consist,printer);
+        }
+	// For each stop...
+        for Px in 1..train.NumberOfStops()-1 {
+            //didAction = false;
+            // Print and display our new location
+            self.PrintTrainLoc(train,Px);
+            // Do our local drops
+            didAction = self.TrainLocalDrops(train,Px,consist,printer);
+            // Do our local pickups
+            didAction = 
+                self.TrainLocalPickups(train,boxMove,Px,consist,printer) || 
+                didAction;
+            // If anything happened, print/display our summary.
+            if didAction {
+                self.TrainPrintConsistSummary(train,consist,printer);
+            }
+        }
+        self.PrintTrainLoc(train,train.NumberOfStops()-1);
+        // Drop all of the remaining cars.
+        self.TrainDropAllCars(train,train.NumberOfStops()-1,consist,printer); 
+        // Print our final summary.
+        if self.totalPickups > 0 {
+            self.TrainPrintFinalSummary(train,printer);
+        }
+    }
+    /// Run one manifest freight train.
+    /// A manifest runs from INDUSTRY/YARD to INDUSTRY/YARD
+    ///
+    /// ## Parameters:
+    /// - train The train to run.
+    /// - boxMove Is this a box move?
+    /// - consist The train's consist.
+    /// - printer Printer device.
+    ///
+    /// __Returns__ nothing.
+    fn RunOneManifest(&mut self,train: &Train, boxMove: bool, 
+                        consist: &mut Vec<usize>,printer: &mut Printer) {
+    }
+    /// One one passenger train.
+    /// Run a passenger train.  Not much happens -- passenger trains are not
+    /// involved in freight forwarding...
+    /// 
+    /// ## Parameters:
+    /// - train The train to run.
+    /// - boxMove Is this a box move?
+    /// - printer Printer device.
+    ///
+    /// __Returns__ nothing.
+    fn RunOnePassenger(&mut self,train: &Train,boxMove: bool,
+                        printer: &mut Printer) {
     }
     ///  Internal function to run a single train.
     /// 
@@ -2462,8 +2665,49 @@ impl System {
     /// - printer Printer device.
     ///
     /// __Returns__ nothing.
-    fn InternalRunOneTrain(&mut self,Tx: usize,boxMove: bool, 
+    fn InternalRunOneTrain(&mut self,train: &Train,boxMove: bool, 
                            printer: &mut Printer) {
+        let mut consist: Vec<usize> = Vec::new();
+
+	// Initialize counters
+        self.totalPickups = 0;
+        self.totalLoads = 0;
+        self.totalTons = 0;
+        self.totalRevenueTons = 0;
+        self.trainLength = 0;
+        self.numberCars = 0;
+        self.trainTons = 0;
+        self.trainLoads = 0;
+        self.trainEmpties = 0;
+        self.trainLongest = 0;
+
+        println!("Running status of train {}",train.Name());
+        self.trainPrintOK = false;
+
+        if self.printem && train.Print() {self.trainPrintOK = true;}
+        if boxMove {self.trainPrintOK = false;}
+
+        // Make sure the industry remaining lengths are up to date.
+        for (Ix, ind) in self.industries.iter_mut() {
+            let remlen = ind.TrackLen() - ind.UsedLen();
+            ind.SetRemLen(remlen);
+        }
+        // Fan out based on train type.
+        match train.Type() {
+            // Way freights are a flavor of local 
+            TrainType::Wayfreight => 
+                    {self.RunOneLocal(train,boxMove,&mut consist,printer);},
+            // As are box moves 
+            TrainType::BoxMove =>
+                    {self.RunOneLocal(train,boxMove,&mut consist,printer);},
+            // Manifest freights. 
+            TrainType::Manifest =>
+                    {self.RunOneManifest(train,boxMove,&mut consist,printer);},
+            // Passenger trains.                    
+            TrainType::Passenger =>
+                    {self.RunOnePassenger(train,boxMove,printer);},
+            _ => (),
+        }
     }
     
     /// Run all trains procedure.  
@@ -2508,16 +2752,18 @@ impl System {
         // First runn all of the box moves (yard locals).
         self.RunBoxMoves(printer);
         let boxMove = false;
+        let  trains = mem::take(&mut self.trains);
         // For every train...
-        for Tx in 1..self.maxTrain+1 {
-            if !self.trains.contains_key(&Tx) {continue;}
-            if self.trains[&Tx].Type() == TrainType::Manifest ||
-               self.trains[&Tx].Type() == TrainType::Wayfreight {
-                if self.trains[&Tx].Shift() == self.shiftNumber {
-                    self.InternalRunOneTrain(Tx,boxMove,printer);
+        for (Tx, train) in trains.iter() {
+            if train.Type() == TrainType::Manifest ||
+               train.Type() == TrainType::Wayfreight {
+                if train.Shift() == self.shiftNumber {
+                    self.InternalRunOneTrain(train,boxMove,printer);
                 }
             }
         }
+        // move the trains back
+        self.trains = trains;
     }
     /// Run all boxmove trains.  
     /// The is another workhorse procedure.  This procedure runs all of the 
