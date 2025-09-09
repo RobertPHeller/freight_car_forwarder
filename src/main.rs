@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:14:13
-//  Last Modified : <250908.0905>
+//  Last Modified : <250909.1618>
 //
 //  Description	
 //
@@ -45,8 +45,9 @@ use std::io::{self, Write};
 use std::path::PathBuf;
 use std::ffi::OsStr;
 use std::fs;
-
+use std::collections::HashMap;
 pub use freight_car_forwarder::system::System;
+pub use freight_car_forwarder::industry::IndustryWorking;
 pub use freight_car_forwarder::fcfprintpdf::*;
 //use freight_car_forwarder::switchlist::*;
 
@@ -132,7 +133,7 @@ fn ask_for_filename(prompt: &str, extension: &str) -> String {
     result
 }
 
-fn manage_trains_and_printing(system: &mut System) {
+fn manage_trains_and_printing(system: &mut System, working_industries: &mut HashMap<usize, IndustryWorking>) {
     let mut printfile = String::from("");
     loop {
         println!("{}\n",system.SystemName()); 
@@ -187,7 +188,7 @@ fn manage_trains_and_printing(system: &mut System) {
                             let mut printer: Printer = Printer::new(&printfile,
                                                                 "All train in operating session",
                                                                  PageSize::Letter);
-                            system.RunAllTrains(&mut printer);
+                            system.RunAllTrains(working_industries,&mut printer);
                             printfile = String::new();
                         }
                       },
@@ -359,7 +360,7 @@ fn main() {
         return;
     };
     
-    let mut system = System::new(systemfile);
+    let (mut system, mut working_industries) = System::new(systemfile);
     
     loop {
         println!("{}",system.SystemName());
@@ -391,16 +392,16 @@ fn main() {
         match cmd {
             'L' | 'l' => system.ReLoadCarFile(),
             'S' | 's' =>
-                match system.SaveCars() {
+                match system.SaveCars(&working_industries) {
                     true => println!("Cars saved."),
                     false => println!("Cars not saved."),
                 }, 
-             'M' | 'm' => manage_trains_and_printing(&mut system),
+             'M' | 'm' => manage_trains_and_printing(&mut system,&mut working_industries),
              'U' | 'u' => system.ShowUnassignedCars(),
-             'A' | 'a' => system.CarAssignment(),
+             'A' | 'a' => system.CarAssignment(&mut working_industries),
              'C' | 'c' => show_car_movements(&system),
              //'R' | 'r' => reports_menu(&system),
-             'I' | 'i' => system.ResetIndustryStats(),
+             'I' | 'i' => system.ResetIndustryStats(&mut working_industries),
              'Q' | 'q' => break,
              _ => println!("Unreconized command character: {}",cmd),
         }

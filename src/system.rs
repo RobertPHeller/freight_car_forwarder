@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250908.2059>
+//  Last Modified : <250909.1613>
 //
 //  Description	
 //
@@ -57,7 +57,7 @@ use std::fs::File;
 use std::path::PathBuf;
 use std::fs;
 use rand::prelude::*;
-use std::mem;
+use std::sync::Arc;
 
 /// Scrap yard index (cars marked as scrap).
 const IND_SCRAP_YARD: usize = 999;
@@ -111,13 +111,13 @@ pub struct System {
     /// Max station
     maxStation: u8,
     /// Train map.
-    trains: HashMap<usize, Train>,
+    trains: Arc<HashMap<usize, Train>>,
     /// Max train number
     maxTrain: usize,
     /// Train name map.
     trainIndex: HashMap<String, usize>, 
     /// Industries map.
-    industries: HashMap<usize, Industry>, 
+    industries: Arc<HashMap<usize, IndustryFile>>, 
     /// Max industry.
     maxIndustry: usize,
     /// Car type order vector.
@@ -514,17 +514,8 @@ impl System {
     /// - i the industry index.
     ///
     /// __Returns__ a reference to an industry or None.
-    pub fn IndustryByIndex(&self, i: usize) -> Option<&Industry> {
+    pub fn IndustryByIndex(&self, i: usize) -> Option<&IndustryFile> {
         self.industries.get(&i)
-    }
-    /// Return a mutable industry by index.
-    ///
-    /// ## Parameters:
-    /// - i the industry index.
-    ///
-    /// __Returns__ a mutable reference to an industry or None.
-    pub fn IndustryByIndexMut(&mut self, i: usize) -> Option<&mut Industry> {
-        self.industries.get_mut(&i)
     }
     /// Return an industry by name.
     ///
@@ -532,7 +523,7 @@ impl System {
     /// - name the industry name.
     ///
     /// __Returns__ a  reference to an industry or None.
-    pub fn FindIndustryByName(&self, name: String) -> Option<&Industry> {
+    pub fn FindIndustryByName(&self, name: String) -> Option<&IndustryFile> {
         for (id, ind) in self.industries.iter() {
             if ind.Name() == name {
                 return Some(ind);
@@ -546,7 +537,7 @@ impl System {
     /// None.
     ///
     /// __Returns__ An interator into the industries.
-    pub fn IndustryIter(&self) ->  Iter<'_, usize, Industry> {
+    pub fn IndustryIter(&self) ->  Iter<'_, usize, IndustryFile> {
         self.industries.iter()
     }
     /// Return the number of cars.
@@ -1047,6 +1038,7 @@ impl System {
                 .parse::<usize>()
                 .expect("Syntax error");
         self.maxIndustry = indcount;
+        let industries = Arc::make_mut(&mut self.industries);
         loop {
             let mut line = Self::SkipCommentsReadLine(&mut reader)
                     .expect("Read Error");
@@ -1063,7 +1055,7 @@ impl System {
             let items: Vec<_> = line.split(",").collect();
             //println!("In ReadIndustries(): items is {:?}",items);
             let Ix = items[0].trim().parse::<usize>().expect("Syntax Error");
-            if self.industries.contains_key(&Ix) {
+            if industries.contains_key(&Ix) {
                 return Err(Error::new(ErrorKind::Other,"Duplicate industry index"));
             }
             let mut tword  = String::from(items[1].trim());
@@ -1098,7 +1090,7 @@ impl System {
             let IndsCarLen = items[13].trim().parse::<u32>().expect("Syntax Error");
             let IndsLoadTypes = String::from(items[14].trim());
             let IndsEmptyTypes = String::from(items[15].trim());
-            self.industries.insert(Ix, Industry::new(IndsStation, IndsMirror, 
+            industries.insert(Ix, IndustryFile::new(IndsStation, IndsMirror, 
                                          IndsName,
                                          IndsLoadTypes, IndsEmptyTypes, 
                                          IndsDivList, IndsTrackLen, 
@@ -1162,6 +1154,7 @@ impl System {
                  .parse::<usize>()
                  .expect("Syntax error");
         self.maxTrain = traincount;
+        let trains = Arc::make_mut(&mut self.trains);
         loop {
             let mut line = Self::SkipCommentsReadLine(&mut reader)
                     .expect("Read Error");
@@ -1178,7 +1171,7 @@ impl System {
             let items: Vec<_> = line.split(",").collect();
             //println!("In ReadTrains(): items is {:?}",items); 
             let Tx = items[0].trim().parse::<usize>().expect("Syntax Error");
-            if self.trains.contains_key(&Tx) {
+            if trains.contains_key(&Tx) {
                 return Err(Error::new(ErrorKind::Other,"Duplicate train index"))
             }
             let mut tword  = String::from(items[1].trim());
@@ -1196,7 +1189,7 @@ impl System {
                               return Err(Error::new(ErrorKind::Other,"Undefined boolean"));
                            };
             let TrnName = String::from(items[4].trim()); 
-            let TrnMxCars = items[5].trim().parse::<usize>().expect("Syntax error"); 
+            let TrnMxCars = items[5].trim().parse::<u32>().expect("Syntax error"); 
             let TrnDivList = String::from(items[6].trim());
             let onDuty = String::from(items[9].trim());
             let TrnOnDutyH = onDuty[0..2].parse::<u32>().expect("Syntax error");
@@ -1234,7 +1227,7 @@ impl System {
                     train.AddStop(&Stop::newStationStop(stopnumber as u8));
                 }
             }
-            self.trains.insert(Tx, train);
+            trains.insert(Tx, train);
             self.trainIndex.insert(TrnName.clone(), Tx);
             count = count + 1;
         }
@@ -1252,6 +1245,7 @@ impl System {
                 .expect("Cannot open orders file");
         let mut reader = BufReader::new(f);
         let mut count: usize = 0;
+        let trains = Arc::make_mut(&mut self.trains);
         loop {
             let result = Self::SkipCommentsReadLine(&mut reader);
             //println!("In ReadTrainOrders(): result is {:?}", result);
@@ -1271,7 +1265,7 @@ impl System {
             let zero: &usize = &0;
             let tx: &usize = self.trainIndex.get(&trainname).unwrap_or(&0);
             if tx != zero {
-                self.trains.get_mut(&tx)
+                trains.get_mut(&tx)
                     .expect("Unknown train")
                     .AddOrder(trainorder.clone());
             }
@@ -1502,14 +1496,17 @@ impl System {
     /// None.
     ///
     /// __Returns__ the number of statistics read or Err.
-    fn LoadStatsFile(&mut self) -> std::io::Result<usize> {
+    fn LoadStatsFile(&mut self) -> std::io::Result<(usize,HashMap<usize, IndustryWorking>)> {
         let f = File::open(&self.statsFile)
                 .expect("Cannot open stats file");
         let mut reader = BufReader::new(f);
         let mut line = String::new();
         let mut newformat: bool = false;
         let result = reader.read_line(&mut line);
-        if result.is_err() {return result;}
+        if result.is_err() {
+            let e = result.err().unwrap();
+            return Err(e);
+        }
         let temp = line.find(',');
         if temp.is_some() {
             let pos = temp.unwrap();
@@ -1520,6 +1517,7 @@ impl System {
         }
         self.statsPeriod = line.trim().parse::<u32>().expect("Syntax error");
         let mut Gx: usize = 0;
+        let mut industries: HashMap<usize, IndustryWorking> = HashMap::new();
         loop {
             line.clear();
             Gx += 1;
@@ -1548,22 +1546,21 @@ impl System {
                 let slword = &line[10..15].trim();
                 sl = slword.parse::<u32>().expect("Syntax error");
             }
-            let industryOpt = self.IndustryByIndexMut(Ix);
-            if industryOpt.is_none() {continue;}
-            let industry = industryOpt.unwrap();
+            industries.insert(Ix, IndustryWorking::new(self.industries[&Ix].Name()));
+            let industry = industries.get_mut(&Ix).unwrap();
             industry.SetCarsNum(cn);
             industry.SetCarsLen(cl);
             industry.SetStatsLen(sl);
         }
-        for industry  in self.industries.values_mut() {
+        for (Ix, industry)  in industries.iter_mut() {
             if self.statsPeriod == 1 {
                 industry.SetCarsNum(0);
                 industry.SetCarsLen(0);
                 industry.SetStatsLen(0);
             }
-            industry.IncrementStatsLen(industry.TrackLen());
+            industry.IncrementStatsLen(self.industries[Ix].TrackLen());
         }
-        Ok(Gx)
+        Ok((Gx,industries))
     }
     /// Restart loop numbers.
     ///
@@ -1613,7 +1610,7 @@ impl System {
     /// - systemfile Pathname to the system file.
     ///
     /// __Returns__ a freshly initialized System struct.
-    pub fn new(systemfile: String) -> Self {
+    pub fn new(systemfile: String) -> (Self, HashMap<usize, IndustryWorking>) {
         let systemfilePath: PathBuf = fs::canonicalize(systemfile)
                 .expect("Path not found");
         //let systemDirectory = systemfilePath.with_file_name("");
@@ -1666,8 +1663,8 @@ impl System {
               statsFile: statsfile.to_str().unwrap().to_string(), 
               divisions: HashMap::new(), maxDivision: 0,
               stations: HashMap::new(), maxStation: 0,
-              trains: HashMap::new(), maxTrain: 0, trainIndex: HashMap::new(), 
-              industries: HashMap::new(), maxIndustry: 0,
+              trains: Arc::new(HashMap::new()), maxTrain: 0, trainIndex: HashMap::new(), 
+              industries: Arc::new(HashMap::new()), maxIndustry: 0,
               carTypesOrder: Vec::new(), carTypes: HashMap::new(), 
               carGroups: Vec::new(), owners: HashMap::new(),
               cars: Vec::new(), switchList: SwitchList::new(), 
@@ -1719,12 +1716,12 @@ impl System {
         this.LoadCarFile().expect("Read error");
         //println!("Loaded Cars");
 	// Load in stats file.
-        this.LoadStatsFile().expect("Read error");
+        let (count, working_industries) = this.LoadStatsFile().expect("Read error");
         //println!("Loaded Stats");
 	// Initialize assignment loop variables.
         this.RestartLoop();
         //println!("Restarted Loop");
-        this        
+        (this, working_industries)
     }
     ///   Function to write one car to disk.
     ///
@@ -1755,7 +1752,7 @@ impl System {
     /// None.
     ///
     /// __Returns__ true if the save was successful, false otherwise.
-    pub fn SaveCars(&mut self) -> bool {
+    pub fn SaveCars(&mut self,industries: &HashMap<usize, IndustryWorking>) -> bool {
         let mut backupfile = PathBuf::from(self.carsFile.clone());
         backupfile.set_extension("bak");
         let mut tempfile = PathBuf::from(self.carsFile.clone());
@@ -1872,7 +1869,7 @@ impl System {
             self.statsPeriod += self.ranAllTrains;
             writeln!(statsstream,"{},",self.statsPeriod)
                 .expect("Could not write stats file");
-            for (Ix, ind) in &self.industries {
+            for (Ix, ind) in industries.iter() {
                 writeln!(statsstream,"{},{},{},{}",
                         Ix,ind.CarsNum(),ind.CarsLen(),ind.StatsLen())
                         .expect("Could not write stats file");
@@ -1889,10 +1886,7 @@ impl System {
     /// - Cx The car to check.
     ///
     /// __Returns__ true if this industry can take the specified car.
-    fn IndustryTakesCar(&self,Ix: usize,car: usize) -> bool {
-        let industry = self.industries.get(&Ix);
-        if industry.is_none() {return false;}
-        let industry = industry.unwrap();
+    fn IndustryTakesCar(&self,industry: &IndustryFile,car: usize) -> bool {
         if self.cars[car].TmpStatus() {
             industry.LoadsAccepted().contains(self.cars[car].Type())
         } else {
@@ -1908,11 +1902,8 @@ impl System {
     ///
     /// __Returns__ true if this car can be mirrored on a fixed route at this
     /// industry.
-    fn FixedRouteMirrorCheck(&self,Cx: usize,Ix: usize) -> bool {
-        let industryOpt = self.industries.get(&Ix);
-        if industryOpt.is_none() {return false;}
+    fn FixedRouteMirrorCheck(&self,Cx: usize,industry: &IndustryFile) -> bool {
         if !self.cars[Cx].FixedRouteP() {return true;}
-        let industry = industryOpt.unwrap();
         let mystation = industry.MyStationIndex();
         let station = self.StationByIndex(mystation);
         if station.is_none() {return false;}
@@ -1989,19 +1980,22 @@ impl System {
     /// None.
     ///
     /// __Returns__ nothing.
-    pub fn CarAssignment(&mut self) {
+    pub fn CarAssignment(&mut self,
+                         working_industries: &mut HashMap<usize, IndustryWorking>) {
         let mut RouteCars: i32 = 0;
-        let mut IxVec: Vec<usize> = Vec::new();
-        for IIX in self.industries.keys() {
-            IxVec.push(*IIX);
-        }
+        let industries = Arc::clone(&self.industries);
+        let industries_keys: Vec<&usize> = industries.keys().collect();
         let mut LastIx = 0;
         for AssignLoop in 1..3 { // 1
             println!("{} ({})",self.SystemName(),AssignLoop);
             // ----------- Outer Loop Initialization --------------
-            for IX in &IxVec { // 2
-                if let Some(val) = self.industries.get_mut(&IX) { 
-                    val.SetUsedLen(0);
+            for Ix1 in industries.keys() { // 2
+                match working_industries.get_mut(Ix1) {
+                    Some(ind) => {ind.SetUsedLen(0);},
+                    None => {
+                        working_industries.insert(*Ix1,
+                                    IndustryWorking::new(industries[Ix1].Name()));
+                    },
                 };
             } // 2
             for Cx in 0..self.cars.len() { // 2
@@ -2029,10 +2023,10 @@ impl System {
                     // --------------------------------------------------------------
                     let mut CarWasMirrored: bool = false;
                     let mut LocIndIx = self.cars[Cx].Location();
-                    if LocIndIx != IND_RIP_TRACK && self.industries[&LocIndIx]
+                    if LocIndIx != IND_RIP_TRACK && industries[&LocIndIx]
                                                         .MyMirrorIndex() != 0 { // 4
                         if self.cars[Cx].OkToMirrorP() { // 5
-                            let MirrorInd = self.industries[&LocIndIx]
+                            let MirrorInd = industries[&LocIndIx]
                                                 .MyMirrorIndex();
                             // -----------------------------------------------------------
                             // First check to see that the industry would receive this car
@@ -2042,7 +2036,7 @@ impl System {
                                 let temp = !self.cars[Cx].LoadedP();
                                 self.cars[Cx].SetTmpStatus(temp);
                             } // 6
-                            if self.IndustryTakesCar(MirrorInd,Cx) { // 6
+                            if self.IndustryTakesCar(&industries[&MirrorInd],Cx) { // 6
                                 // ------------------------------------------------------
                                 // Fixed route check then uses the car state that will be
                                 // used for making an assignment from the mirrored 
@@ -2052,16 +2046,16 @@ impl System {
                                     let temp = self.cars[Cx].LoadedP();
                                     self.cars[Cx].SetTmpStatus(temp);
                                 } // 7
-                                if self.FixedRouteMirrorCheck(Cx,MirrorInd) { // 7
+                                if self.FixedRouteMirrorCheck(Cx,&industries[&MirrorInd]) { // 7
                                     // Success! This car can in fact be mirrored! It will soon
                                     // be assigned from this new location.
-                                    self.industries
+                                    working_industries
                                         .get_mut(&LocIndIx)
                                         .unwrap()
                                         .RemoveCar(Cx);
                                     self.cars[Cx].SetLocation(MirrorInd);
                                     LocIndIx = self.cars[Cx].Location();
-                                    self.industries
+                                    working_industries
                                         .get_mut(&MirrorInd)
                                         .unwrap()
                                         .AddCar(Cx);
@@ -2076,7 +2070,7 @@ impl System {
                             // An empty car in a yard, will remain empty for purpose of
                             // finding an assignment. Otherwise this car becomes a load.
                             // ---------------------------------------------------------
-                            if self.industries[&LocIndIx].Type() != 'Y' { // 6
+                            if industries[&LocIndIx].Type() != 'Y' { // 6
                                 self.cars[Cx].SetTmpStatus(true);
                             } else { // 6
                                 self.cars[Cx].SetTmpStatus(false);
@@ -2087,9 +2081,9 @@ impl System {
                             // but only if the industry ships out this type of car.
                             //  ---------------------------------------------------------
                             self.cars[Cx].SetTmpStatus(false);
-                            if self.industries[&LocIndIx]
+                            if industries[&LocIndIx]
                                 .Reload() { // 6
-                                if self.industries[&LocIndIx]
+                                if industries[&LocIndIx]
                                     .EmptiesAccepted()
                                     .contains(self.cars[Cx].Type()) { // 7
                                     self.cars[Cx].SetTmpStatus(true);
@@ -2105,7 +2099,7 @@ impl System {
                 if self.cars[Cx].Destination() != IND_RIP_TRACK { // 3
                     let dest = self.cars[Cx].Destination();
                     let carlen = self.cars[Cx].Length();
-                    self.industries
+                    working_industries
                         .get_mut(&dest)
                         .unwrap()
                         .AddToUsedLen(carlen as u32);
@@ -2136,13 +2130,14 @@ impl System {
                 println!("Processing car {}",self.cars[Cx]);
                 println!("Cars inspected {}",CountCars);
 	        println!("Cars Assigned  {}",RouteCars);
-                println!("Last Industry  {}",IxVec[LastIx]);
+                println!("Last Industry  {} ({})",industries_keys[LastIx],
+                                   industries[industries_keys[LastIx]].Name());
                 println!("");
                 println!("");
                 println!("{} {} at {}",
                     if self.cars[Cx].TmpStatus() {"Loaded"} else {"Empty"},
                     self.cars[Cx],
-                    self.industries[&self.cars[Cx].Location()]
+                    industries[&self.cars[Cx].Location()]
                             .Name());
                 let mut Ix = LastIx;
                 let mut IIx = self.cars[Cx].Location();
@@ -2152,47 +2147,50 @@ impl System {
                     // same division where they are, whether they are "offline" or
                     // are "online"
                     for PassLoop in 1..3 {
-                        for IndLoop in 0..self.industries.len() {
+                        for IndLoop in 0..industries.len() {
                             Ix += 1;
-                            if Ix >= IxVec.len() {Ix = 0;}
-                            IIx = IxVec[Ix];
-                            if !self.industries.contains_key(&IIx) {continue;}
-                            if self.industries[&IIx].Priority() != IndPriorityLoop {continue;}
-                            if self.industries[&IIx].AssignLen() == 0 {continue;}
+                            if Ix >= industries_keys.len() {
+                                Ix = 0;
+                                Ix += 1;
+                            }                                
+                            IIx = *industries_keys[Ix];
+                            if !industries.contains_key(&IIx) {continue;}
+                            if industries[&IIx].Priority() != IndPriorityLoop {continue;}
+                            if industries[&IIx].AssignLen() == 0 {continue;}
                             // Cars are never assigned to yards
                             //  --------------------------------
-                            if self.industries[&IIx].Type() == 'Y' {continue;}
+                            if industries[&IIx].Type() == 'Y' {continue;}
                             // If the car is at an industry that mirrors, never route
                             // the car to the mirror itself. This does not apply when
                             // the car is not allowed to mirror.
                             // ------------------------------------------------------
-                            if self.industries[&self.cars[Cx].Location()].MyMirrorIndex() != 0 {
-                                if self.industries[&self.cars[Cx].Location()].MyMirrorIndex() == IIx {
+                            if industries[&self.cars[Cx].Location()].MyMirrorIndex() != 0 {
+                                if industries[&self.cars[Cx].Location()].MyMirrorIndex() == IIx {
                                     if self.cars[Cx].OkToMirrorP() {continue;} 
                                 }
                             }
                             // Does industry accept this car ?
                             // -------------------------------
-                            if !self.IndustryTakesCar(IIx,Cx) {continue;}
+                            if !self.IndustryTakesCar(&industries[&IIx],Cx) {continue;}
                             // Eliminate incompatible industries for this car
                             // ----------------------------------------------
-                            if self.cars[Cx].Plate() > self.industries[&IIx].MaxPlate() {continue;}
-                            if self.cars[Cx].WeightClass() > self.industries[&IIx].MaxWeightClass() {continue;}
-                            if self.cars[Cx].Length() > self.industries[&IIx].MaxCarLen() {continue;}
+                            if self.cars[Cx].Plate() > industries[&IIx].MaxPlate() {continue;}
+                            if self.cars[Cx].WeightClass() > industries[&IIx].MaxWeightClass() {continue;}
+                            if self.cars[Cx].Length() > industries[&IIx].MaxCarLen() {continue;}
                             // Is there space available for this car ?
                             // -------------------------------------
-                            if self.industries[&IIx].UsedLen() + 
+                            if working_industries[&IIx].UsedLen() + 
                                 self.cars[Cx].Length() > 
-                                    self.industries[&IIx].AssignLen() {continue;}
+                                    industries[&IIx].AssignLen() {continue;}
                             let CarDivI = &self.divisions[
                                     &self.stations[
-                                        &self.industries[
+                                        &industries[
                                             &self.cars[Cx].Location()]
                                                 .MyStationIndex()].DivisionIndex()];
                             let CarDivS = CarDivI.Symbol();
                             let IndDivI = &self.divisions[
                                             &self.stations[
-                                                &self.industries[&IIx]
+                                                &industries[&IIx]
                                                     .MyStationIndex()]
                                                         .DivisionIndex()];
                             let IndDivS = IndDivI.Symbol();
@@ -2205,7 +2203,7 @@ impl System {
                                 // location's destination list - regardless of whether
                                 // the car is loaded/empty -- unless the list is empty.
                                 // ---------------------------------------------------
-                                let DCL_temp = self.industries[
+                                let DCL_temp = industries[
                                     &self.cars[Cx]
                                         .Location()]
                                             .DivisionControlList();
@@ -2218,15 +2216,15 @@ impl System {
                             // EMPTY CARS
                             // ===========================================================
                             if !self.cars[Cx].TmpStatus() {
-                                if self.industries[&IIx].Type() == 'O' &&
-                                   self.industries[&self.cars[Cx].Location()].Type() != 'I' {
+                                if industries[&IIx].Type() == 'O' &&
+                                   industries[&self.cars[Cx].Location()].Type() != 'I' {
                                    LastIx = Ix;
-                                   self.industries
+                                   working_industries
                                         .get_mut(&self.cars[Cx].Location())
                                         .unwrap()
                                         .RemoveCar(Cx);
                                     self.cars[Cx].SetLocation(IIx);
-                                    if let Some(val) = self.industries.get_mut(&IIx) { val.AddCar(Cx); };
+                                    if let Some(val) = working_industries.get_mut(&IIx) { val.AddCar(Cx); };
                                     HaveDest = true;
                                     break;
                                 }
@@ -2242,12 +2240,12 @@ impl System {
                                 //
                                 // ----------------------------------------------------
                                 if self.cars[Cx].Divisions().len() > 0 &&
-                                   self.industries[&IIx].DivisionControlList().len() > 0 {
+                                   industries[&IIx].DivisionControlList().len() > 0 {
                                     // If the car is in a home division, we're ok
                                     let mut YesNo: bool;
                                     if !self.cars[Cx].Divisions().contains(CarDivS) {
                                         YesNo = false;
-                                        for PxDiv in self.industries[&IIx].DivisionControlList().chars() {
+                                        for PxDiv in industries[&IIx].DivisionControlList().chars() {
                                             if self.cars[Cx].Divisions().contains(PxDiv) {
                                                 YesNo = true;
                                                 break;
@@ -2288,7 +2286,7 @@ impl System {
                                 // 
                                 // ------------------------------------------------------
                                 if AssignLoop == 2 && PassLoop == 2 {
-                                    if self.industries[&self.cars[Cx].Location()].Type() == 'O' {
+                                    if industries[&self.cars[Cx].Location()].Type() == 'O' {
                                         LastIx = Ix;
                                         RouteCars += 1;
                                         HaveDest = true;
@@ -2306,14 +2304,14 @@ impl System {
                                 // do not assign the Car to the Industry.
                                 // --------------------------------------------------------
                                 if CarDivI.Area() == IndDivI.Area() {
-                                    if self.industries[&IIx].Type() == 'O' &&
-                                       self.industries[
+                                    if industries[&IIx].Type() == 'O' &&
+                                       industries[
                                             &self.cars[Cx].Location()].Type() == 'I' {continue;}
                                 }
                                 // When the Car is loaded where it can go is under control
                                 // of the Industry's Division List
                                 // -------------------------------------------------------
-                                let mut DestList = self.industries[&self.cars[Cx].Location()].DivisionControlList();
+                                let mut DestList = industries[&self.cars[Cx].Location()].DivisionControlList();
                                 // 
                                 // CHANGE 6/24/96 -- As a last resort, use the car's list
                                 // of home divisions as possible destinations. Usually we
@@ -2351,7 +2349,7 @@ impl System {
                                     //
                                     // ----------------------------------------------------
                                     if AssignLoop == 2 && PassLoop == 2 {
-                                        if self.industries[&self.cars[Cx].Location()].Type() == 'O' {
+                                        if industries[&self.cars[Cx].Location()].Type() == 'O' {
                                             // GOTO IndustryIsOk
                                             LastIx = Ix;
                                             RouteCars += 1;
@@ -2411,7 +2409,7 @@ impl System {
                 // Adjust the used assignment space for this industry -
                 // Should I do this only if the car is not at its dest?
                 // ----------------------------------------------------
-                self.industries
+                working_industries
                     .get_mut(&IIx).unwrap()
                     .AddToUsedLen(self.cars[Cx].Length());
                 if IIx != self.cars[Cx].Location() {
@@ -2421,12 +2419,12 @@ impl System {
                     let (Status, CarTypeDesc) = self.GetCarStatus(Cx);
                     println!("{} {} is {}",self.cars[Cx],CarTypeDesc,Status);
                     println!(" Now at {}",
-                        self.industries[&self.cars[Cx].Location()].Name());
+                        industries[&self.cars[Cx].Location()].Name());
                     println!(" Send to {}",
-                        self.industries[&self.cars[Cx].Destination()].Name());
+                        industries[&self.cars[Cx].Destination()].Name());
                     //println!(" IndsAssignLen = {} IndsUsedLen = {}",
-                    //    self.industries[&self.cars[Cx].Destination()].AssignLen(),
-                    //    self.industries[&self.cars[Cx].Destination()].UsedLen());
+                    //    industries[&self.cars[Cx].Destination()].AssignLen(),
+                    //    industries[&self.cars[Cx].Destination()].UsedLen());
                 }
             } // 3 For Cx loop
         } // 2 AssignLoop
@@ -2443,7 +2441,7 @@ impl System {
                     None => String::from("Unknown"),
                 };
                 println!("{} {} @ {}",car,typeDescr,
-                       self.industries[&car.Location()].Name());
+                       industries[&car.Location()].Name());
             }
         }
     } // 1
@@ -2453,13 +2451,13 @@ impl System {
     /// None
     ///
     /// __Returns__ nothing.
-    fn GetIndustryCarCounts(&mut self) {
-        for Ix in self.industries.values_mut() {
+    fn GetIndustryCarCounts(&mut self,working_industries: &mut HashMap<usize, IndustryWorking>) {
+        for Ix in working_industries.values_mut() {
             Ix.SetUsedLen(0);
         }
         for Cx in 0..self.cars.len() {
             let car = &self.cars[Cx];
-            match self.industries.get_mut(&car.Location()) {
+            match working_industries.get_mut(&car.Location()) {
                 Some(location) => {location.AddToUsedLen(car.Length());},
                 None           => (),
             }
@@ -2473,6 +2471,23 @@ impl System {
     ///
     /// __Returns__ nothing
     fn PrintTrainLoc(&mut self,train: &Train,Px: usize) {
+        println!("{} is now at station {}",
+            train.Name(), match train.Stop(Px) {
+                None => String::from(""),
+                Some(theStop) => match theStop {
+                    Stop::StationStop(station) => 
+                        self.stations[&station].Name(),
+                        Stop::IndustryStop(Ix) => {
+                            let station = self.industries[&Ix].MyStationIndex();
+                            self.stations[&station].Name()
+                        },
+                },
+            });
+    }
+    fn TrainCarPickupCheck(&mut self,Cx: usize,train: &Train,boxMove: bool,
+		consist: &mut Vec<usize>,didAction: bool,Px: usize,
+		printer: &mut Printer) -> bool {
+        didAction
     }
     ///  Make up a local train.
     /// Basically, starting from the origin, to the next to last stop, pick
@@ -2492,7 +2507,73 @@ impl System {
     fn TrainLocalOriginate(&mut self,train: &Train,boxMove: bool,
                            Px: usize, consist: &mut Vec<usize>,
                            printer: &mut Printer) -> bool {
-        false
+        let mut didAction = false;
+        let industries = Arc::clone(&self.industries);
+        for FuturePx in Px+1..train.NumberOfStops()-1 {
+            if (self.numberCars+1) > train.MaxCars() {return didAction;}
+            for (Ix, ind) in industries.iter() {
+                match train.Stop(FuturePx).unwrap() {
+                    Stop::StationStop(station) => {
+                        if *station != ind.MyStationIndex() {continue;}
+                    },
+                    Stop::IndustryStop(industry) => {
+                        let station = industries[&industry].MyStationIndex();
+                        if station != ind.MyStationIndex() {continue;}
+                    },
+                };
+                for Cx in 0..self.cars.len() {
+                    if (self.numberCars+1) > train.MaxCars() {return didAction;}
+                    let car = &self.cars[Cx];
+                    if car.Destination() == *Ix &&
+                       car.Location() == self.originYardIndex {
+                        self.carDestIndex = *Ix;
+                        didAction = self.TrainCarPickupCheck(Cx,train,boxMove,consist,didAction,Px,printer);
+                    }
+                }
+            }
+        }
+        // KLUDGE CITY --
+        //
+        //  Allow local trains to forward cars under the control of a forwarding
+        //  division list.
+        if train.DivisionList().len() > 0 {
+            for Cx in 0..self.cars.len() {
+                //          If this car is at the train's origin yard
+                //          -----------------------------------------
+                if (self.numberCars+1) > train.MaxCars() {return didAction;}
+                let car = &self.cars[Cx];
+                let carDestDiv = self.stations[
+                                    &industries[
+                                        &car.Destination()]
+                                    .MyStationIndex()].DivisionIndex();
+                let carLocDiv = self.stations[
+                                    &industries[
+                                        &car.Location()]
+                                    .MyStationIndex()].DivisionIndex();
+                if self.divisions[&carDestDiv].Home() ==
+                     self.divisions[&carLocDiv].Home() {continue;}
+                //  The train division list can be exclusive
+                //  ----------------------------------------
+            let train_divlist = train.DivisionList();
+                if train_divlist.chars().next().unwrap_or(' ') == '-' {
+                    if !train_divlist.contains(self.divisions[&carDestDiv].Symbol()) {
+                        self.carDestIndex = self.trainLastLocationIndex;
+                        didAction = self.TrainCarPickupCheck(Cx,train,boxMove,consist,didAction,Px,printer);
+                    }
+                } else {
+                    // The train division list can include everything - *
+                    //
+                    // otherwise it specifies which divisions for forwarding 
+                    // -------------------------------------------------------
+                    if train_divlist == String::from("*") ||
+                        train_divlist.contains(self.divisions[&carDestDiv].Symbol()) {
+                        self.carDestIndex = self.trainLastLocationIndex;
+                        didAction = self.TrainCarPickupCheck(Cx,train,boxMove,consist,didAction,Px,printer);
+                    }                  
+                }
+            }
+        }
+        didAction
     }
     /// Print a train's consist summary.
     /// ## Parameters:
@@ -2666,6 +2747,7 @@ impl System {
     ///
     /// __Returns__ nothing.
     fn InternalRunOneTrain(&mut self,train: &Train,boxMove: bool, 
+                           working_industries: &mut HashMap<usize, IndustryWorking>,
                            printer: &mut Printer) {
         let mut consist: Vec<usize> = Vec::new();
 
@@ -2681,15 +2763,14 @@ impl System {
         self.trainEmpties = 0;
         self.trainLongest = 0;
 
-        println!("Running status of train {}",train.Name());
         self.trainPrintOK = false;
 
         if self.printem && train.Print() {self.trainPrintOK = true;}
         if boxMove {self.trainPrintOK = false;}
 
         // Make sure the industry remaining lengths are up to date.
-        for (Ix, ind) in self.industries.iter_mut() {
-            let remlen = ind.TrackLen() - ind.UsedLen();
+        for (Ix, ind) in working_industries.iter_mut() {
+            let remlen = self.industries[Ix].TrackLen() - ind.UsedLen();
             ind.SetRemLen(remlen);
         }
         // Fan out based on train type.
@@ -2740,9 +2821,11 @@ impl System {
     /// - printer Printer device.
     ///
     /// __Returns__ nothing.
-    pub fn RunAllTrains(&mut self, printer: &mut Printer) {
+    pub fn RunAllTrains(&mut self, 
+                        working_industries: &mut HashMap<usize, IndustryWorking>,
+                        printer: &mut Printer) {
         // Get the initial car counts.
-        self.GetIndustryCarCounts();
+        self.GetIndustryCarCounts(working_industries);
         // Reset the switch lists.
         self.switchList.ResetSwitchList();
         // Flag that we were called.
@@ -2752,18 +2835,16 @@ impl System {
         // First runn all of the box moves (yard locals).
         self.RunBoxMoves(printer);
         let boxMove = false;
-        let  trains = mem::take(&mut self.trains);
         // For every train...
-        for (Tx, train) in trains.iter() {
+        for (Tx, train) in Arc::clone(&self.trains).iter() {
             if train.Type() == TrainType::Manifest ||
                train.Type() == TrainType::Wayfreight {
                 if train.Shift() == self.shiftNumber {
-                    self.InternalRunOneTrain(train,boxMove,printer);
+                    self.InternalRunOneTrain(train,boxMove,
+                                    working_industries,printer);
                 }
             }
         }
-        // move the trains back
-        self.trains = trains;
     }
     /// Run all boxmove trains.  
     /// The is another workhorse procedure.  This procedure runs all of the 
@@ -2856,7 +2937,7 @@ impl System {
     /// - industry a reference to a Industry.
     ///
     /// __Returns__ an industry index.
-    fn IndustryIndex(&self, industry: &Industry) -> usize {
+    fn IndustryIndex(&self, industry: &IndustryFile) -> usize {
         for (Ix, anindustry) in self.industries.iter() {
             if anindustry == industry {return *Ix;}
         }
@@ -2871,7 +2952,7 @@ impl System {
     ///
     /// __Returns__ nothing.
     pub fn ShowCarMovements(&self, showAll: bool, TOption: Option<&Train>, 
-                            IOption: Option<&Industry>) {
+                            IOption: Option<&IndustryFile>) {
         let mut Total = 0;
         let mut CarCount = 0;
         let mut trains = [String::from(""), String::from(""), 
@@ -2896,7 +2977,7 @@ impl System {
                 if Gx >= self.switchList.LimitCars() {continue;}
             } else if IOption.is_some() {
                 //eprintln!("*** in ShowCarMovements(): IOption is {:?}",IOption);
-                let industry: &Industry = IOption.unwrap();
+                let industry: &IndustryFile = IOption.unwrap();
                 if banner1.len() == 0 {
                     banner1 = format!("Cars at {}",industry.Name());
                 }
@@ -3136,9 +3217,9 @@ impl System {
     /// None.
     ///
     /// __Returns__ nothing.
-    pub fn ResetIndustryStats(&mut self) {
+    pub fn ResetIndustryStats(&mut self, working_industries: &mut HashMap<usize, IndustryWorking>) {
         self.statsPeriod = 1;
-        for Ix in self.industries.values_mut() {
+        for Ix in working_industries.values_mut() {
             Ix.SetCarsNum(0);
             Ix.SetCarsLen(0);
             Ix.SetStatsLen(0);

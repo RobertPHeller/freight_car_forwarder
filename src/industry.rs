@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:14:28
-//  Last Modified : <250908.1627>
+//  Last Modified : <250909.1315>
 //
 //  Description	
 //
@@ -39,8 +39,7 @@
 //////////////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, PartialEq, Default, Clone)]
-pub struct Industry {
-    cars: Vec<usize>,
+pub struct IndustryFile {
     station_index: u8,
     mirror: usize,
     name: String,
@@ -53,28 +52,32 @@ pub struct Industry {
     plate: u8,
     weightclass: u8,
     maxCarLen: u32,
-    carsNum: u32,
-    carsLen: u32,
-    statsLen: u32,
-    usedLen: u32,
-    remLen: u32,
     reload: bool,
     indtype: char,
     hazard: char,
 }
 
-impl Industry {
+pub struct IndustryWorking {
+    name: String,
+    cars: Vec<usize>,
+    carsNum: u32,
+    carsLen: u32,
+    statsLen: u32,
+    usedLen: u32,
+    remLen: u32,
+}
+
+impl IndustryFile {
     pub fn new(station_index: u8, mirror: usize, name: String,
                loadTypes: String, emptyTypes: String, 
                divisionControlList: String, trackLen: u32, assignLen: u32,
                priority: u8, plate: u8, weightclass: u8, maxCarLen: u32,
                reload: bool, indtype: char, hazard: char) -> Self {
-        Self {cars: Vec::new(), station_index: station_index, mirror: mirror,
+        Self {station_index: station_index, mirror: mirror,
               name: name, loadTypes: loadTypes, emptyTypes: emptyTypes,
               divisionControlList: divisionControlList, trackLen: trackLen,
               assignLen: assignLen, priority: priority, plate: plate,
-              weightclass: weightclass, maxCarLen: maxCarLen, carsNum: 0,
-              carsLen: 0, statsLen: 0, usedLen: 0, remLen: 0, reload: reload,
+              weightclass: weightclass, maxCarLen: maxCarLen, reload: reload,
               indtype: indtype, hazard: hazard}
     }
     pub fn Type(&self) -> char {
@@ -122,6 +125,16 @@ impl Industry {
     pub fn EmptiesAccepted(&self) -> String {
         self.emptyTypes.clone()
     }
+ }
+
+impl IndustryWorking {
+    pub fn new(name: String) -> Self {
+        Self {name: name, cars: Vec::new(), carsNum: 0,
+              carsLen: 0, statsLen: 0, usedLen: 0, remLen: 0}
+    }
+    pub fn Name(&self) -> String {
+        self.name.clone()
+    }
     pub fn TheCar(&self, i: usize) -> Option<usize> {
         if i < self.cars.len() {
             Some(self.cars[i])
@@ -163,8 +176,13 @@ impl Industry {
 }
 
 use std::fmt;
-impl fmt::Display for Industry {
+impl fmt::Display for IndustryFile {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "<#Industry {}>", self.name)
+        write!(f, "<#IndustryFile {}>", self.name)
+    }
+}
+impl fmt::Display for IndustryWorking {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "<#IndustryWorking {}>", self.name)
     }
 }
