@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250909.1613>
+//  Last Modified : <250910.1552>
 //
 //  Description	
 //
@@ -1207,7 +1207,7 @@ impl System {
             let TrnMxClear: u8 = items[11].trim().parse::<u8>().expect("Parse Error");
             let TrnMxWeigh: u8 = items[12].trim().parse::<u8>().expect("Parse Error");
             let TrnCarTypes = String::from(items[13].trim());
-            let TrnMxLen = items[14].trim().parse::<usize>().expect("Parse Error");
+            let TrnMxLen = items[14].trim().parse::<u32>().expect("Parse Error");
             let TrnDescr = Self::StripQuotes(items[15].trim());
             //println!("In ReadTrains(): TrnDescr is '{}'", TrnDescr);
             let mut train = Train::new(TrnName.clone(), TrnDivList, TrnCarTypes,
@@ -2484,9 +2484,118 @@ impl System {
                 },
             });
     }
+    const CARHOLE: usize = 999999;
+    /// Pick up one car.
+    /// General helper to pickup a car.
+    /// ## Parameters:
+    /// - Cx The car index to possibly pick up.
+    /// - train The train to pick up the car for.
+    /// - boxMove Is this a box move?
+    /// - consist The train's consist.
+    /// - Px The stop number that train is at. 
+    /// - Lx Place in the train to put the car if it is picked up.
+    /// - printer Printer device.
+    /// - carDest_W The destination work structure
+    fn TrainPickupOneCar(&mut self,Cx: usize,train: &Train,boxMove: bool,
+		consist: &mut Vec<usize>,Px: usize, Lx: Option<usize>,
+		printer: &mut Printer,carDest_W: &mut IndustryWorking) {
+    }
+    /// Check to see if this other car can be picked up.
+    /// ## Parameters:
+    /// - car The car to check.
+    /// - train The train to check.
+    fn OtherCarOkForTrain(car: &Car, train: &Train) -> bool {
+        false
+    }    
+    ///  Check to see if we can really pick up this car.
+    /// ## Parameters:
+    /// - Cx The car to check.
+    /// - train The train to pick up the car for.
+    /// - boxMove Is this a box move?
+    /// - consist The train's consist.
+    /// - didAction Flag to set (update) if something was done.
+    /// - Px The stop number that train is at. 
+    /// - printer Printer device.
     fn TrainCarPickupCheck(&mut self,Cx: usize,train: &Train,boxMove: bool,
 		consist: &mut Vec<usize>,didAction: bool,Px: usize,
-		printer: &mut Printer) -> bool {
+		printer: &mut Printer,
+                carDest_S: &IndustryFile,
+                carDest_W: &mut IndustryWorking) -> bool {
+        //  Check for obvious things that prevent the car from being picked up!
+        //      Has the car already been picked up?
+        if consist.contains(&Cx) {return didAction;}
+        //      Has the car already finished moving ?
+        let car: &Car = &self.cars[Cx];
+        if !boxMove {
+            if car.IsDoneP() {return didAction;}
+        }
+        //      Is car already at its destination ? 
+        if car.Location() == car.Destination() {return didAction;}
+        //      Is the car too long for this train ?
+        if (self.trainLength + car.Length()) > train.MaxLength() {return didAction;}
+        //      Is the car too large, or too heavy for the train ?
+        if car.Plate() > train.MaxClear() {return didAction;}
+        if car.WeightClass() > train.MaxWeight() {return didAction;}
+        //      Is the car too large, or too heavy for the destination ?
+        if car.Length() > carDest_S.MaxCarLen() {return didAction;}
+        if car.Plate()  > carDest_S.MaxPlate() {return didAction;}
+        if car.WeightClass() > carDest_S.MaxWeightClass() {return didAction;}
+        //      Can the train move this type of car ?
+        let trainCarTypes = train.CarTypes();
+        if trainCarTypes.len() > 0 {
+            if trainCarTypes.chars().nth(0) == Some('-') {
+                let trainCarTypes = trainCarTypes.clone();
+                if trainCarTypes.contains(car.Type())  {return didAction;}
+            } else {
+                if !trainCarTypes.contains(car.Type())  {return didAction;} 
+            }
+        }
+        //	That's it for MANIFEST trains -- this car is Ok!
+        //	-----------------------------------------------
+        if !self.wayFreight {
+            carDest_W.SubRemLen(car.Length());
+            let Lx = consist.into_iter().position(|cx| *cx == Self::CARHOLE);
+            self.TrainPickupOneCar(Cx,train,boxMove,consist,Px,Lx,printer,carDest_W);
+            return true;
+        }
+        // A WAYFREIGHT needs to have some space available - unless it's a yard
+        // -----------------------------------------------
+        let exp1 = (carDest_W.UsedLen() + car.Length()) <= carDest_S.TrackLen();
+        if exp1 || carDest_S.Type() == 'Y' {
+            carDest_W.SubRemLen(car.Length());
+            let Lx = consist.into_iter().position(|cx| *cx == Self::CARHOLE);
+            self.TrainPickupOneCar(Cx,train,boxMove,consist,Px,Lx,printer,carDest_W);
+            return true;
+        }
+        //============================================================================
+        // Oops! Now for some fancy footwork -- we look ahead to see whether
+        // this train will REMOVE another car from the destination, to create
+        // an opening for this car.
+        //============================================================================
+        for OtherCx in 0..self.cars.len() {
+            let otherCar: &Car = &self.cars[OtherCx];
+            if !otherCar.Peek() && otherCar.Location() == car.Destination() {
+                // Exp1 means the other car has a new destination, and is able to move
+                let exp1a = otherCar.Destination() != car.Destination();
+                let exp1b = !otherCar.IsDoneP();
+                let exp1  = exp1a && exp1b;
+                // Exp2 means the removal of the other car will make room for this one	    
+                let exp2 = (otherCar.Length() + carDest_W.RemLen()) >= car.Length();
+                // Exp3 was used to test to see if removal of this car from its YARD
+                // would make room for the other car to replace it -- but this makes
+                // no sense in some cases so I deleted this test.
+                // bool exp3 = car->Location()->TrackLength() >= ( car->Location()->usedLen - car->Length() + otherCar->Length() );
+                if exp1 && exp2 {
+                    if Self::OtherCarOkForTrain(otherCar,train) {
+                        carDest_W.SubRemLen(car.Length());
+                        self.cars[OtherCx].SetPeek(true);
+                        let Lx = consist.into_iter().position(|cx| *cx == Self::CARHOLE);
+                        self.TrainPickupOneCar(Cx,train,boxMove,consist,Px,Lx,printer,carDest_W);
+                        return true;
+                    }
+                }
+            }
+        }
         didAction
     }
     ///  Make up a local train.
@@ -2506,7 +2615,8 @@ impl System {
     /// __Returns__ true if something was done, false if not.
     fn TrainLocalOriginate(&mut self,train: &Train,boxMove: bool,
                            Px: usize, consist: &mut Vec<usize>,
-                           printer: &mut Printer) -> bool {
+                           printer: &mut Printer,
+                           working_industries: &mut HashMap<usize, IndustryWorking> ) -> bool {
         let mut didAction = false;
         let industries = Arc::clone(&self.industries);
         for FuturePx in Px+1..train.NumberOfStops()-1 {
@@ -2527,7 +2637,9 @@ impl System {
                     if car.Destination() == *Ix &&
                        car.Location() == self.originYardIndex {
                         self.carDestIndex = *Ix;
-                        didAction = self.TrainCarPickupCheck(Cx,train,boxMove,consist,didAction,Px,printer);
+                        didAction = self.TrainCarPickupCheck(Cx,train,boxMove,consist,didAction,Px,printer,
+                                                &industries[&self.carDestIndex],
+                                        working_industries.get_mut(&self.carDestIndex).unwrap());
                     }
                 }
             }
@@ -2555,10 +2667,13 @@ impl System {
                 //  The train division list can be exclusive
                 //  ----------------------------------------
             let train_divlist = train.DivisionList();
-                if train_divlist.chars().next().unwrap_or(' ') == '-' {
+                if train_divlist.chars().nth(0) == Some('-') {
                     if !train_divlist.contains(self.divisions[&carDestDiv].Symbol()) {
                         self.carDestIndex = self.trainLastLocationIndex;
-                        didAction = self.TrainCarPickupCheck(Cx,train,boxMove,consist,didAction,Px,printer);
+                        didAction = self.TrainCarPickupCheck(Cx,train,boxMove,
+                                            consist,didAction,Px,printer,
+                                                &industries[&self.carDestIndex],
+                                        &mut working_industries.get_mut(&self.carDestIndex).unwrap());
                     }
                 } else {
                     // The train division list can include everything - *
@@ -2568,7 +2683,10 @@ impl System {
                     if train_divlist == String::from("*") ||
                         train_divlist.contains(self.divisions[&carDestDiv].Symbol()) {
                         self.carDestIndex = self.trainLastLocationIndex;
-                        didAction = self.TrainCarPickupCheck(Cx,train,boxMove,consist,didAction,Px,printer);
+                        didAction = self.TrainCarPickupCheck(Cx,train,boxMove,
+                                                consist,didAction,Px,printer,
+                                                &industries[&self.carDestIndex],
+                                        &mut working_industries.get_mut(&self.carDestIndex).unwrap());
                     }                  
                 }
             }
@@ -2651,7 +2769,8 @@ impl System {
     ///
     /// __Returns__ nothing.
     fn RunOneLocal(&mut self,train: &Train,boxMove: bool,
-                    consist: &mut Vec<usize>,printer: &mut Printer) {
+                    consist: &mut Vec<usize>,printer: &mut Printer,
+                    working_industries: &mut HashMap<usize, IndustryWorking>) {
         let mut didAction; // = false;
 
         self.wayFreight = true;
@@ -2683,7 +2802,8 @@ impl System {
         self.PrintTrainLoc(train,0);
        	// Originate the train, picking up all of the cars at the originating
         // yard.
-        didAction = self.TrainLocalOriginate(train,boxMove,0,consist,printer);
+        didAction = self.TrainLocalOriginate(train,boxMove,0,consist,printer,
+                                working_industries);
         // Display our summary if anything happened
         if didAction {
             self.TrainPrintConsistSummary(train,consist,printer);
@@ -2723,7 +2843,8 @@ impl System {
     ///
     /// __Returns__ nothing.
     fn RunOneManifest(&mut self,train: &Train, boxMove: bool, 
-                        consist: &mut Vec<usize>,printer: &mut Printer) {
+                        consist: &mut Vec<usize>,printer: &mut Printer,
+                        working_industries: &mut HashMap<usize, IndustryWorking>) {
     }
     /// One one passenger train.
     /// Run a passenger train.  Not much happens -- passenger trains are not
@@ -2777,13 +2898,16 @@ impl System {
         match train.Type() {
             // Way freights are a flavor of local 
             TrainType::Wayfreight => 
-                    {self.RunOneLocal(train,boxMove,&mut consist,printer);},
+                    {self.RunOneLocal(train,boxMove,&mut consist,printer,
+                                      working_industries);},
             // As are box moves 
             TrainType::BoxMove =>
-                    {self.RunOneLocal(train,boxMove,&mut consist,printer);},
+                    {self.RunOneLocal(train,boxMove,&mut consist,printer,
+                                        working_industries);},
             // Manifest freights. 
             TrainType::Manifest =>
-                    {self.RunOneManifest(train,boxMove,&mut consist,printer);},
+                    {self.RunOneManifest(train,boxMove,&mut consist,printer,
+                                        working_industries);},
             // Passenger trains.                    
             TrainType::Passenger =>
                     {self.RunOnePassenger(train,boxMove,printer);},

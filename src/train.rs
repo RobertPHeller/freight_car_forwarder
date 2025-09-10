@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:10:46
-//  Last Modified : <250909.1008>
+//  Last Modified : <250910.0936>
 //
 //  Description	
 //
@@ -121,7 +121,7 @@ pub struct Train {
     maxcars: u32,
     maxclear: u8,
     maxweight: u8,
-    maxlength: usize,
+    maxlength: u32,
     onduty: u32,
     print: bool,
     done: bool,
@@ -131,7 +131,7 @@ pub struct Train {
 impl Train {
     pub fn new(name: String, divList: String,carTypes: String,
                description: String, shift: u8, maxcars: u32, maxclear: u8, 
-               maxweight: u8, maxlength: usize, onduty: u32, print: bool, 
+               maxweight: u8, maxlength: u32, onduty: u32, print: bool, 
                done: bool, traintype: TrainType) -> Self {
         Self {orders: Vec::new(), stops: Vec::new(), name: name, 
               divList: divList, carTypes: carTypes, description: description, 
@@ -169,10 +169,10 @@ impl Train {
      pub fn SetMaxWeight(&mut self, newmaxweight: u8) {
         self.maxweight = newmaxweight
      }
-     pub fn MaxLength(&self) -> usize{
+     pub fn MaxLength(&self) -> u32{
         self.maxlength
      }
-     pub fn SetMaxLength(&mut self, newmaxlength: usize) {
+     pub fn SetMaxLength(&mut self, newmaxlength: u32) {
         self.maxlength = newmaxlength;
      }
      pub fn OnDuty(&self) -> u32 {

@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:14:28
-//  Last Modified : <250909.1315>
+//  Last Modified : <250910.1449>
 //
 //  Description	
 //
@@ -173,6 +173,8 @@ impl IndustryWorking {
     }
     pub fn RemLen(&self) -> u32 {self.remLen}
     pub fn SetRemLen(&mut self, rl: u32) {self.remLen = rl;}
+    pub fn AddRemLen(&mut self, rl: u32) {self.remLen += rl;}
+    pub fn SubRemLen(&mut self, rl: u32) {self.remLen -= rl;}
 }
 
 use std::fmt;
