@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250911.1509>
+//  Last Modified : <250911.1954>
 //
 //  Description	
 //
@@ -2978,6 +2978,23 @@ impl System {
 	printer.Put(self.trainLength);
 	printer.PutLine("ft");
     }
+    /// Drop a single car.
+    /// ## Parameters:
+    /// - Cx The car to drop.
+    /// - train The train to drop the car from.
+    /// - Lx The index of the car to drop.
+    /// - consist The train's consist.
+    /// - Px The stop number that train is at. 
+    /// - printer Printer device.
+    /// - working_industries Working industries HashMap
+    ///
+    /// __Returns__ true if the car was dropped, false otherwise.
+    fn TrainDropOneCar(&mut self,Cx: usize,train: &Train,Lx: usize,
+                consist: &Vec<usize>,Px: usize,
+		printer: &mut Printer,
+                working_industries: &mut HashMap<usize, IndustryWorking>) -> bool {
+        false
+    }
     ///  Drop cars from a local (box move or way freight).
     /// Drop cars destined for the current (local) industry.
     /// ## Parameters:
@@ -2985,13 +3002,88 @@ impl System {
     /// - Px The stop number that train is at. 
     /// - consist The train's consist.
     /// - printer Printer device.
+    /// - working_industries Working industries HashMap
     ///
     /// __Returns__ true if cars were dropped otherwise false.
     fn TrainLocalDrops(&mut self,train: &Train,Px: usize,
                         consist: &mut Vec<usize>,
                         printer: &mut Printer,
                         working_industries: &mut HashMap<usize, IndustryWorking>) -> bool {
-        false
+        let mut didAction = false;
+        let curStation: u8 = match train.Stop(Px) {
+            None => 0,
+            Some(theStop) => match theStop {
+                Stop::StationStop(station) => *station,
+                Stop::IndustryStop(ind) => working_industries[&ind].MyStationIndex(),
+            }
+        };
+        let mut CarsToDrop: Vec<usize> = Vec::new();
+        for Ix in working_industries.keys() {
+            if working_industries[Ix].MyStationIndex() == curStation {
+                for Lx in 0..consist.len() {
+                    let Cx = consist[Lx];
+                    if Cx == Self::CARHOLE {continue;}
+                    // If this car has reached it's final destination, drop it!
+                    if *Ix == self.cars[Cx].Destination() {
+                        CarsToDrop.push(Lx);
+                    }
+                }
+            }
+        }
+        for Lx in CarsToDrop {
+            let Cx = consist[Lx];
+            if Cx == Self::CARHOLE {continue;} // probably unnessary check...
+            working_industries
+                .get_mut(&self.cars[Cx].Location())
+                .unwrap().RemoveCar(Cx);
+            let dest = self.cars[Cx].Destination();
+            self.cars[Cx].SetLocation(dest);
+            working_industries
+                .get_mut(&self.cars[Cx].Location())
+                .unwrap().AddCar(Cx);
+            didAction = self.TrainDropOneCar(Cx,train,Lx,consist,Px,printer,
+                            working_industries) || didAction;
+        
+        }
+        // CHANGE 6/24/96 -- Drop at intermediate yard -- this works only as
+        // long as the final destination for this car is not at a later stop
+        // -----------------------------------------------------------------
+        let mut CarsToDrop: Vec<usize> = Vec::new();
+        for Ix in working_industries.keys() {
+            if working_industries[Ix].MyStationIndex() == curStation {
+                if working_industries[Ix].Type() == IndustryType::Yard {
+                    for Lx in 0..consist.len() {
+                        let Cx = consist[Lx];
+                        if Cx == Self::CARHOLE {continue;}
+                        // If this car has reached it's destination's home yard, we
+                        // drop it in the yard.
+                        let carsDestDivIndex = self.stations[
+                            &working_industries[
+                                &self.cars[Cx].Destination()]
+                                    .MyStationIndex()].DivisionIndex();
+                        if *Ix == self.divisions[&carsDestDivIndex].Home() {
+                            CarsToDrop.push(Lx);
+                        }
+                    }
+                }
+            }
+        }
+        for Lx in CarsToDrop {
+            let Cx = consist[Lx];
+            if Cx == Self::CARHOLE {continue;} // probably unnessary check...
+            working_industries
+                .get_mut(&self.cars[Cx].Location())
+                .unwrap().RemoveCar(Cx);
+            let dest = self.cars[Cx].Destination();
+            self.cars[Cx].SetLocation(dest);
+            working_industries
+                .get_mut(&self.cars[Cx].Location())
+                .unwrap().AddCar(Cx);
+            didAction = self.TrainDropOneCar(Cx,train,Lx,consist,Px,printer,
+                            working_industries) || didAction;
+        
+        }
+        didAction
     }
     /// Pick up cars for a local train (box move or way freight).
     /// Basically, look at each industry at the current station. For each
