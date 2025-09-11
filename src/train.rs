@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:10:46
-//  Last Modified : <250910.0936>
+//  Last Modified : <250911.0945>
 //
 //  Description	
 //
@@ -126,99 +126,101 @@ pub struct Train {
     print: bool,
     done: bool,
     traintype: TrainType,
+    number: usize,
 }
 
 impl Train {
     pub fn new(name: String, divList: String,carTypes: String,
                description: String, shift: u8, maxcars: u32, maxclear: u8, 
                maxweight: u8, maxlength: u32, onduty: u32, print: bool, 
-               done: bool, traintype: TrainType) -> Self {
+               done: bool, traintype: TrainType, number: usize) -> Self {
         Self {orders: Vec::new(), stops: Vec::new(), name: name, 
               divList: divList, carTypes: carTypes, description: description, 
               shift: shift, maxcars: maxcars, maxclear: maxclear, 
               maxweight: maxweight, maxlength: maxlength, onduty: onduty, 
-              print: print, done: done, traintype: traintype }
-     }
-     pub fn Name(&self) -> String {
+              print: print, done: done, traintype: traintype, number: number }
+    }
+    pub fn Name(&self) -> String {
         self.name.clone()
-     }
-     pub fn DivisionList(&self) -> String {
+    }
+    pub fn DivisionList(&self) -> String {
         self.divList.clone()
-     }
-     pub fn CarTypes(&self) -> String {
+    }
+    pub fn CarTypes(&self) -> String {
         self.carTypes.clone()
-     }
-     pub fn Description(&self) -> String {
+    }
+    pub fn Description(&self) -> String {
         self.description.clone()
-     }
-     pub fn Shift(&self) -> u8 {
+    }
+    pub fn Shift(&self) -> u8 {
         self.shift
-     }
-     pub fn SetShift(&mut self, newshift: u8) {
+    }
+    pub fn SetShift(&mut self, newshift: u8) {
         self.shift = newshift;
-     }
-     pub fn MaxCars(&self) -> u32 {
+    }
+    pub fn MaxCars(&self) -> u32 {
         self.maxcars
-     }
-     pub fn MaxClear(&self) -> u8 {
+    }
+    pub fn MaxClear(&self) -> u8 {
         self.maxclear
-     }
-     pub fn MaxWeight(&self) -> u8 {
+    }
+    pub fn MaxWeight(&self) -> u8 {
         self.maxweight
-     }
-     pub fn SetMaxWeight(&mut self, newmaxweight: u8) {
+    }
+    pub fn SetMaxWeight(&mut self, newmaxweight: u8) {
         self.maxweight = newmaxweight
-     }
-     pub fn MaxLength(&self) -> u32{
+    }
+    pub fn MaxLength(&self) -> u32{
         self.maxlength
-     }
-     pub fn SetMaxLength(&mut self, newmaxlength: u32) {
+    }
+    pub fn SetMaxLength(&mut self, newmaxlength: u32) {
         self.maxlength = newmaxlength;
-     }
-     pub fn OnDuty(&self) -> u32 {
+    }
+    pub fn OnDuty(&self) -> u32 {
         self.onduty
-     }
-     pub fn Print(&self) -> bool {
+    }
+    pub fn Print(&self) -> bool {
         self.print
-     }
-     pub fn SetPrint(&mut self, flag: bool) {
+    }
+    pub fn SetPrint(&mut self, flag: bool) {
         self.print = flag;
-     }
-     pub fn Done(&self) -> bool {
+    }
+    pub fn Done(&self) -> bool {
         self.done
-     }
-     pub fn SetDone(&mut self, flag: bool) {
+    }
+    pub fn SetDone(&mut self, flag: bool) {
         self.done = flag;
-     }
-     pub fn Type(&self) -> TrainType {
+    }
+    pub fn Type(&self) -> TrainType {
         self.traintype
-     }
-     pub fn NumberOfOrders(&self) -> usize {
+    }
+    pub fn NumberOfOrders(&self) -> usize {
         self.orders.len()
-     }
-     pub fn Order(&self, i: usize) -> Option<String> {
+    }
+    pub fn Order(&self, i: usize) -> Option<String> {
         if i < self.orders.len() {
             Some(self.orders[i].clone())
         } else {
             None
         }
-     }
-     pub fn AddOrder(&mut self, order: String) {
+    }
+    pub fn AddOrder(&mut self, order: String) {
         self.orders.push(order);
      }
-     pub fn NumberOfStops(&self) -> usize {
+    pub fn NumberOfStops(&self) -> usize {
         self.stops.len()
-     }
-     pub fn Stop(&self, i: usize) -> Option<&Stop> {
+    }
+    pub fn Stop(&self, i: usize) -> Option<&Stop> {
         if i < self.stops.len() {
             Some(&self.stops[i])
         } else {
             None
         }
-     }
-     pub fn AddStop(&mut self, stop: &Stop) {
+    }
+    pub fn AddStop(&mut self, stop: &Stop) {
         self.stops.push(stop.clone());
-     }
+    }
+    pub fn Number(&self) -> usize {self.number}
 }
 
 impl fmt::Display for Train {

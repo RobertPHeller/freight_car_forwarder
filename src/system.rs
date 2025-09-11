@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250910.2146>
+//  Last Modified : <250911.0947>
 //
 //  Description	
 //
@@ -1214,7 +1214,7 @@ impl System {
                                          TrnDescr, TrnShift, TrnMxCars, 
                                          TrnMxClear, TrnMxWeigh, TrnMxLen,
                                          TrnOnDuty, TrnPrint, TrnDone, 
-                                         TrnType);
+                                         TrnType, Tx);
             for stop in items[7].trim().split_ascii_whitespace() {
                 //println!("In ReadTrains(): stop is {}",stop);
                 let stopnumber = stop.parse::<usize>().expect("Syntax error");
@@ -2489,8 +2489,33 @@ impl System {
             });
     }
     const CARHOLE: usize = 999999;
-    fn LogCarPickup(&self,Cx: usize, train: &Train, boxMove: bool) {
+    ///  Log a car pickup in the switch list structure.
+    /// ## Parameters:
+    /// - Cx The car picked up. 
+    /// - Tx The train indexthat picked it up. 
+    /// - boxMove Is this a box move?
+    /// - working_industries The working industries.
+    ///
+    /// __Returns__ nothing
+    fn LogCarPickup(&mut self,Cx: usize, train: &Train, boxMove: bool,
+                    working_industries: &mut HashMap<usize, IndustryWorking>) {
+        if boxMove {return;}
+        if train.Type() == TrainType::Manifest {
+            self.switchList.AddSwitchListElement(self.cars[Cx].Location(),Cx,
+                    train.Number(),self.cars[Cx].LastTrain(),self.carDestIndex);
+        } else {
+            self.switchList.AddSwitchListElement(self.cars[Cx].Location(),Cx,
+                    train.Number(),self.cars[Cx].LastTrain(),
+                    working_industries[&self.carDestIndex].MyStationIndex());
+        }
     }
+    /// Print the town a train is in.
+    /// ## Parameters:
+    /// - train The train to print the town for.
+    /// - curStop The current stop.
+    /// - printer Printer device.
+    ///
+    /// __Returns__ nothing
     fn TrainPrintTown(&self,train: &Train,curStop: Option<&Stop>,printer: &mut Printer) {
     }
     /// Pick up one car.
@@ -2598,7 +2623,7 @@ impl System {
                 printer.PutLine(&self.stations[&StaIndx].Name());
             }
         }
-        self.LogCarPickup(Cx,train,boxMove);
+        self.LogCarPickup(Cx,train,boxMove,working_industries);
         self.totalPickups += 1;
         true
     }
@@ -2607,7 +2632,20 @@ impl System {
     /// - car The car to check.
     /// - train The train to check.
     fn OtherCarOkForTrain(car: &Car, train: &Train) -> bool {
-        false
+        //      Is the car too large, or too heavy for the train ?
+        if car.Plate() > train.MaxClear() {return false;}
+        if car.WeightClass() > train.MaxWeight() {return false;}
+        //      Can the train move this type of car ? 
+        let trainCarTypes = train.CarTypes();
+        if trainCarTypes.len() > 0 {
+            if trainCarTypes.chars().nth(0) == Some('-') {
+                let trainCarTypes = String::from(&trainCarTypes[1..]);
+                if trainCarTypes.contains(car.Type())  {return false;}
+            } else {
+                if !trainCarTypes.contains(car.Type())  {return false;}
+            }
+        }
+        true
     }    
     ///  Check to see if we can really pick up this car.
     /// ## Parameters:
@@ -2646,7 +2684,7 @@ impl System {
         let trainCarTypes = train.CarTypes();
         if trainCarTypes.len() > 0 {
             if trainCarTypes.chars().nth(0) == Some('-') {
-                let trainCarTypes = trainCarTypes.clone();
+                let trainCarTypes = String::from(&trainCarTypes[1..]);
                 if trainCarTypes.contains(car.Type())  {return didAction;}
             } else {
                 if !trainCarTypes.contains(car.Type())  {return didAction;} 

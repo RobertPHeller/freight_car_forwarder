@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:13:52
-//  Last Modified : <250903.1459>
+//  Last Modified : <250911.0913>
 //
 //  Description	
 //
@@ -207,6 +207,7 @@ impl Printer {
         (pango::units_to_double(w as i32) * text.len() as f64) / pp as f64
     }
     pub fn Tab(&mut self, column: u8) -> bool {
+        while self.currentColumn < column.into() {self.Put(" ");}
         true
     }
 }

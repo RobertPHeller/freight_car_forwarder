@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:13:27
-//  Last Modified : <250902.2110>
+//  Last Modified : <250911.0951>
 //
 //  Description	
 //
@@ -172,7 +172,7 @@ impl Default for SwitchList {
     }
 }
 
-trait __StopType<T> {
+pub trait __StopType<T> {
     fn AddSwitchListElement(&mut self,pickloc: usize, pickcar: usize, 
                             picktrain: usize, lasttrain: usize, stop: T);
 }
