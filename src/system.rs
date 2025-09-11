@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250911.0947>
+//  Last Modified : <250911.1003>
 //
 //  Description	
 //
@@ -2516,7 +2516,8 @@ impl System {
     /// - printer Printer device.
     ///
     /// __Returns__ nothing
-    fn TrainPrintTown(&self,train: &Train,curStop: Option<&Stop>,printer: &mut Printer) {
+    fn TrainPrintTown(&self,train: &Train,curStop: Option<&Stop>,
+                        printer: &mut Printer) {
     }
     /// Pick up one car.
     /// General helper to pickup a car.
@@ -3191,18 +3192,6 @@ impl System {
         if CarCount == 0 {return;}
         println!("\n                                                    Cars subtotal: {}",CarCount);
     }
-    /// Get the train index, given a Train reference.
-    ///
-    /// ## Parameters:
-    /// - train a reference to a Train.
-    ///
-    /// __Returns__ a train index.
-    fn TrainIndex(&self, train: &Train) -> usize {
-        for (Tx, atrain) in self.trains.iter() {
-            if atrain == train {return *Tx;}
-        }
-        0
-    }
     /// Get the industry index, given an Industry reference.
     ///
     /// ## Parameters:
@@ -3239,7 +3228,7 @@ impl System {
             let mut banner1 = String::from("");
             if TOption.is_some() {
                 let train: &Train = TOption.unwrap();
-                let Tx = self.TrainIndex(train);
+                let Tx = train.Number();
                 let Gx = self.switchList.LimitCars();
                 // Only show moves if the car travelled in this train!
                 for Gx in 0..self.switchList.LimitCars() {
@@ -3328,7 +3317,7 @@ impl System {
     pub fn ShowTrainCars(&self,train: &Train) {
         let mut Total = 0;
         let mut CarCount = 0;
-        let Tx = self.TrainIndex(train);
+        let Tx = train.Number();
         for Gx in 0..self.switchList.PickIndex() {
             if self.switchList.PickTrainEq(Gx as isize,Tx) {
                 let Cx = self.switchList[Gx].PickCar();
