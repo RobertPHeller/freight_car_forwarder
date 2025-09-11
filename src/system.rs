@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250910.1552>
+//  Last Modified : <250910.2129>
 //
 //  Description	
 //
@@ -1546,7 +1546,9 @@ impl System {
                 let slword = &line[10..15].trim();
                 sl = slword.parse::<u32>().expect("Syntax error");
             }
-            industries.insert(Ix, IndustryWorking::new(self.industries[&Ix].Name()));
+            industries.insert(Ix, IndustryWorking::new(
+                                    self.industries[&Ix].MyStationIndex(),
+                                    self.industries[&Ix].Name()));
             let industry = industries.get_mut(&Ix).unwrap();
             industry.SetCarsNum(cn);
             industry.SetCarsLen(cl);
@@ -1994,7 +1996,9 @@ impl System {
                     Some(ind) => {ind.SetUsedLen(0);},
                     None => {
                         working_industries.insert(*Ix1,
-                                    IndustryWorking::new(industries[Ix1].Name()));
+                                    IndustryWorking::new(
+                                        industries[Ix1].MyStationIndex(),
+                                        industries[Ix1].Name()));
                     },
                 };
             } // 2
@@ -2495,10 +2499,104 @@ impl System {
     /// - Px The stop number that train is at. 
     /// - Lx Place in the train to put the car if it is picked up.
     /// - printer Printer device.
-    /// - carDest_W The destination work structure
+    /// - working_industries The working industries HashMap
     fn TrainPickupOneCar(&mut self,Cx: usize,train: &Train,boxMove: bool,
-		consist: &mut Vec<usize>,Px: usize, Lx: Option<usize>,
-		printer: &mut Printer,carDest_W: &mut IndustryWorking) {
+		consist: &mut Vec<usize>,didAction: bool,Px: usize, 
+                Lx: Option<usize>, printer: &mut Printer,
+                working_industries: &mut HashMap<usize, IndustryWorking>) 
+            -> bool {
+        let cartype = self.cars[Cx].Type();
+        let destind = self.cars[Cx].Destination();
+        println!("Pickup {} {} is {} dest = {}",self.cars[Cx].Marks(),  
+                self.cars[Cx].Number(),
+                match self.TheCarType(cartype) {
+                    Some(ct) => ct.Type(),
+                    None     => String::from("Unknown"),},
+                working_industries[&destind].Name());
+        self.trainLength += self.cars[Cx].Length();
+        if self.cars[Cx].EmptyP() {
+            self.trainEmpties += 1;
+            self.trainTons += self.cars[Cx].LtWt();
+            self.totalTons += self.cars[Cx].LtWt();
+        } else {
+            self.trainLoads += 1;
+            self.trainTons += self.cars[Cx].LdLmt();
+            self.totalTons += self.cars[Cx].LdLmt();
+            self.totalLoads += 1;
+            self.totalRevenueTons += self.cars[Cx].LdLmt() - self.cars[Cx].LtWt();
+        }
+        // This was the old way of counting only loaded trips -- whenever the car
+        // was picked up loaded at an industry.
+        //
+        //    IF IndsType(CrsLoc%(Cx%)) <> "Y" THEN
+        //
+        //       CrsLoads%(Cx%) = CrsLoads%(Cx%) + 1
+        //
+        //    END IF
+        match Lx {
+            None  => {consist.push(Cx);},
+            Some(index) => {consist[index] = Cx;},
+        }
+        self.numberCars += 1;
+        if !boxMove {
+            self.cars[Cx].IncrmentMovementsThisSession();
+            self.cars[Cx].IncrementTrips();
+            if train.Done() {self.cars[Cx].SetDone();}
+        }
+        // The car length is subtracted from where it is and added to where it
+        // is going.
+        let carlength = self.cars[Cx].Length();
+        let carloc = self.cars[Cx].Location();
+        working_industries.get_mut(&carloc).unwrap().SubFromUsedLen(carlength);
+        let cardest = self.cars[Cx].Destination();
+        working_industries.get_mut(&cardest).unwrap().AddToUsedLen(carlength);
+        if self.numberCars > self.trainLongest {self.trainLongest = self.numberCars;}
+        if self.trainPrintOK {
+            if !didAction {
+                self.TrainPrintTown(train.Stop(Px),printer);
+            }
+            let (status,carTypeDescr) = self.GetCarStatus(Cx);
+            printer.Put(" PICKUP "); printer.Put(self.cars[Cx].Marks());
+            printer.Tab(19);
+            printer.Put(self.cars[Cx].Number());
+            printer.Tab(28);
+            printer.Put(self.cars[Cx].Length()); printer.Put("ft");
+            printer.Tab(36);
+            printer.Put(status);
+            printer.Tab(44);
+            printer.Put(carTypeDescr);
+            printer.Tab(74);
+            let mut trainName = String::new();
+            if self.cars[Cx].LastTrain() == 0 {
+                trainName = String::from("-");
+            } else {
+                trainName = self.trains[&self.cars[Cx].LastTrain()].Name();
+            }
+            let temp = &trainName[0..6];
+            printer.Put(temp);
+            printer.Tab(84);
+            if self.wayFreight {
+                printer.Put("at "); 
+                printer.Put(working_industries[&self.cars[Cx].Location()].Name());
+                printer.Tab(110);
+                printer.Put("for "); 
+                let DestInd = self.cars[Cx].Destination();
+                let StaIndx = working_industries[&DestInd].MyStationIndex();
+                printer.PutLine(&self.stations[&StaIndx].Name());
+            } else {
+                printer.Put("to "); 
+                let LocInd = self.cars[Cx].Location();
+                printer.Put(working_industries[&LocInd].Name());
+                printer.Tab(110);
+                printer.Put("dest "); 
+                let DestInd = self.cars[Cx].Destination();
+                let StaIndx = working_industries[&DestInd].MyStationIndex(); 
+                printer.PutLine(&self.stations[&StaIndx].Name());
+            }
+        }
+        self.LogCarPickup(Cx,train,boxMove);
+        self.totalPickups += 1;
+        true
     }
     /// Check to see if this other car can be picked up.
     /// ## Parameters:
@@ -2520,7 +2618,7 @@ impl System {
 		consist: &mut Vec<usize>,didAction: bool,Px: usize,
 		printer: &mut Printer,
                 carDest_S: &IndustryFile,
-                carDest_W: &mut IndustryWorking) -> bool {
+                working_industries: &mut HashMap<usize, IndustryWorking>) -> bool {
         //  Check for obvious things that prevent the car from being picked up!
         //      Has the car already been picked up?
         if consist.contains(&Cx) {return didAction;}
@@ -2553,18 +2651,23 @@ impl System {
         //	That's it for MANIFEST trains -- this car is Ok!
         //	-----------------------------------------------
         if !self.wayFreight {
-            carDest_W.SubRemLen(car.Length());
+            working_industries
+                .get_mut(&car.Destination())
+                .unwrap().SubRemLen(car.Length());
             let Lx = consist.into_iter().position(|cx| *cx == Self::CARHOLE);
-            self.TrainPickupOneCar(Cx,train,boxMove,consist,Px,Lx,printer,carDest_W);
+            self.TrainPickupOneCar(Cx,train,boxMove,consist,didAction,Px,Lx,
+                                    printer,working_industries);
             return true;
         }
         // A WAYFREIGHT needs to have some space available - unless it's a yard
         // -----------------------------------------------
-        let exp1 = (carDest_W.UsedLen() + car.Length()) <= carDest_S.TrackLen();
+        let exp1 = (working_industries[&car.Destination()].UsedLen() + car.Length()) <= carDest_S.TrackLen();
         if exp1 || carDest_S.Type() == 'Y' {
-            carDest_W.SubRemLen(car.Length());
+            working_industries.get_mut(&car.Destination()).unwrap()
+                                                  .SubRemLen(car.Length());
             let Lx = consist.into_iter().position(|cx| *cx == Self::CARHOLE);
-            self.TrainPickupOneCar(Cx,train,boxMove,consist,Px,Lx,printer,carDest_W);
+            self.TrainPickupOneCar(Cx,train,boxMove,consist,didAction,Px,Lx,
+                                printer, working_industries);
             return true;
         }
         //============================================================================
@@ -2580,17 +2683,20 @@ impl System {
                 let exp1b = !otherCar.IsDoneP();
                 let exp1  = exp1a && exp1b;
                 // Exp2 means the removal of the other car will make room for this one	    
-                let exp2 = (otherCar.Length() + carDest_W.RemLen()) >= car.Length();
+                let exp2 = (otherCar.Length() + working_industries[&car.Destination()].RemLen()) >= car.Length();
                 // Exp3 was used to test to see if removal of this car from its YARD
                 // would make room for the other car to replace it -- but this makes
                 // no sense in some cases so I deleted this test.
                 // bool exp3 = car->Location()->TrackLength() >= ( car->Location()->usedLen - car->Length() + otherCar->Length() );
                 if exp1 && exp2 {
                     if Self::OtherCarOkForTrain(otherCar,train) {
-                        carDest_W.SubRemLen(car.Length());
+                        working_industries.get_mut(&car.Destination()).unwrap()
+                                                  .SubRemLen(car.Length());
                         self.cars[OtherCx].SetPeek(true);
                         let Lx = consist.into_iter().position(|cx| *cx == Self::CARHOLE);
-                        self.TrainPickupOneCar(Cx,train,boxMove,consist,Px,Lx,printer,carDest_W);
+                        self.TrainPickupOneCar(Cx,train,boxMove,consist,
+                                    didAction,Px,Lx,printer,
+                                    working_industries);
                         return true;
                     }
                 }
@@ -2639,7 +2745,7 @@ impl System {
                         self.carDestIndex = *Ix;
                         didAction = self.TrainCarPickupCheck(Cx,train,boxMove,consist,didAction,Px,printer,
                                                 &industries[&self.carDestIndex],
-                                        working_industries.get_mut(&self.carDestIndex).unwrap());
+                                                working_industries);
                     }
                 }
             }
@@ -2673,7 +2779,7 @@ impl System {
                         didAction = self.TrainCarPickupCheck(Cx,train,boxMove,
                                             consist,didAction,Px,printer,
                                                 &industries[&self.carDestIndex],
-                                        &mut working_industries.get_mut(&self.carDestIndex).unwrap());
+                                                working_industries);
                     }
                 } else {
                     // The train division list can include everything - *
@@ -2686,7 +2792,7 @@ impl System {
                         didAction = self.TrainCarPickupCheck(Cx,train,boxMove,
                                                 consist,didAction,Px,printer,
                                                 &industries[&self.carDestIndex],
-                                        &mut working_industries.get_mut(&self.carDestIndex).unwrap());
+                                                working_industries);
                     }                  
                 }
             }

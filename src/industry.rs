@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:14:28
-//  Last Modified : <250910.1449>
+//  Last Modified : <250910.2121>
 //
 //  Description	
 //
@@ -59,6 +59,7 @@ pub struct IndustryFile {
 
 pub struct IndustryWorking {
     name: String,
+    station_index: u8,
     cars: Vec<usize>,
     carsNum: u32,
     carsLen: u32,
@@ -128,12 +129,15 @@ impl IndustryFile {
  }
 
 impl IndustryWorking {
-    pub fn new(name: String) -> Self {
-        Self {name: name, cars: Vec::new(), carsNum: 0,
-              carsLen: 0, statsLen: 0, usedLen: 0, remLen: 0}
+    pub fn new(station_index: u8, name: String) -> Self {
+        Self {name: name, station_index: station_index, cars: Vec::new(), 
+              carsNum: 0, carsLen: 0, statsLen: 0, usedLen: 0, remLen: 0}
     }
     pub fn Name(&self) -> String {
         self.name.clone()
+    }
+    pub fn MyStationIndex(&self) -> u8 {
+        self.station_index
     }
     pub fn TheCar(&self, i: usize) -> Option<usize> {
         if i < self.cars.len() {
@@ -163,6 +167,7 @@ impl IndustryWorking {
     pub fn UsedLen(&self) -> u32 {self.usedLen}
     pub fn SetUsedLen(&mut self, ul: u32) {self.usedLen = ul;}
     pub fn AddToUsedLen(&mut self, cl: u32) {self.usedLen += cl;}
+    pub fn SubFromUsedLen(&mut self, cl: u32) {self.usedLen += cl;}
     pub fn RemoveCar(&mut self,Cx: usize) {
         for c in 0..self.cars.len() {
             if self.cars[c] == Cx {
