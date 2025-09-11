@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:13:52
-//  Last Modified : <250911.0913>
+//  Last Modified : <250911.1336>
 //
 //  Description	
 //
@@ -214,6 +214,13 @@ impl Printer {
 
 pub trait __Put<T> {
     fn Put(&mut self,object: T) -> bool;
+}
+
+impl __Put<char> for Printer {
+    fn Put(&mut self,object: char) -> bool {
+        self.Put(format!("{}",object));
+        true
+    }
 }
 
 impl __Put<u8> for Printer {

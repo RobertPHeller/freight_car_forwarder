@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:14:28
-//  Last Modified : <250910.2121>
+//  Last Modified : <250911.1459>
 //
 //  Description	
 //
@@ -38,6 +38,46 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub enum IndustryType {
+    Yard,
+    Industry,
+    Offline,
+    Stage,
+    Unknown,
+}
+
+impl Default for IndustryType {
+    fn default() -> Self {
+        IndustryType::Unknown
+    }
+}
+
+impl IndustryType {
+    pub fn new(typeletter: char) -> Self {
+        match typeletter {
+            'Y' | 'y' => IndustryType::Yard,
+            'I' | 'i' => IndustryType::Industry,
+            'O' | 'o' => IndustryType::Offline,
+            'S' | 's' => IndustryType::Stage,
+            _ => IndustryType::Unknown
+        }
+    }
+}
+
+use std::fmt;
+impl fmt::Display for IndustryType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            IndustryType::Yard => write!(f, "<#IndustryType Yard (Y)>"),
+            IndustryType::Industry => write!(f, "<#IndustryType Industry (I)>"),
+            IndustryType::Offline => write!(f, "<#IndustryType Offline (O)>"),
+            IndustryType::Stage => write!(f, "<#IndustryType Stage (S)>"),
+            IndustryType::Unknown => write!(f, "<#IndustryType Unknown>"),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Default, Clone)]
 pub struct IndustryFile {
     station_index: u8,
@@ -53,13 +93,14 @@ pub struct IndustryFile {
     weightclass: u8,
     maxCarLen: u32,
     reload: bool,
-    indtype: char,
+    indtype: IndustryType,
     hazard: char,
 }
 
 pub struct IndustryWorking {
     name: String,
     station_index: u8,
+    indtype: IndustryType,
     cars: Vec<usize>,
     carsNum: u32,
     carsLen: u32,
@@ -79,9 +120,9 @@ impl IndustryFile {
               divisionControlList: divisionControlList, trackLen: trackLen,
               assignLen: assignLen, priority: priority, plate: plate,
               weightclass: weightclass, maxCarLen: maxCarLen, reload: reload,
-              indtype: indtype, hazard: hazard}
+              indtype: IndustryType::new(indtype), hazard: hazard}
     }
-    pub fn Type(&self) -> char {
+    pub fn Type(&self) -> IndustryType {
         self.indtype
     }
     pub fn MyStationIndex(&self) -> u8 {
@@ -129,15 +170,20 @@ impl IndustryFile {
  }
 
 impl IndustryWorking {
-    pub fn new(station_index: u8, name: String) -> Self {
-        Self {name: name, station_index: station_index, cars: Vec::new(), 
-              carsNum: 0, carsLen: 0, statsLen: 0, usedLen: 0, remLen: 0}
+    pub fn new(station_index: u8, name: String, indtype: IndustryType) 
+            -> Self {
+        Self {name: name, station_index: station_index, indtype: indtype, 
+              cars: Vec::new(), carsNum: 0, carsLen: 0, statsLen: 0, 
+              usedLen: 0, remLen: 0}
     }
     pub fn Name(&self) -> String {
         self.name.clone()
     }
     pub fn MyStationIndex(&self) -> u8 {
         self.station_index
+    }
+    pub fn Type(&self) -> IndustryType {
+        self.indtype
     }
     pub fn TheCar(&self, i: usize) -> Option<usize> {
         if i < self.cars.len() {
@@ -182,7 +228,6 @@ impl IndustryWorking {
     pub fn SubRemLen(&mut self, rl: u32) {self.remLen -= rl;}
 }
 
-use std::fmt;
 impl fmt::Display for IndustryFile {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "<#IndustryFile {}>", self.name)

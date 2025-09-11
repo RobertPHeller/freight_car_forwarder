@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:10:46
-//  Last Modified : <250911.0945>
+//  Last Modified : <250911.1143>
 //
 //  Description	
 //
@@ -37,6 +37,8 @@
 // 
 //
 //////////////////////////////////////////////////////////////////////////////
+
+use std::vec::*;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)] // Add traits for comparison, copy, print
 pub enum TrainType {
@@ -203,6 +205,9 @@ impl Train {
         } else {
             None
         }
+    }
+    pub fn OrdersIter(&self) -> impl Iterator<Item = &String> {
+        self.orders.iter()
     }
     pub fn AddOrder(&mut self, order: String) {
         self.orders.push(order);

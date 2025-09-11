@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250911.1003>
+//  Last Modified : <250911.1509>
 //
 //  Description	
 //
@@ -58,6 +58,7 @@ use std::path::PathBuf;
 use std::fs;
 use rand::prelude::*;
 use std::sync::Arc;
+use date_time::date_tuple::Date;
 
 /// Scrap yard index (cars marked as scrap).
 const IND_SCRAP_YARD: usize = 999;
@@ -1548,7 +1549,8 @@ impl System {
             }
             industries.insert(Ix, IndustryWorking::new(
                                     self.industries[&Ix].MyStationIndex(),
-                                    self.industries[&Ix].Name()));
+                                    self.industries[&Ix].Name(),
+                                    self.industries[&Ix].Type()));
             let industry = industries.get_mut(&Ix).unwrap();
             industry.SetCarsNum(cn);
             industry.SetCarsLen(cl);
@@ -1998,7 +2000,8 @@ impl System {
                         working_industries.insert(*Ix1,
                                     IndustryWorking::new(
                                         industries[Ix1].MyStationIndex(),
-                                        industries[Ix1].Name()));
+                                        industries[Ix1].Name(),
+                                        industries[Ix1].Type()));
                     },
                 };
             } // 2
@@ -2074,7 +2077,7 @@ impl System {
                             // An empty car in a yard, will remain empty for purpose of
                             // finding an assignment. Otherwise this car becomes a load.
                             // ---------------------------------------------------------
-                            if industries[&LocIndIx].Type() != 'Y' { // 6
+                            if industries[&LocIndIx].Type() != IndustryType::Yard { // 6
                                 self.cars[Cx].SetTmpStatus(true);
                             } else { // 6
                                 self.cars[Cx].SetTmpStatus(false);
@@ -2163,7 +2166,7 @@ impl System {
                             if industries[&IIx].AssignLen() == 0 {continue;}
                             // Cars are never assigned to yards
                             //  --------------------------------
-                            if industries[&IIx].Type() == 'Y' {continue;}
+                            if industries[&IIx].Type() == IndustryType::Yard {continue;}
                             // If the car is at an industry that mirrors, never route
                             // the car to the mirror itself. This does not apply when
                             // the car is not allowed to mirror.
@@ -2220,8 +2223,8 @@ impl System {
                             // EMPTY CARS
                             // ===========================================================
                             if !self.cars[Cx].TmpStatus() {
-                                if industries[&IIx].Type() == 'O' &&
-                                   industries[&self.cars[Cx].Location()].Type() != 'I' {
+                                if industries[&IIx].Type() == IndustryType::Offline &&
+                                   industries[&self.cars[Cx].Location()].Type() != IndustryType::Industry {
                                    LastIx = Ix;
                                    working_industries
                                         .get_mut(&self.cars[Cx].Location())
@@ -2290,7 +2293,7 @@ impl System {
                                 // 
                                 // ------------------------------------------------------
                                 if AssignLoop == 2 && PassLoop == 2 {
-                                    if industries[&self.cars[Cx].Location()].Type() == 'O' {
+                                    if industries[&self.cars[Cx].Location()].Type() == IndustryType::Offline {
                                         LastIx = Ix;
                                         RouteCars += 1;
                                         HaveDest = true;
@@ -2308,9 +2311,9 @@ impl System {
                                 // do not assign the Car to the Industry.
                                 // --------------------------------------------------------
                                 if CarDivI.Area() == IndDivI.Area() {
-                                    if industries[&IIx].Type() == 'O' &&
+                                    if industries[&IIx].Type() == IndustryType::Offline &&
                                        industries[
-                                            &self.cars[Cx].Location()].Type() == 'I' {continue;}
+                                            &self.cars[Cx].Location()].Type() == IndustryType::Industry {continue;}
                                 }
                                 // When the Car is loaded where it can go is under control
                                 // of the Industry's Division List
@@ -2328,7 +2331,7 @@ impl System {
                                     // any destination of the shipper, I do not use a car
                                     // home division list in that case.
                                     // --------------------------------------------------
-                                    // if (car->Location()->Type() == 'I') {
+                                    // if (car->Location()->Type() == IndustryType::Industry) {
                                         DestList = self.cars[Cx].Divisions();
                                     // }
                                 }
@@ -2353,7 +2356,7 @@ impl System {
                                     //
                                     // ----------------------------------------------------
                                     if AssignLoop == 2 && PassLoop == 2 {
-                                        if industries[&self.cars[Cx].Location()].Type() == 'O' {
+                                        if industries[&self.cars[Cx].Location()].Type() == IndustryType::Offline {
                                             // GOTO IndustryIsOk
                                             LastIx = Ix;
                                             RouteCars += 1;
@@ -2509,6 +2512,83 @@ impl System {
                     working_industries[&self.carDestIndex].MyStationIndex());
         }
     }
+    /// Return today's date.
+    /// __Returns__ a string with today's date
+    fn Today() -> String {
+        let today = Date::today();
+        format!("{}",today)
+    }
+    /// Print the system banner.
+    /// ## Parameters:
+    /// - printer Printer device.
+    ///
+    /// __Returns__ nothing.
+    fn PrintSystemBanner(&self, printer: &mut Printer) {
+        printer.SetTypeSpacing(TypeSpacing::One);
+        //printer.SetTypeSpacing(TypeSpacing::Double);
+        printer.SetTypeWeight(TypeWeight::Bold);
+        let mut name = self.systemName.clone();
+        name.make_ascii_uppercase();
+        printer.Put(name.clone());
+        let mut strLen = name.len();
+        while strLen < 18 {
+            printer.Put(' ');
+            strLen += 1;
+        }
+        printer.Put(" Session ");
+        printer.Put(self.sessionNumber);
+        printer.Put(": ");
+        printer.Put(self.shiftNumber);
+        printer.Put("  ");
+        printer.PutLine(&Self::Today());
+        printer.SetTypeSpacing(TypeSpacing::One);
+        printer.PutLine("");	
+        printer.SetTypeWeight(TypeWeight::Normal);
+    }
+    /// Format the on duty time in a human readable format.
+    /// ## Parameters:                 
+    /// - dutytimeminutes The duty time in minutes.
+    ///
+    /// __Returns__ a String containing the formated on duty time.
+    fn FormatDutyTime(dutytimeminutes: u32) -> String {
+        format!("{:02}:{:02}",dutytimeminutes / 60,dutytimeminutes % 60)
+    }
+    /// Print the train orders for a selected train.
+    /// ## Parameters:
+    /// - train The train to print trains orders for.
+    /// - printer Printer device.
+    ///
+    /// __Returns__ nothing
+    fn PrintTrainOrders(&self,train: &Train,printer: &mut Printer) {
+        printer.SetTypeSpacing(TypeSpacing::One);
+        printer.PutLine("");
+        for order in train.OrdersIter() {
+            printer.PutLine(&*order);
+        }
+    }
+    /// Print a train order header.
+    /// ## Parameters:
+    /// - train The train to print a train order header for.
+    /// - printer Printer device.
+    ///
+    /// __Returns__ nothing.
+    fn PrintTrainOrderHeader(&self,train: &Train,printer: &mut Printer) {
+        self.PrintSystemBanner(printer);
+
+	printer.Put("TRAIN #");
+	printer.Put(train.Number());
+	printer.Put(" -- ");
+	printer.Put(train.Name());
+	printer.Put(" pick up on Yard Track ______ Departure ");
+	printer.PutLine(&Self::FormatDutyTime(train.OnDuty()));
+	printer.PutLine("");
+	printer.Tab(12);
+	printer.PutLine(&train.Description());
+
+	self.PrintTrainOrders(train,printer);
+	printer.SetTypeSpacing(TypeSpacing::Half);
+        
+    }
     /// Print the town a train is in.
     /// ## Parameters:
     /// - train The train to print the town for.
@@ -2518,6 +2598,29 @@ impl System {
     /// __Returns__ nothing
     fn TrainPrintTown(&self,train: &Train,curStop: Option<&Stop>,
                         printer: &mut Printer) {
+        if !self.trainPrintOK {return;}
+        if self.totalPickups == 0 {
+            self.PrintTrainOrderHeader(train,printer);
+        }
+        printer.PutLine("");
+        let name: &str = 
+            match curStop {
+                None => "(unknown)",
+                Some(theStop) => 
+                    match theStop {
+                        Stop::StationStop(station) => 
+                            &self.stations[&station].Name().to_string(),
+                        Stop::IndustryStop(industry) =>
+                            &self.industries[&industry].Name().to_string(),
+                    }
+            };
+        printer.Put(name);
+        let mut nameLen = name.len();
+        while nameLen < 36 {
+            printer.Put("-");
+            nameLen += 1;
+        }
+        printer.PutLine("");
     }
     /// Pick up one car.
     /// General helper to pickup a car.
@@ -2526,10 +2629,13 @@ impl System {
     /// - train The train to pick up the car for.
     /// - boxMove Is this a box move?
     /// - consist The train's consist.
+    /// - didAction Previous state of didAction.
     /// - Px The stop number that train is at. 
     /// - Lx Place in the train to put the car if it is picked up.
     /// - printer Printer device.
     /// - working_industries The working industries HashMap
+    ///
+    /// __Returns__ true if the car was picked up, othersize returns didAction.
     fn TrainPickupOneCar(&mut self,Cx: usize,train: &Train,boxMove: bool,
 		consist: &mut Vec<usize>,didAction: bool,Px: usize, 
                 Lx: Option<usize>, printer: &mut Printer,
@@ -2657,6 +2763,9 @@ impl System {
     /// - didAction Flag to set (update) if something was done.
     /// - Px The stop number that train is at. 
     /// - printer Printer device.
+    /// - working_industries The working industries.
+    ///
+    /// __Returns__ true if car can be picked up, otherwise returns didAction.
     fn TrainCarPickupCheck(&mut self,Cx: usize,train: &Train,boxMove: bool,
 		consist: &mut Vec<usize>,didAction: bool,Px: usize,
 		printer: &mut Printer,
@@ -2705,7 +2814,7 @@ impl System {
         // A WAYFREIGHT needs to have some space available - unless it's a yard
         // -----------------------------------------------
         let exp1 = (working_industries[&car.Destination()].UsedLen() + car.Length()) <= carDest_S.TrackLen();
-        if exp1 || carDest_S.Type() == 'Y' {
+        if exp1 || carDest_S.Type() == IndustryType::Yard {
             working_industries.get_mut(&car.Destination()).unwrap()
                                                   .SubRemLen(car.Length());
             let Lx = consist.into_iter().position(|cx| *cx == Self::CARHOLE);
@@ -2760,6 +2869,7 @@ impl System {
     /// - Px The stop number that train is at. 
     /// - consist The train's consist.
     /// - printer Printer device.
+    /// - working_industries The working industries.
     ///
     /// __Returns__ true if something was done, false if not.
     fn TrainLocalOriginate(&mut self,train: &Train,boxMove: bool,
@@ -2849,9 +2959,24 @@ impl System {
     /// -printer Printer device.
     ///
     /// __Returns__ nothing.
-    fn TrainPrintConsistSummary(&mut self,train: &Train,
+    fn TrainPrintConsistSummary(&self,train: &Train,
                                 consist: &mut Vec<usize>,
                                 printer: &mut Printer) {
+	if !self.trainPrintOK {return;}
+
+	printer.PutLine("");
+	printer.Tab(7);
+	printer.Put(" Current cars = ");
+	printer.Put(self.numberCars);
+	printer.Put(" Empties = ");
+	printer.Put(self.trainEmpties);
+	printer.Put(" Loads = ");
+	printer.Put(self.trainLoads);
+	printer.Put(" Tons = ");
+	printer.Put(self.trainTons);
+	printer.Put(" Length = ");
+	printer.Put(self.trainLength);
+	printer.PutLine("ft");
     }
     ///  Drop cars from a local (box move or way freight).
     /// Drop cars destined for the current (local) industry.
@@ -2864,7 +2989,8 @@ impl System {
     /// __Returns__ true if cars were dropped otherwise false.
     fn TrainLocalDrops(&mut self,train: &Train,Px: usize,
                         consist: &mut Vec<usize>,
-                        printer: &mut Printer) -> bool {
+                        printer: &mut Printer,
+                        working_industries: &mut HashMap<usize, IndustryWorking>) -> bool {
         false
     }
     /// Pick up cars for a local train (box move or way freight).
@@ -2881,7 +3007,8 @@ impl System {
     /// __Returns__ true if cars were picked up, false otherwise.
     fn TrainLocalPickups(&mut self,train: &Train,boxMove: bool,
                         Px: usize, consist: &mut Vec<usize>,
-                        printer: &mut Printer) -> bool {
+                        printer: &mut Printer,
+                        working_industries: &mut HashMap<usize, IndustryWorking>) -> bool {
         false
     }
     /// Drop all cars from a train at the current stop (usually
@@ -2897,7 +3024,8 @@ impl System {
     /// __Returns__ nothing.
     fn TrainDropAllCars(&mut self,train: &Train,Px: usize,
                         consist: &mut Vec<usize>,
-                        printer: &mut Printer) {
+                        printer: &mut Printer,
+                        working_industries: &mut HashMap<usize, IndustryWorking>) {
     }
     /// Print a train's final summary.
     /// ## Parameters:
@@ -2915,6 +3043,7 @@ impl System {
     /// - boxMove Is this a box move?
     /// - consist The train's consist.
     /// - printer Printer device.
+    /// - working_industries The working industries.
     ///
     /// __Returns__ nothing.
     fn RunOneLocal(&mut self,train: &Train,boxMove: bool,
@@ -2963,10 +3092,12 @@ impl System {
             // Print and display our new location
             self.PrintTrainLoc(train,Px);
             // Do our local drops
-            didAction = self.TrainLocalDrops(train,Px,consist,printer);
+            didAction = self.TrainLocalDrops(train,Px,consist,printer,
+                            working_industries);
             // Do our local pickups
             didAction = 
-                self.TrainLocalPickups(train,boxMove,Px,consist,printer) || 
+                self.TrainLocalPickups(train,boxMove,Px,consist,printer,
+                             working_industries) || 
                 didAction;
             // If anything happened, print/display our summary.
             if didAction {
@@ -2975,7 +3106,8 @@ impl System {
         }
         self.PrintTrainLoc(train,train.NumberOfStops()-1);
         // Drop all of the remaining cars.
-        self.TrainDropAllCars(train,train.NumberOfStops()-1,consist,printer); 
+        self.TrainDropAllCars(train,train.NumberOfStops()-1,consist,printer,
+                                working_industries); 
         // Print our final summary.
         if self.totalPickups > 0 {
             self.TrainPrintFinalSummary(train,printer);
@@ -2989,6 +3121,7 @@ impl System {
     /// - boxMove Is this a box move?
     /// - consist The train's consist.
     /// - printer Printer device.
+    /// - working_industries The working industries.
     ///
     /// __Returns__ nothing.
     fn RunOneManifest(&mut self,train: &Train, boxMove: bool, 
@@ -3013,6 +3146,7 @@ impl System {
     /// ## Parameters:
     /// - Tx The index of the train to run.
     /// - boxMove Is this a box move?
+    /// - working_industries The working industries.
     /// - printer Printer device.
     ///
     /// __Returns__ nothing.
