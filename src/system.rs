@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250910.2129>
+//  Last Modified : <250910.2146>
 //
 //  Description	
 //
@@ -2489,6 +2489,10 @@ impl System {
             });
     }
     const CARHOLE: usize = 999999;
+    fn LogCarPickup(&self,Cx: usize, train: &Train, boxMove: bool) {
+    }
+    fn TrainPrintTown(&self,train: &Train,curStop: Option<&Stop>,printer: &mut Printer) {
+    }
     /// Pick up one car.
     /// General helper to pickup a car.
     /// ## Parameters:
@@ -2553,7 +2557,7 @@ impl System {
         if self.numberCars > self.trainLongest {self.trainLongest = self.numberCars;}
         if self.trainPrintOK {
             if !didAction {
-                self.TrainPrintTown(train.Stop(Px),printer);
+                self.TrainPrintTown(train,train.Stop(Px),printer);
             }
             let (status,carTypeDescr) = self.GetCarStatus(Cx);
             printer.Put(" PICKUP "); printer.Put(self.cars[Cx].Marks());
@@ -2566,7 +2570,7 @@ impl System {
             printer.Tab(44);
             printer.Put(carTypeDescr);
             printer.Tab(74);
-            let mut trainName = String::new();
+            let trainName: String;
             if self.cars[Cx].LastTrain() == 0 {
                 trainName = String::from("-");
             } else {
