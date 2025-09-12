@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250912.1558>
+//  Last Modified : <250912.1958>
 //
 //  Description	
 //
@@ -3537,6 +3537,7 @@ impl System {
         didAction
     }
     /// Drop cars from a manifest freight.
+    /// Handle drops from a manifest freight. 
     /// ## Parameters:
     /// - train The train to drop cars from.
     /// - Px The stop number that train is at. 
@@ -3549,7 +3550,84 @@ impl System {
                           consist: &mut Vec<usize>,
                           printer: &mut Printer,
                           working_industries: &mut HashMap<usize, IndustryWorking>) -> bool {
-        false
+
+        let mut didAction: bool = false;
+        let curInd = match train.Stop(Px) {
+            None => 0,      // Should not get here.
+            Some(theStop) => match theStop {
+                Stop::StationStop(station) => { // Should never get here either
+                    let div = self.stations[&station].DivisionIndex();
+                    self.divisions[&div].Home()
+                },
+                Stop::IndustryStop(industry) => *industry,
+            },
+        };
+        let curStation = self.industries[&curInd].MyStationIndex();
+        let curDiv = self.stations[&curStation].DivisionIndex();
+
+        for Lx in 0..consist.len() {
+            if consist[Lx] != Self::CARHOLE {
+                let Cx = consist[Lx];
+                // If this stop is an industry rather than a yard, check whether it's
+                // the car's final destination. If it is, then drop it -- Notice that 
+                // a manifest does NOT CHECK for space available at the destination !
+                if self.industries[&curInd].Type() != IndustryType::Yard &&
+                    self.cars[Cx].Destination() == curInd {
+                    working_industries.get_mut(&self.cars[Cx].Location())
+                        .unwrap().RemoveCar(Cx);
+                    self.cars[Cx].SetLocation(curInd);
+                    working_industries.get_mut(&self.cars[Cx].Location())
+                        .unwrap().AddCar(Cx);
+                    didAction = self.TrainDropOneCar(Cx,train,Lx,consist,
+                                                     didAction,Px,printer,
+                                                     working_industries);
+                    continue;
+                }
+                // If this stop is a yard, check whether it is the home yard for the
+                // car's final destination. If it is, then drop it.
+                //
+                // Note that a train that carries a car to its final destination AND
+                // stops at the home yard of that destination, may deliver the car to
+                // the yard rather than the industry. 
+                //
+                // To avoid the above scenario, look ahead to see if any of the stops
+                // down the line really -IS- the final destination!
+                let curDivHome = self.divisions[&curDiv].Home();
+                let destDiv = self.stations[
+                                &self.industries[&self.cars[Cx].Destination()]
+                                    .MyStationIndex()].DivisionIndex();
+                let mut nextCarInManifest: bool = false;
+                if self.industries[&curInd].Type() == IndustryType::Yard &&
+                    curDivHome == self.divisions[&destDiv].Home() {
+                    for FuturePx in (Px+1..train.NumberOfStops()).rev() {
+                        let FutureInd = match train.Stop(FuturePx) {
+                            None => 0, // Should never get here
+                            Some(theStop) => match theStop {
+                                Stop::IndustryStop(industry) => *industry,
+                                Stop::StationStop(station) => { // Should never get here
+                                    let div = self.stations[station].DivisionIndex();
+                                    self.divisions[&div].Home()
+                                },
+                            },
+                        };
+                        if FutureInd == self.cars[Cx].Destination() {
+                            nextCarInManifest = true;
+                            break;
+                        }
+                    }
+                    if nextCarInManifest {continue;}
+                    working_industries.get_mut(&self.cars[Cx].Location())
+                        .unwrap().RemoveCar(Cx);
+                    self.cars[Cx].SetLocation(curInd);
+                    working_industries.get_mut(&self.cars[Cx].Location())
+                        .unwrap().AddCar(Cx);
+                    didAction = self.TrainDropOneCar(Cx,train,Lx,consist,
+                                                     didAction,Px,printer,
+                                                     working_industries);
+                }
+            }
+        }
+        didAction
     }
     /// Run one manifest freight train.
     /// A manifest runs from INDUSTRY/YARD to INDUSTRY/YARD
