@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250911.2032>
+//  Last Modified : <250912.1100>
 //
 //  Description	
 //
@@ -2896,7 +2896,8 @@ impl System {
                     if car.Destination() == *Ix &&
                        car.Location() == self.originYardIndex {
                         self.carDestIndex = *Ix;
-                        didAction = self.TrainCarPickupCheck(Cx,train,boxMove,consist,didAction,Px,printer,
+                        didAction = self.TrainCarPickupCheck(Cx,train,boxMove,
+                                                consist,didAction,Px,printer,
                                                 &industries[&self.carDestIndex],
                                                 working_industries);
                     }
@@ -3144,13 +3145,98 @@ impl System {
     /// - Px The stop number that train is at. 
     /// - consist The train's consist.
     /// - printer Printer device.
+    /// - working_industries Working industries
     ///
     /// __Returns__ true if cars were picked up, false otherwise.
     fn TrainLocalPickups(&mut self,train: &Train,boxMove: bool,
                         Px: usize, consist: &mut Vec<usize>,
                         printer: &mut Printer,
                         working_industries: &mut HashMap<usize, IndustryWorking>) -> bool {
-        false
+        let mut wasPickedUp: bool = false;
+        let mut didAction: bool = false;
+        let industries = Arc::clone(&self.industries);
+        let curStation: u8 = match train.Stop(Px) {
+            None => 0,
+            Some(theStop) => match theStop {
+                Stop::StationStop(station) => *station,
+                Stop::IndustryStop(ind) => industries[&ind].MyStationIndex(),
+            }
+        };
+        
+        for Ix in industries.keys() {
+            // The reason to check for OriginYard% is if this local serves a
+            // station that has both industries AND a yard. When the train  
+            // originated, it picked up cars from the yard. But subsequently
+            // it wants to pick up cars from industries at that same station,
+            // and needs to ignore cars still in the yard.
+            // --------------------------------------------------------------
+            if industries[Ix].MyStationIndex() == curStation &&
+               *Ix != self.originYardIndex {
+                for Cx in 0..self.cars.len() {
+                    if self.cars[Cx].Location() != *Ix {continue;}
+                    if (self.numberCars+1) > train.MaxCars() {return didAction;}
+                    // The usual place to take a car is to the final stop. But it
+                    // is possible that this local train can deliver the car to a
+                    // final destination -- that's what this is checking for.
+                    // if {$Ix == $CrsLoc($Cx)} {}
+                    // CHANGE 6/24/96 -- Check for an intermediate yard. We can
+                    // pick up the car here - but ONLY if the final destination
+                    // station (and hence industry) is served by this train.
+                    // --------------------------------------------------------
+                    if industries[Ix].Type() == IndustryType::Yard {
+                        for FuturePx in Px+1..train.NumberOfStops() {
+                            let carDest = self.cars[Cx].Destination();
+                            let destSta = industries[&carDest].MyStationIndex();
+                            let stopStation: u8 = match train.Stop(FuturePx) {
+                                None => 0,
+                                Some(theStop) => match theStop {
+                                    Stop::StationStop(station) => *station,
+                                    Stop::IndustryStop(ind) => industries[&ind].MyStationIndex(),
+                                }
+                            };
+                            if destSta == stopStation {
+                                wasPickedUp = 
+                                    self.TrainCarPickupCheck(Cx,train,boxMove,
+                                    consist,didAction,Px,printer,
+                                    &industries[&carDest],
+                                    working_industries);
+                                if wasPickedUp {didAction = true; break;}
+                            }
+                        }
+                        continue;
+                    }
+                    // END CHANGE 6/24/96
+                    // ------------------
+                    let mut carDest = self.trainLastLocationIndex;
+                    for FuturePx in Px+1..train.NumberOfStops() {
+                        let stopStation: u8 = match train.Stop(FuturePx) {
+                            None => 0,
+                            Some(theStop) => match theStop {
+                                Stop::StationStop(station) => *station,
+                                Stop::IndustryStop(ind) => industries[&ind].MyStationIndex(),
+                            }
+                        };
+                        if industries[&self.cars[Cx].Destination()].MyStationIndex() == stopStation {
+                            carDest = self.cars[Cx].Destination();
+                            wasPickedUp = 
+                                    self.TrainCarPickupCheck(Cx,train,boxMove,
+                                    consist,didAction,Px,printer,
+                                    &industries[&carDest],
+                                    working_industries);
+                            if wasPickedUp {didAction = true; break;}
+                            carDest = self.trainLastLocationIndex;
+                        }
+                    }
+                    if wasPickedUp {continue;}
+                    wasPickedUp = self.TrainCarPickupCheck(Cx,train,boxMove,
+                                    consist,didAction,Px,printer,
+                                    &industries[&carDest],
+                                    working_industries);
+                    didAction = didAction || wasPickedUp;
+                }
+            }
+        }        
+        didAction
     }
     /// Drop all cars from a train at the current stop (usually
     /// the last stop). 
@@ -3161,6 +3247,7 @@ impl System {
     /// - Px The stop number that train is at. 
     /// - consist The train's consist.
     /// - printer Printer device.
+    /// - working_industries Working industries
     ///
     /// __Returns__ nothing.
     fn TrainDropAllCars(&mut self,train: &Train,Px: usize,
