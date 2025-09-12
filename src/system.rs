@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250911.1954>
+//  Last Modified : <250911.2032>
 //
 //  Description	
 //
@@ -2984,16 +2984,66 @@ impl System {
     /// - train The train to drop the car from.
     /// - Lx The index of the car to drop.
     /// - consist The train's consist.
+    /// - didAction Action flag
     /// - Px The stop number that train is at. 
     /// - printer Printer device.
     /// - working_industries Working industries HashMap
     ///
     /// __Returns__ true if the car was dropped, false otherwise.
     fn TrainDropOneCar(&mut self,Cx: usize,train: &Train,Lx: usize,
-                consist: &Vec<usize>,Px: usize,
+                consist: &mut Vec<usize>,mut didAction: bool,Px: usize,
 		printer: &mut Printer,
                 working_industries: &mut HashMap<usize, IndustryWorking>) -> bool {
-        false
+        if self.trainPrintOK {
+            if !didAction {
+                self.TrainPrintTown(train,train.Stop(Px),printer);
+            }
+            let (status, carTypeDescr) = self.GetCarStatus(Cx);
+            printer.Put(" DROP "); printer.Put(self.cars[Cx].Marks());
+            printer.Tab(19);
+            printer.Put(self.cars[Cx].Number());
+            printer.Tab(28);
+            printer.Put(self.cars[Cx].Length()); printer.Put("ft");
+            printer.Tab(36);
+            printer.Put(status);
+            printer.Tab(44);
+            printer.Put(carTypeDescr);
+            printer.Tab(84);
+            printer.Put("for "); 
+            printer.Put(working_industries[&self.cars[Cx].Destination()].Name());
+            if self.deliver {
+                printer.Tab(110);
+                printer.Put("in "); 
+                let destindex = self.cars[Cx].Destination();
+                let station = working_industries[&destindex].MyStationIndex();
+                printer.Put(self.stations[&station].Name());
+            }
+            printer.PutLine("");
+        }
+        consist[Lx] = Self::CARHOLE;
+        self.numberCars -= 1;
+        self.trainLength  -= self.cars[Cx].Length();
+        if self.cars[Cx].EmptyP() {
+            self.trainEmpties -= 1;
+            self.trainTons -= self.cars[Cx].LtWt();
+        } else {
+            self.trainLoads -= 1;
+            self.trainTons -= self.cars[Cx].LdLmt();
+        }
+        didAction = true;
+        if working_industries[&self.cars[Cx].Location()].Type() == IndustryType::Yard &&
+            train.Type() == TrainType::BoxMove {return didAction;}
+        working_industries.get_mut(&self.cars[Cx].Location()).unwrap().IncrCarsNum();
+        working_industries.get_mut(&self.cars[Cx].Location()).unwrap()
+                            .AddToCarsLen(self.cars[Cx].Length());
+       let typeDescr = match self.TheCarType(self.cars[Cx].Type()) {
+           Some(val) => val.Type(),
+           None => String::from("Unknown"),
+        };
+        println!("Drop {} {} is {} dest= {}",self.cars[Cx].Marks(),
+                self.cars[Cx].Number(),typeDescr,
+                    working_industries[&self.cars[Cx].Destination()].Name());
+        didAction
     }
     ///  Drop cars from a local (box move or way freight).
     /// Drop cars destined for the current (local) industry.
@@ -3041,8 +3091,8 @@ impl System {
             working_industries
                 .get_mut(&self.cars[Cx].Location())
                 .unwrap().AddCar(Cx);
-            didAction = self.TrainDropOneCar(Cx,train,Lx,consist,Px,printer,
-                            working_industries) || didAction;
+            didAction = self.TrainDropOneCar(Cx,train,Lx,consist,didAction,Px,
+                            printer, working_industries);
         
         }
         // CHANGE 6/24/96 -- Drop at intermediate yard -- this works only as
@@ -3079,9 +3129,8 @@ impl System {
             working_industries
                 .get_mut(&self.cars[Cx].Location())
                 .unwrap().AddCar(Cx);
-            didAction = self.TrainDropOneCar(Cx,train,Lx,consist,Px,printer,
-                            working_industries) || didAction;
-        
+            didAction = self.TrainDropOneCar(Cx,train,Lx,consist,didAction,Px,
+                            printer,working_industries);
         }
         didAction
     }

@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:14:28
-//  Last Modified : <250911.1459>
+//  Last Modified : <250911.2016>
 //
 //  Description	
 //
@@ -206,8 +206,12 @@ impl IndustryWorking {
     }
     pub fn CarsNum(&self) -> u32 {self.carsNum}
     pub fn SetCarsNum(&mut self, cn: u32) {self.carsNum = cn;}
+    pub fn IncrCarsNum(&mut self) { self.carsNum += 1; }
+    pub fn DecrCarsNum(&mut self) { self.carsNum -= 1; }
     pub fn CarsLen(&self) -> u32 {self.carsLen}
     pub fn SetCarsLen(&mut self, cl: u32) {self.carsLen = cl;}    
+    pub fn AddToCarsLen(&mut self, cl: u32) {self.carsLen += cl;}
+    pub fn SubFromCarsLen(&mut self, cl: u32) {self.carsLen += cl;}
     pub fn StatsLen(&self) -> u32 {self.statsLen}
     pub fn SetStatsLen(&mut self, sl: u32) {self.statsLen = sl;}
     pub fn UsedLen(&self) -> u32 {self.usedLen}
