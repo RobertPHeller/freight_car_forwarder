@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250912.1120>
+//  Last Modified : <250912.1558>
 //
 //  Description	
 //
@@ -3323,7 +3323,6 @@ impl System {
     fn RunOneLocal(&mut self,train: &Train,boxMove: bool,
                     consist: &mut Vec<usize>,printer: &mut Printer,
                     working_industries: &mut HashMap<usize, IndustryWorking>) {
-        let mut didAction; // = false;
 
         self.wayFreight = true;
         self.deliver = true;
@@ -3354,7 +3353,8 @@ impl System {
         self.PrintTrainLoc(train,0);
        	// Originate the train, picking up all of the cars at the originating
         // yard.
-        didAction = self.TrainLocalOriginate(train,boxMove,0,consist,printer,
+        let mut didAction: bool
+             = self.TrainLocalOriginate(train,boxMove,0,consist,printer,
                                 working_industries);
         // Display our summary if anything happened
         if didAction {
@@ -3387,6 +3387,170 @@ impl System {
             self.TrainPrintFinalSummary(train,printer);
         }
     }
+    /// Pick up cars for a manifest freight train.
+    /// Walk backwards from the furthest destination -- so we move the cars
+    /// travelling farthest first ...
+    /// ## Parameters:
+    /// - train The train to pick up cars for.
+    /// - boxMove Is this a box move?
+    /// - Px The stop number that train is at. 
+    /// - consist The train's consist.
+    /// - printer Printer device.
+    /// - working_industries The working industries
+    ///
+    /// __Returns__ true if cars were picked up
+    fn TrainManifestPickups(&mut self,train: &Train,boxMove:  bool,
+                            Px: usize,consist: &mut Vec<usize>,
+                            printer: &mut Printer,
+                            working_industries: &mut HashMap<usize, IndustryWorking>) -> bool {
+        let indStop = match train.Stop(Px) {
+            None => 0,  // Should never get here
+            Some(theStop) => match theStop {
+                Stop::StationStop(station) => { // Should never get here either
+                        let div = self.stations[&station].DivisionIndex();
+                        self.divisions[&div].Home()
+                },
+                Stop::IndustryStop(industry) => *industry,
+            },
+        };
+        let mut didAction: bool = false;
+        let industries = Arc::clone(&self.industries);
+        for FuturePx in (Px..train.NumberOfStops()).rev() {
+            if (self.numberCars+1) > train.MaxCars() {return didAction;}
+            let FutureInd = match train.Stop(FuturePx) {
+                None => 0,  // Should never get here
+                Some(theStop) => match theStop {
+                    Stop::StationStop(station) => { // Should never get here either
+                            let div = self.stations[&station].DivisionIndex();
+                            self.divisions[&div].Home()
+                    },
+                    Stop::IndustryStop(industry) => *industry,
+                },
+            };
+            for Cx in 0..self.cars.len() {
+                if self.cars[Cx].Location() != indStop {continue;}
+                // If this car is at the train's current stop ...
+                let carLocDiv = self.stations[&working_industries[&self.cars[Cx].Location()].MyStationIndex()].DivisionIndex();
+                let carDestDiv = self.stations[&working_industries[&self.cars[Cx].Destination()].MyStationIndex()].DivisionIndex();
+                // If the train's future stop is ...
+                //
+                let exp1: bool;
+                let mut exp2: bool;
+                // (1) the car's final destination industry 
+                if working_industries[&FutureInd].Type() != IndustryType::Yard {
+                    exp1 = self.cars[Cx].Destination() == FutureInd;
+                    // AND if the car is not already there!
+                    exp2 = self.cars[Cx].Location() != FutureInd;
+                } else {
+                    // Future Stop is a YARD
+                    // If the train's future stop is ...
+                    // (2) the car's final destination home yard
+                    exp1 = self.divisions[&carDestDiv].Home() == FutureInd;
+                    // AND if the car is not already there!
+                    // This expression doesn't work if a car needs to move on a
+                    // manifest from one industry to another, and the industries
+                    // share a common home yard!
+                    // ---------------------------------------------------------
+                    exp2 = self.divisions[&carLocDiv].Home() != FutureInd;
+                    // HOWEVER!! Now I may have confusion if a car's FINAL dest
+                    // is an earlier stop. So check for this case. Aaargghh!
+                    // --------------------------------------------------------
+                    for SoonerPx in Px+1..FuturePx {
+                        let SoonerInd = match train.Stop(SoonerPx) {
+                            None => 0, // Should never get here.
+                            Some(theStop) => match theStop {
+                                Stop::StationStop(station) => {
+                                    let div = self.stations[&station].DivisionIndex();
+                                    self.divisions[&div].Home() },
+                                Stop::IndustryStop(industry) => *industry,
+                                }
+                        };
+                        if self.cars[Cx].Destination() == SoonerInd {
+                            exp2 = false;
+                            // Short circuit loop (save time)
+                            break;
+                        }
+                    }
+                }
+                if exp1 && exp2 {
+                    self.carDestIndex = FutureInd;
+                    didAction = 
+                        self.TrainCarPickupCheck(Cx,train,boxMove,consist,
+                                                 didAction,Px,printer,
+                                                 &industries[&self.carDestIndex],
+                                                 working_industries);
+                }
+            }
+        }
+        // The rationale here is that forwarding cars are used to fill out the
+        // train's consist.
+        //
+        // I should make this a per-train option ( i.e. whether the forwarding
+        // cars have higher priority than other cars )
+        // -------------------------------------------------------------------
+        if train.DivisionList().len() > 0 {
+            for Cx in 0..self.cars.len() {
+                if self.cars[Cx].Location() != indStop {continue;}
+                if (self.numberCars+1) > train.MaxCars() {return didAction;}
+                // If this car is at the train's current stop
+                // ------------------------------------------
+                let carDestDiv = self.stations[&working_industries[&self.cars[Cx].Destination()].MyStationIndex()].DivisionIndex();
+                // The car must not already be at the home yard for its final 
+                // destination, or at an industry that has the same home yard
+                // ----------------------------------------------------------
+                let carLocDiv = self.stations[&working_industries[&self.cars[Cx].Location()].MyStationIndex()].DivisionIndex();
+                if self.divisions[&carDestDiv].Home() ==
+                    self.divisions[&carLocDiv].Home() {continue;}
+                // The train division list can be exclusive
+                // ----------------------------------------
+                if train.DivisionList().chars().nth(0) == Some('-') {
+                    let divSyms: String = (&train.DivisionList()[1..]).to_string();
+                    let destSym = self.divisions[&carDestDiv].Symbol();
+                    if !divSyms.contains(destSym) {
+                        self.carDestIndex = self.trainLastLocationIndex;
+                        didAction = 
+                            self.TrainCarPickupCheck(Cx,train,boxMove,consist,
+                                                     didAction,Px,printer,
+                                                     &industries[&self.carDestIndex],
+                                                     working_industries);
+                        continue;
+                    }
+                } else {
+                    // The train division list can include all - *
+                    //
+                    // otherwise it specifies which divisions for forwarding
+                    // -------------------------------------------------------
+                    let destSym = self.divisions[&carDestDiv].Symbol();
+                    if train.DivisionList() == "*" ||
+                       train.DivisionList().contains(destSym) {
+                        self.carDestIndex = self.trainLastLocationIndex;
+                        didAction = 
+                            self.TrainCarPickupCheck(Cx,train,boxMove,consist,
+                                                     didAction,Px,printer,
+                                                     &industries[&self.carDestIndex],
+                                                     working_industries);
+                        continue;
+                    }
+                }
+            }
+        }
+        didAction
+    }
+    /// Drop cars from a manifest freight.
+    /// ## Parameters:
+    /// - train The train to drop cars from.
+    /// - Px The stop number that train is at. 
+    /// - consist The train's consist.
+    /// - printer Printer device.
+    /// - working_industries The working industries
+    ///
+    /// __Returns__ true if cars were dropped off
+    fn TrainManifestDrops(&mut self,train: &Train,Px: usize,
+                          consist: &mut Vec<usize>,
+                          printer: &mut Printer,
+                          working_industries: &mut HashMap<usize, IndustryWorking>) -> bool {
+        false
+    }
     /// Run one manifest freight train.
     /// A manifest runs from INDUSTRY/YARD to INDUSTRY/YARD
     ///
@@ -3401,6 +3565,42 @@ impl System {
     fn RunOneManifest(&mut self,train: &Train, boxMove: bool, 
                         consist: &mut Vec<usize>,printer: &mut Printer,
                         working_industries: &mut HashMap<usize, IndustryWorking>) {
+        self.wayFreight = false;
+        self.deliver = false;
+        // Originating location  
+        self.PrintTrainLoc(train,0);
+        self.trainLastLocationIndex = match train.Stop(train.NumberOfStops()-1) {
+            None => 0,    // Should not get here
+            Some(theStop) => match theStop {
+                Stop::StationStop(station)  // Should not get here
+                    => self.divisions[&self.stations[&station]
+                                        .DivisionIndex()].Home(),
+                Stop::IndustryStop(industry) => *industry,
+            }
+        };
+        //  Pick up cars at our origin.
+        let mut didAction: bool = 
+            self.TrainManifestPickups(train,boxMove,0,consist,printer,
+                                    working_industries);
+        if didAction {self.TrainPrintConsistSummary(train,consist,printer);}
+        for Px in 1..train.NumberOfStops()-1 {
+            // didAction = false;
+            // Print location
+            self.PrintTrainLoc(train,Px);
+            // Drop cars
+            didAction = self.TrainManifestDrops(train,Px,consist,printer,
+                        working_industries);
+            // Pickup cars.
+            didAction = self.TrainManifestPickups(train,boxMove,Px,consist,
+                                        printer,working_industries) ||
+                        didAction;
+            if didAction {self.TrainPrintConsistSummary(train,consist,printer);}
+        }
+        // didAction = false;
+        // Final location 
+        self.PrintTrainLoc(train,train.NumberOfStops()-1);
+        self.TrainDropAllCars(train,train.NumberOfStops()-1,consist,printer,working_industries);
+        if self.totalPickups > 0 {self.TrainPrintFinalSummary(train,printer);}
     }
     /// One one passenger train.
     /// Run a passenger train.  Not much happens -- passenger trains are not
