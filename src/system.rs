@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250912.1114>
+//  Last Modified : <250912.1120>
 //
 //  Description	
 //
@@ -3268,6 +3268,15 @@ impl System {
             }
         }
     }
+    /// Print a form feed.
+    /// ## Parameters:
+    /// - printer Printer device.
+    ///
+    /// __Returns__ nothing
+    fn PrintFormFeed(printer: &mut Printer) {
+        printer.SetTypeSpacing(TypeSpacing::One);
+        printer.NewPage("");
+    }
     /// Print a train's final summary.
     /// ## Parameters:
     /// - train The train to print the final summary for.
@@ -3275,6 +3284,30 @@ impl System {
     ///
     /// __Returns__ nothing.
     fn TrainPrintFinalSummary(&mut self,train: &Train,printer: &mut Printer) {
+	if !self.trainPrintOK {return;}
+
+	printer.PutLine("");
+	printer.Tab(4);
+	printer.PutLine("Train Termination Report");
+	printer.PutLine("");
+	printer.Tab(11);
+	printer.Put(" Total cars handled  = "); 
+	printer.Put(self.totalPickups); 
+	printer.PutLine("");
+	printer.Tab(11);
+	printer.Put(" Total loads handled = "); 
+	printer.Put(self.totalLoads); 
+	printer.PutLine("");
+	printer.Tab(11);
+	printer.Put(" Total gross tons    = "); 
+	printer.Put(self.totalTons); 
+	printer.PutLine("");
+	printer.Tab(11);
+	printer.Put(" Total revenue tons  = "); 
+	printer.Put(self.totalRevenueTons);
+	printer.PutLine("");
+
+	Self::PrintFormFeed(printer);
     }
     ///  One one local train.
     /// A local train runs YARD to STATION(S) to YARD
