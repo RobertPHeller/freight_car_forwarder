@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250912.1112>
+//  Last Modified : <250912.1114>
 //
 //  Description	
 //
@@ -3263,8 +3263,8 @@ impl System {
                 self.cars[Cx].SetLocation(self.trainLastLocationIndex);
                 working_industries.get_mut(&self.cars[Cx].Location()).unwrap()
                     .AddCar(Cx);
-                didAction = self.TrainDropOneCar(Cx,train,Lx,didAction,Px,
-                                            printer,working_industries);
+                didAction = self.TrainDropOneCar(Cx,train,Lx,consist,didAction,
+                                            Px,printer,working_industries);
             }
         }
     }
