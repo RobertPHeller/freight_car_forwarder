@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:13:27
-//  Last Modified : <250911.0951>
+//  Last Modified : <250913.1135>
 //
 //  Description	
 //
@@ -39,6 +39,9 @@
 //////////////////////////////////////////////////////////////////////////////
 use std::fmt;
 use std::ops::{Index, IndexMut};
+use std::sync::Arc;
+use std::collections::HashMap;
+use crate::train::*;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)] // Add traits for comparison, copy, print
 pub enum StationOrIndustry {
@@ -146,10 +149,22 @@ impl SwitchListElement {
             StationOrIndustry::None => None, 
         }
     }
-    //pub fn DropStopEQ(&self, px:usize) -> bool {
-    //    if self.pickTrain == 0 {return false;}
-    //     
-    //}
+    pub fn DropStopEQ(&self, px:usize,trains: &Arc<HashMap<usize, Train>>)
+             -> bool {
+        if !trains.contains_key(&self.pickTrain) {return false;}
+        let train = &trains[&self.pickTrain];
+        let theStopOpt = train.Stop(px);
+        if theStopOpt.is_none() {return false;}
+        let theStop = theStopOpt.unwrap();
+        match self.dropStop {
+            StationOrIndustry::None => {return false;}
+            StationOrIndustry::StationStop(dropStation) =>
+                {return *theStop == Stop::StationStop(dropStation);},
+            StationOrIndustry::IndustryStop(dropIndustry) =>
+                {return *theStop == Stop::IndustryStop(dropIndustry);},
+        };
+        //false
+    }
 }
 
 #[derive(Debug, Clone)]

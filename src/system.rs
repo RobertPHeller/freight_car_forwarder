@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250912.2043>
+//  Last Modified : <250913.1134>
 //
 //  Description	
 //
@@ -3855,7 +3855,232 @@ impl System {
     /// - printer Printer device.
     ///
     /// __Returns__ nothing.
-    pub fn PrintAllLists(&self, printer: &mut Printer) {
+    #[allow(unused_assignments)] 
+    pub fn PrintAllLists(&mut self, printer: &mut Printer) {
+        let industries = Arc::clone(&self.industries);
+        let trains = Arc::clone(&self.trains);
+
+        // Switch List Reports... 
+
+        // YARD Switch Lists
+
+        println!("{}",self.SystemName());
+
+        let mut forend;
+        // Print alphabetical list(s). 
+        if self.printAlpha {
+            forend = 1;
+            if self.printAtwice {forend = 2;}
+            for copies in 0..forend {
+                println!("Printing Yard Switchlist -- by Car");
+                for (Ix, ix) in industries.iter() {
+                    if ix.Type() == IndustryType::Yard &&
+                        ix.DivisionControlList().contains('A') {
+                        if ix.Priority() < (copies+1) {continue;}
+                        let mut pageNum = 1;
+                        let mut lineNum = -1;
+                        let mut tmpTotalCars = 0;
+                        let mut listCon = 8;
+                        println!("Cars List for {}",ix.Name());
+                        self.switchList.ResetLastIndex();
+                        for Cx in 0..self.cars.len() {
+                            let car = &self.cars[Cx];
+                            let Gx = self.switchList.NextSwitchListForCarAndIndustry(Cx,*Ix);
+                            if Gx < 0 {continue;}
+                            if lineNum < 0 {
+                                if pageNum > 1 {Self::PrintFormFeed(printer);}
+                                self.PrintSystemBanner(printer);
+                                printer.SetTypeSpacing(TypeSpacing::One);
+                                printer.Put("YARD SWITCH LIST BY CAR FOR -- ");
+                                printer.Put(ix.Name());
+                                printer.Tab(72);
+                                printer.Put("Page "); printer.Put(pageNum); printer.PutLine("");
+                                printer.SetTypeSpacing(TypeSpacing::Half);
+                                printer.Tab(4);
+                                printer.Put("Car");
+                                printer.Tab(24);
+                                printer.Put("Length");
+                                printer.Tab(34);
+                                printer.Put("Train");
+                                printer.Tab(50);
+                                printer.Put("Car Type");
+                                printer.Tab(86);
+                                printer.PutLine("Destination");
+                                printer.PutLine("");
+                                listCon = 8;
+                                pageNum += 1;
+                                lineNum = 50;
+                            }
+                            if listCon == 0 {
+                                printer.PutLine("");
+                                lineNum -= 1;
+                                listCon = 8;
+                            }
+                            let (status, carTypeDescr) = self.GetCarStatus(Cx);
+                            printer.SetTypeSpacing(TypeSpacing::Half);
+                            printer.Tab(4);
+                            printer.Put(car.Marks());
+                            printer.Tab(14);
+                            printer.Put(car.Number());
+                            printer.Tab(24);
+                            printer.Put(car.Length()); printer.Put("ft");
+                            printer.Tab(34);
+                            printer.Put(trains[&self.switchList[Gx as usize].PickTrain()].Name());
+                            printer.Tab(50);
+                            printer.Put(carTypeDescr);
+                            printer.Tab(86);
+                            printer.PutLine(&industries[&car.Destination()].Name());
+                            listCon -= 1;
+                            lineNum -= 1;
+                            tmpTotalCars += 1;
+                            // This silliness will cause a car to be printed twice, if
+                            // it is picked up twice from the same location!
+                            // Cx -= 1;
+                        }
+                        if lineNum < 0 {
+                            if pageNum > 1 {Self::PrintFormFeed(printer);}
+                            self.PrintSystemBanner(printer); 
+                            printer.SetTypeSpacing(TypeSpacing::One);
+                            printer.Put("YARD SWITCH LIST BY CAR FOR -- ");
+                            printer.Put(ix.Name());
+                            printer.Tab(72);
+                            printer.Put("Page "); printer.Put(pageNum); printer.PutLine("");
+                            printer.PutLine("");
+                            printer.PutLine("");
+                            listCon = 8;
+                            pageNum += 1;
+                            lineNum = 50;
+                        }
+                        printer.SetTypeSpacing(TypeSpacing::One);
+                        printer.Tab(10);
+                        printer.Put("Total cars for pickup ");
+                        printer.Put(tmpTotalCars);
+                        printer.PutLine("");
+                        Self::PrintFormFeed(printer);
+                    }
+                }
+            }
+        }
+        // TRAIN PICKUP Switch Lists
+        println!("{}",self.SystemName());
+        if self.printList {
+            forend = 1;
+            if self.printLtwice {forend = 2;}
+            for copies in 0..forend {
+                println!("Printing Yard Pickups -- by Train");
+                for (Ix, ix) in industries.iter() {
+                    if ix.Type() == IndustryType::Yard {
+                        if !ix.DivisionControlList().contains('P') {continue;}
+                        if ix.Priority() < (copies+1) {continue;}
+                        let mut pageNum = 1; 
+                        let mut lineRem = -1;
+                        println!("Check Train Pickups List for {}",ix.Name());
+                        for (Tx, tx) in trains.iter() {
+                            if tx.Type() == TrainType::BoxMove {continue;}
+                            if !tx.Print() {continue;}
+                            if tx.Shift() != self.shiftNumber {continue;}
+                            let mut tmpTotalCars = 0;
+                            for Gx in 0..self.switchList.PickIndex() {
+                                let exp1 = self.switchList.PickLocationEq(Gx as isize,*Ix);
+                                let exp2 = self.switchList.PickTrainEq(Gx as isize,*Tx);
+                                if exp1 && exp2 {
+                                    tmpTotalCars += 1;
+                                }
+                            }
+                            if tmpTotalCars > 0 {
+                                if lineRem < (tmpTotalCars+5) {
+                                    if pageNum > 1 {Self::PrintFormFeed(printer);}
+                                    self.PrintSystemBanner(printer);
+                                    printer.SetTypeSpacing(TypeSpacing::One);
+                                    printer.Put("YARD PICKUPS LIST BY TRAIN FOR -- ");
+                                    printer.Put(ix.Name());
+                                    printer.Tab(72);
+                                    printer.Put("Page ");
+                                    printer.Put(pageNum);
+                                    printer.PutLine("");
+                                    printer.SetTypeSpacing(TypeSpacing::Half);
+                                    lineRem = 50;
+                                    pageNum += 1;
+                                }
+                                println!("Pickup Report for Train {}",tx.Name());
+                                printer.SetTypeSpacing(TypeSpacing::One);
+                                //printer.SetTypeSpacing(TypeSpacing::Double);
+                                printer.SetTypeWeight(TypeWeight::Bold);
+                                printer.Put(tx.Name());
+                                printer.Tab(12);
+                                printer.Put("pickups = ");
+                                printer.Put(tmpTotalCars);
+                                printer.PutLine("");
+                                printer.SetTypeSpacing(TypeSpacing::Half);
+                                printer.Tab(6); printer.Put("Car");
+                                printer.Tab(26); printer.Put("Length");
+                                printer.Tab(34); printer.Put("Type");
+                                printer.Tab(64); printer.Put("Next Stop");
+                                printer.Tab(94); printer.Put("Last Train");
+                                printer.Tab(106); printer.PutLine("Destination");
+                                printer.PutLine("");
+                                printer.SetTypeSpacing(TypeSpacing::One);
+                                printer.SetTypeWeight(TypeWeight::Normal);
+                                lineRem -= 5;
+                                // Print cars in train-block order!!
+                                //----------------------------------
+                                for Px in 1..tx.NumberOfStops() {
+                                    let theStation = match tx.Stop(Px) {
+                                        None => 0, // Should not get here
+                                        Some(theStop) => match theStop {
+                                            Stop::StationStop(station) => *station,
+                                            Stop::IndustryStop(industry) => 
+                                                industries[industry].MyStationIndex(),
+                                        }
+                                    };
+                                    for Gx in 0..self.switchList.PickIndex() {
+                                        let SWE = &self.switchList[Gx];
+                                        if SWE.PickTrain() == *Tx {
+                                            if SWE.PickLocation() == *Ix {
+                                                if SWE.DropStopEQ(Px,&trains) {
+                                                    let Cx = SWE.PickCar();
+                                                    let car = &self.cars[Cx];
+                                                    let lastTrain: String;
+                                                    let TTx = SWE.LastTrain();
+                                                    if trains.contains_key(&TTx) {
+                                                        lastTrain = trains[&TTx].Name();
+                                                    } else {
+                                                        lastTrain = String::from("-");
+                                                    }
+                                                    let (status,carTypeDescr) = 
+                                                        self.GetCarStatus(Cx);
+                                                    printer.SetTypeSpacing(TypeSpacing::Half);
+                                                    printer.Tab(6); printer.Put(car.Marks());
+                                                    printer.Tab(16); printer.Put(car.Number());
+                                                    printer.Tab(26); printer.Put(car.Length());
+                                                    printer.Put("ft");
+                                                    printer.Tab(34); printer.Put(carTypeDescr);
+                                                    printer.Tab(64); printer.Put(theStation);
+                                                    printer.Tab(94); printer.Put(lastTrain);
+                                                    printer.Tab(106); printer.PutLine(&industries[&car.Destination()].Name().to_string());
+
+                                                    lineRem -= 1;
+
+                                                    tmpTotalCars -= 1;
+                                                }
+                                            }
+                                        }
+                                        if tmpTotalCars <= 0 {break;}
+                                    }
+                                    if tmpTotalCars <= 0 {break;}
+                                }
+                                printer.SetTypeSpacing(TypeSpacing::One);
+                                printer.PutLine("");
+                                lineRem -= 2;
+                                // TmpTotalCars% > 0
+                            }
+                        }
+                    }
+                }
+            }
+            printer.SetTypeSpacing(TypeSpacing::One);
+        }
+        // TRAIN DROP Switch Lists
     }
     /// Run one single train.
     ///
