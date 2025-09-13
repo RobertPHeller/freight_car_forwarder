@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250913.1548>
+//  Last Modified : <250913.1901>
 //
 //  Description	
 //
@@ -3849,7 +3849,74 @@ impl System {
             }
         }
     }
+    /// Print a dashed line.
+    /// ## Parameters:
+    /// - printer Printer device.
+    ///
+    /// __Returns__
+    fn PrintDashedLine(printer: &mut Printer) {
+        for d in 0..136 {printer.Put("-");}
+        printer.PutLine("");
+    }
+    /// Print dispatcher report sheets.
+    /// ## Parameters:
+    /// - banner System banner.
+    /// - trainType Type of train.
+    /// - printer Printer device.
+    ///
+    /// __Returns__ nothing.
     fn PrintDispatcher(&self,banner: &str,trainType: TrainType,printer: &mut Printer) {
+        self.PrintSystemBanner(printer);
+	printer.PutLine("");
+	printer.SetTypeSpacing(TypeSpacing::One);
+        //printer.SetTypeSpacing(TypeSpacing::Double);
+        printer.SetTypeWeight(TypeWeight::Bold);
+	printer.Tab(6);
+	printer.Put("DISPATCHER Report - ");printer.PutLine(banner);
+	printer.SetTypeSpacing(TypeSpacing::Half);
+	printer.PutLine("");
+	printer.PutLine("");
+	printer.Put("name");
+	printer.Tab(26);
+	printer.Put("engine");
+	printer.Tab(50);
+	printer.Put("cab");
+	printer.Tab(60);
+	printer.Put("engineer");
+	printer.Tab(82);
+	printer.Put("depart");
+	printer.Tab(102);
+	printer.Put("arrive");
+	printer.Tab(122);
+	printer.PutLine("total cars");
+
+	Self::PrintDashedLine(printer);
+
+        printer.PutLine("");
+        printer.SetTypeWeight(TypeWeight::Normal);
+        for (Tx, tx) in self.trains.iter() {
+            if tx.Shift() == self.shiftNumber {
+                if tx.Type() == trainType {
+                    let mut total = 0;
+                    for Gx in 0..self.switchList.PickIndex() {
+                        if self.switchList.PickTrainEq(Gx as isize,*Tx) {total += 1;}
+                    }
+                    if total == 0 {continue;}
+                    printer.SetTypeSpacing(TypeSpacing::One);
+                    //printer.SetTypeSpacing(TypeSpacing::Double);
+                    printer.SetTypeWeight(TypeWeight::Bold);
+                    printer.Put(tx.Name());
+                    printer.Tab(8);
+                    printer.Put("______ __ _____ __/__ __/__  ");
+                    printer.Put(total);
+                    printer.PutLine("");
+                    printer.PutLine("");
+                    printer.SetTypeWeight(TypeWeight::Normal);
+                    printer.SetTypeSpacing(TypeSpacing::One);
+                }
+            }
+        }
+        Self::PrintFormFeed(printer);        
     }
     ///  Print all of the various yard and switch lists.
     ///
