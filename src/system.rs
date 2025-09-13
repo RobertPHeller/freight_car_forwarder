@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250912.2019>
+//  Last Modified : <250912.2020>
 //
 //  Description	
 //
@@ -3811,7 +3811,7 @@ impl System {
         // Display our banner.
         println!("{}",self.SystemName());
         // First runn all of the box moves (yard locals).
-        self.RunBoxMoves(printer);
+        self.RunBoxMoves(working_industries,printer);
         let boxMove = false;
         // For every train...
         for (Tx, train) in Arc::clone(&self.trains).iter() {

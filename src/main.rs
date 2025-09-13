@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:14:13
-//  Last Modified : <250909.1618>
+//  Last Modified : <250912.2021>
 //
 //  Description	
 //
@@ -199,7 +199,7 @@ fn manage_trains_and_printing(system: &mut System, working_industries: &mut Hash
                             let mut printer: Printer = Printer::new(&printfile,
                                                                 "All boxmoves",
                                                                 PageSize::Letter);
-                            system.RunBoxMoves(&mut printer);
+                            system.RunBoxMoves(working_industries,&mut printer);
                             printfile = String::new();
                         }
                       },
