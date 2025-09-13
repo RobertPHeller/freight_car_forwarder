@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250912.1958>
+//  Last Modified : <250912.2007>
 //
 //  Description	
 //
@@ -3692,6 +3692,24 @@ impl System {
     /// __Returns__ nothing.
     fn RunOnePassenger(&mut self,train: &Train,boxMove: bool,
                         printer: &mut Printer) {
+        if !self.trainPrintOK {return;}
+	printer.PutLine("Station stop for passengers, mail, express");
+	printer.PutLine(" ");
+	for Px in 0..train.NumberOfStops() {
+	    printer.PutLine(" ");
+	    printer.Tab(8);
+            let station = match train.Stop(Px) {
+                None => 0,  // Should not get here.
+                Some(theStop) => match theStop {
+                    Stop::StationStop(station) => *station,
+                    Stop::IndustryStop(industry) => self.industries[industry].MyStationIndex(),
+                },
+            };
+	    printer.Put(self.stations[&station].Name());
+	}
+	printer.PutLine(" ");
+	printer.NewPage("");
+        
     }
     ///  Internal function to run a single train.
     /// 
