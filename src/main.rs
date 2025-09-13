@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:14:13
-//  Last Modified : <250912.2021>
+//  Last Modified : <250912.2044>
 //
 //  Description	
 //
@@ -390,7 +390,7 @@ fn main() {
         if status == 0 {break;}
         let cmd = command.chars().next().unwrap_or(' ');
         match cmd {
-            'L' | 'l' => system.ReLoadCarFile(),
+            'L' | 'l' => working_industries = system.ReLoadCarFile(),
             'S' | 's' =>
                 match system.SaveCars(&working_industries) {
                     true => println!("Cars saved."),

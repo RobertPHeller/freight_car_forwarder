@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250912.2020>
+//  Last Modified : <250912.2043>
 //
 //  Description	
 //
@@ -4194,10 +4194,11 @@ impl System {
     /// None.
     ///
     /// __Returns__ nothing.
-    pub fn ReLoadCarFile(&mut self) {
+    pub fn ReLoadCarFile(&mut self) -> HashMap<usize, IndustryWorking> {
         self.LoadCarFile().expect("Read error");
-        self.LoadStatsFile().expect("Read error");
+        let (count, working_industries) = self.LoadStatsFile().expect("Read error");
         self.RestartLoop();
+        working_industries
     }
     /// Reset industry statistics. 
     ///
