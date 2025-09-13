@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250912.2007>
+//  Last Modified : <250912.2019>
 //
 //  Description	
 //
@@ -3795,6 +3795,7 @@ impl System {
     /// operating session.							
     ///
     /// ## Parameters:
+    /// - working_industries Working industries
     /// - printer Printer device.
     ///
     /// __Returns__ nothing.
@@ -3826,12 +3827,27 @@ impl System {
     /// Run all boxmove trains.  
     /// The is another workhorse procedure.  This procedure runs all of the 
     /// box moves.
+    /// Run all 'box moves' -- these are yard locals that travel from the yard
+    /// to local industries and back.  They are run at the start and end of
+    /// every shift.
     ///
     /// ## Parameters:
+    /// - working_industries Working industries
     /// - printer Printer device.
     ///
     /// __Returns__ nothing.
-    pub fn RunBoxMoves(&mut self, printer: &mut Printer) {
+    pub fn RunBoxMoves(&mut self, 
+                        working_industries: &mut HashMap<usize, IndustryWorking>,
+                        printer: &mut Printer) {
+        let boxMove: bool = true;
+
+        // For every train...
+        for (Tx, train) in Arc::clone(&self.trains).iter() {
+            if train.Type() == TrainType::BoxMove {
+                self.InternalRunOneTrain(train,boxMove,
+                                working_industries,printer);
+            }
+        }
     }
     ///  Print all of the various yard and switch lists.
     ///
@@ -3844,13 +3860,20 @@ impl System {
     /// Run one single train.
     ///
     /// ## Parameters:
-    /// - train The train to run.
+    /// - Tx The train number to run.
     /// - boxMove Is this a box move?
+    /// - working_industries Working industries
     /// - printer Printer device.
     ///
     /// __Returns__ nothing.
-    pub fn RunOneTrain(&mut self, train: usize, boxMove: bool, 
+    pub fn RunOneTrain(&mut self, Tx: usize, boxMove: bool, 
+                        working_industries: &mut HashMap<usize, IndustryWorking>,
                         printer: &mut Printer) {
+
+        let trains = Arc::clone(&self.trains);
+
+        self.InternalRunOneTrain(&trains[&Tx],boxMove,working_industries,
+                                printer);
     }
     /// Display cars not moved. 
     ///
