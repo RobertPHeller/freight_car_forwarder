@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250914.0814>
+//  Last Modified : <250914.0839>
 //
 //  Description	
 //
@@ -4845,6 +4845,65 @@ impl System {
         }
         Self::PrintFormFeed(printer);
     }
+    /// Print car page heading
+    /// ## Parameters:
+    /// - printer Printer device
+    ///
+    /// __Returns__ nothing
+    fn PrintCarHeading(printer: &mut Printer) {
+        printer.SetTypeSpacing(TypeSpacing::Half);
+        printer.PutLine("");
+        printer.Put("RR");
+        printer.Tab(11);
+        printer.Put("NUMBER");
+        printer.Tab(20);
+        printer.Put("LEN");
+        printer.Tab(25);
+        printer.Put("CAR TYPE");
+        printer.Tab(56);
+        printer.Put("L/E");
+        printer.Tab(60);
+        printer.Put("CUR STATION");
+        printer.Tab(84);
+        printer.Put("LOCATION");
+        printer.Tab(110);
+        printer.PutLine("DEST INDUSTRY");
+        Self::PrintDashedLine(printer);
+    }
+    /// Print one car's information.
+    /// ## Parameters:
+    /// - car The car to print
+    /// - printer The printer device
+    ///
+    /// __Returns__ nothing
+    fn PrintOneCarInfo(&self,car: &Car,printer: &mut Printer) {
+        // Reporting marks
+        printer.Put(car.Marks());
+        printer.Tab(11);
+        // Car number
+        printer.Put(car.Number());
+        printer.Tab(20);
+        // Car length
+        printer.Put(car.Length());
+        printer.Tab(25);
+        // Car type
+        match self.carTypes.get(&car.Type()) {
+            Some(val) => {printer.Put(val.Type());},
+            None      => (),
+        };
+        printer.Tab(56);
+        // Loaded or empty?
+        if car.LoadedP() {printer.Put('L');}
+        else {printer.Put('E');}
+        // Where the car is
+        printer.Tab(60);
+        printer.Put(self.stations[&self.industries[&car.Location()].MyStationIndex()].Name());
+        printer.Tab(84);
+        printer.Put(self.industries[&car.Location()].Name());
+        printer.Tab(110);
+        // Where it is going.
+        printer.PutLine(&self.industries[&car.Destination()].Name());
+    }
     /// Report on all cars.
     ///
     /// ## Parameters: 
@@ -4852,6 +4911,60 @@ impl System {
     ///
     /// __Returns__ nothing.
     pub fn ReportCars(&self, printer: &mut Printer) {
+
+        // System banner
+        self.PrintSystemBanner(printer);
+
+        // Car report header
+        printer.PutLine("");
+        printer.SetTypeSpacing(TypeSpacing::One);
+        //printer.SetTypeSpacing(TypeSpacing::Double);
+        printer.SetTypeWeight(TypeWeight::Bold);
+        printer.Tab(10);
+        printer.PutLine("CARS Report");
+        printer.SetTypeSpacing(TypeSpacing::Half);
+        printer.PutLine("");
+        printer.PutLine("");
+        printer.SetTypeWeight(TypeWeight::Normal);
+
+        let mut totLines = 4;
+
+        // Car heading
+        Self::PrintCarHeading(printer);
+
+        // For every car...
+        for Cx in 0..self.cars.len() {
+	    // For non null car slots...
+	    let car: &Car = &self.cars[Cx];
+	    totLines += 1;
+	    // Check page overflow
+	    if totLines > 55 {
+                totLines = 0;
+                Self::PrintFormFeed(printer);
+                Self::PrintCarHeading(printer);
+	    }
+	    // Print this car's information
+	    self.PrintOneCarInfo(car,printer);
+        }
+        //totLines = 55;
+    
+        // Process RIP track (workbench)
+        //ncOnB = IndRipTrackConst().cars.size();
+        //if (ncOnB == 0) {
+        //    Self::PrintFormFeed(printer);
+        //    return;
+        //}
+        //for (Cx = IndRipTrackConst().cars.begin(); Cx != IndRipTrackConst().cars.end(); Cx++) {
+	//    car = *Cx;
+	//    totLines++;
+	//    if (totLines > 55) {
+        //        totLines = 0;
+        //        Self::PrintFormFeed(printer);
+        //        Self::PrintCarHeading(printer);
+	//    }
+	//    self.PrintOneCarInfo(car,printer);
+        //}
+        Self::PrintFormFeed(printer);
     }
     /// Report on cars not moved.
     ///
