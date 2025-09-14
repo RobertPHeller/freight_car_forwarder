@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250913.2020>
+//  Last Modified : <250914.0814>
 //
 //  Description	
 //
@@ -4816,6 +4816,34 @@ impl System {
     ///
     /// __Returns__ nothing.
     pub fn ReportTrains(&self, printer: &mut Printer) {
+        // System banner.
+        self.PrintSystemBanner(printer);
+
+        // Heading
+        printer.PutLine("");
+        printer.SetTypeSpacing(TypeSpacing::One);
+        //printer.SetTypeSpacing(TypeSpacing::Double);
+        printer.SetTypeWeight(TypeWeight::Bold);
+        printer.Tab(10);
+        printer.PutLine("TRAINS Report");
+        printer.SetTypeSpacing(TypeSpacing::Half);
+        printer.PutLine("");
+        printer.PutLine("");
+        printer.SetTypeWeight(TypeWeight::Normal);
+    
+        Self::PrintDashedLine(printer);
+
+        for (Tx, tx) in self.trains.iter() {
+            println!("{}",tx.Name());
+            printer.PutLine("");
+            printer.SetTypeSpacing(TypeSpacing::One);
+            //printer.SetTypeSpacing(TypeSpacing::Double);
+            printer.SetTypeWeight(TypeWeight::Bold);
+            printer.PutLine(&tx.Name());
+            printer.SetTypeWeight(TypeWeight::Normal);
+            self.PrintTrainOrders(tx,printer);	  
+        }
+        Self::PrintFormFeed(printer);
     }
     /// Report on all cars.
     ///
