@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:14:28
-//  Last Modified : <250911.2016>
+//  Last Modified : <250914.1249>
 //
 //  Description	
 //
@@ -37,6 +37,8 @@
 // 
 //
 //////////////////////////////////////////////////////////////////////////////
+
+use crate::system::System;
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum IndustryType {
@@ -121,6 +123,15 @@ impl IndustryFile {
               assignLen: assignLen, priority: priority, plate: plate,
               weightclass: weightclass, maxCarLen: maxCarLen, reload: reload,
               indtype: IndustryType::new(indtype), hazard: hazard}
+    }
+    pub fn RipTrack() -> Self {
+        Self {station_index: System::WORKBENCH_CITY, mirror: 0,
+              name: String::from("REPAIR YARD"), loadTypes: String::from(""), 
+              emptyTypes: String::from(""), 
+              divisionControlList: String::from(""), trackLen: 0, 
+              assignLen: 0, priority: 9, plate: 0, weightclass: 0, 
+              maxCarLen: 999, reload: false, indtype: IndustryType::new('I'),
+              hazard: ' '}
     }
     pub fn Type(&self) -> IndustryType {
         self.indtype

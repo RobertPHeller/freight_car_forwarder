@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250914.0932>
+//  Last Modified : <250914.1314>
 //
 //  Description	
 //
@@ -247,9 +247,9 @@ impl System {
     /// Scrap yard index (cars marked as scrap).
     const IND_SCRAP_YARD: usize = 999;
     /// RIP track (aka workbench) cars taken out of service for repairs.
-    const IND_RIP_TRACK: usize = 0;
+    pub const IND_RIP_TRACK: usize = 0;
     /// WORKBENCH "city"
-    const WORKBENCH_CITY: u8 = 1;
+    pub const WORKBENCH_CITY: u8 = 1;
     /// WORKBENCH "division"
     const WORKBENCH_DIVISION: u8 = 0;
     /// Return the system name.  This is read from the system file.
@@ -1104,6 +1104,11 @@ impl System {
 
             count = count + 1;
         }
+        if !industries.contains_key(&Self::IND_RIP_TRACK) {
+            industries.insert(Self::IND_RIP_TRACK,
+                IndustryFile::RipTrack());
+        }
+
         Ok(count)
     }
     /// Strip quotation marks from a string.
@@ -1558,6 +1563,13 @@ impl System {
             industry.SetCarsNum(cn);
             industry.SetCarsLen(cl);
             industry.SetStatsLen(sl);
+        }
+        for Ix in self.industries.keys() {
+            if industries.contains_key(Ix) {continue;}
+            industries.insert(*Ix, IndustryWorking::new(
+                                        self.industries[Ix].MyStationIndex(),
+                                        self.industries[Ix].Name(),
+                                        self.industries[Ix].Type()));
         }
         for (Ix, industry)  in industries.iter_mut() {
             if self.statsPeriod == 1 {
@@ -5002,9 +5014,45 @@ impl System {
     ///
     /// ## Parameters: 
     /// - printer Printer device.
+    /// - working_industries Working industries.
     ///
     /// __Returns__ nothing.
-    pub fn ReportCarsNotMoved(&self, printer: &mut Printer) {
+    pub fn ReportCarsNotMoved(&self, printer: &mut Printer, 
+                      working_industries: &HashMap<usize, IndustryWorking>) {
+        self.PrintSystemBanner(printer);
+
+        printer.PutLine("");
+        printer.SetTypeSpacing(TypeSpacing::One);
+        //printer.SetTypeSpacing(TypeSpacing::Double);
+        printer.SetTypeWeight(TypeWeight::Bold);
+        printer.Tab(10);
+        printer.PutLine("CARS NOT MOVED Report");
+        printer.SetTypeSpacing(TypeSpacing::Half);
+        printer.PutLine("");
+        printer.PutLine("");
+        printer.SetTypeWeight(TypeWeight::Normal);
+    
+        let mut totLines = 4;
+    
+        Self::PrintCarHeading(printer);
+    
+        for (Ix, ix) in working_industries.iter() {
+            for Cx in 0..ix.NumberOfCars() {
+                let CxOpt = ix.TheCar(Cx);
+                if CxOpt.is_none() {continue;}
+                let car: &Car  = &self.cars[CxOpt.unwrap()];
+                if car.MovementsThisSession() == 0 {
+                    totLines += 1;
+                    if totLines > 55 {
+                        totLines = 0;
+                        Self::PrintFormFeed(printer);
+                        Self::PrintCarHeading(printer);
+                    }
+                    self.PrintOneCarInfo(car,printer);
+	        }
+            }
+        }
+        Self::PrintFormFeed(printer);
     }
     /// Report on car types.
     ///
