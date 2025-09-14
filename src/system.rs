@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250914.1314>
+//  Last Modified : <250914.1522>
 //
 //  Description	
 //
@@ -1696,7 +1696,8 @@ impl System {
               statsFile: statsfile.to_str().unwrap().to_string(), 
               divisions: HashMap::new(), maxDivision: 0,
               stations: HashMap::new(), maxStation: 0,
-              trains: Arc::new(HashMap::new()), maxTrain: 0, trainIndex: HashMap::new(), 
+              trains: Arc::new(HashMap::new()), maxTrain: 0, 
+              trainIndex: HashMap::new(), 
               industries: Arc::new(HashMap::new()), maxIndustry: 0,
               carTypesOrder: Vec::new(), carTypes: HashMap::new(), 
               carGroups: Vec::new(), owners: HashMap::new(),
@@ -5054,6 +5055,245 @@ impl System {
         }
         Self::PrintFormFeed(printer);
     }
+    /// Print car types header 
+    /// ## Parameters: 
+    /// - printer The printer device.
+    ///
+    /// __Returns__ nothing.
+    fn PrintCarTypesHeader(&self, printer: &mut Printer) {
+        self.PrintSystemBanner(printer);
+        printer.PutLine("");
+        printer.SetTypeSpacing(TypeSpacing::One);
+        //printer.SetTypeSpacing(TypeSpacing::Double);
+        printer.SetTypeWeight(TypeWeight::Bold);
+        printer.Tab(12);
+        printer.PutLine("CAR TYPE Report");
+        printer.SetTypeSpacing(TypeSpacing::Half);
+        printer.PutLine("");
+        printer.PutLine("");
+        printer.SetTypeWeight(TypeWeight::Normal);
+    }
+    /// Print car type summary header
+    /// ## Parameters: 
+    /// - printer Printer device 
+    ///
+    /// __Returns__ nothing
+    fn PrintCarTypesSummaryHeader(&self, printer: &mut Printer) {
+        self.PrintCarTypesHeader(printer);
+
+        printer.Tab(40);
+        printer.Put("Total");
+        printer.Tab(50);
+        printer.Put("Shippers --------");
+        printer.Tab(70);
+        printer.Put("Receivers -------");
+        printer.Tab(90);
+        printer.Put("Moves");
+        printer.Tab(102);
+        printer.PutLine("Car Type");
+
+        printer.Tab(6);
+        printer.Put("Type");
+        printer.Tab(40);
+        printer.Put("of Type");
+        printer.Tab(50);
+        printer.Put("Online");
+        printer.Tab(60);
+        printer.Put("Offline");
+        printer.Tab(70);
+        printer.Put("Online");
+        printer.Tab(80);
+        printer.Put("Offline");
+        printer.Tab(90);
+        printer.Put("Per Session");
+        printer.Tab(102);
+        printer.PutLine("Comments");
+
+        Self::PrintDashedLine(printer);
+    }
+    /// Print one car type.
+    /// ## Parameters:
+    /// - totalsOnly Print only the totals?
+    /// - carType The car type character.
+    /// - ct The car type object.
+    /// - OnLineShippersOfType Updated online shippers of this car type.
+    /// - OffLineShippersOfType Updated offline shippers of this car type.
+    /// - OnLineReceiversOfType Updated online receivers of this car type.
+    /// - OffLineReceiversOfType Updated offline receivers of this car type.
+    /// - allTotalMoves Update total moves.
+    /// - allTotalAssigns Updated total assignments.
+    /// - printer Printer device.
+    ///
+    /// __Returns__ nothing.
+    fn PrintOneCarType(&self,totalsOnly: bool,carType: char,
+                ct: &CarType, OnLineShippersOfType: i32,
+                OffLineShippersOfType: i32, OnLineReceiversOfType: i32,
+                OffLineReceiversOfType: i32, allTotalMoves: &mut i32,
+                allTotalAssigns: &mut i32,printer: &mut Printer) {
+
+        if carType == ',' {return;}
+
+       	let mut carsOfType = 0;
+	let mut totalMoves = 0;
+	let mut totalAssigns = 0;
+
+        for Cx in 0..self.cars.len() {
+            let car: &Car = &self.cars[Cx];
+            if car.Type() != carType {continue;}
+            carsOfType += 1;
+            totalMoves += car.Trips();
+            *allTotalMoves += car.Trips() as i32;
+            totalAssigns += car.Assignments();
+            *allTotalAssigns += car.Assignments() as i32;
+            let (status,carTypeDescr) = self.GetCarStatus(Cx);
+            if !totalsOnly {
+                printer.Tab(8);
+                printer.Put(car.Marks());
+                printer.Tab(20);
+                printer.Put(car.Number());
+                printer.Tab(30);
+                printer.Put(car.Length()); printer.Put("ft");
+                printer.Tab(40);
+                printer.Put(status);
+                printer.Tab(50);
+                printer.Put("at "); printer.Put(self.industries[&car.Location()].Name());
+                printer.Tab(78);
+                printer.Put("dest "); printer.Put(self.industries[&car.Destination()].Name());
+                printer.Tab(110);
+                printer.Put(car.Trips());
+                printer.Tab(120);
+                printer.Put(car.Assignments()); printer.PutLine("");
+            }
+        }
+        if carsOfType > 0 && !totalsOnly {printer.PutLine("");}
+        if !totalsOnly {
+            printer.Tab(8);
+            printer.Put("Cars of type: ");
+            printer.Tab(30);
+            printer.Put(ct.Type());
+            printer.Tab(64);
+            printer.Put(" = "); printer.Put(carsOfType); printer.PutLine("");
+        } else {
+            let mut tripsPerSession: f64;
+            if carsOfType > 0 {
+                tripsPerSession = (totalMoves as f64) / (self.sessionNumber as f64);
+                tripsPerSession /= carsOfType as f64;
+            } else {
+                tripsPerSession = 0.0;
+            }
+            printer.Tab(40);
+            printer.Put(carsOfType);
+            printer.Tab(50);
+            printer.Put(OnLineShippersOfType);
+            printer.Tab(60);
+            printer.Put(OffLineShippersOfType);
+            printer.Tab(70);
+            printer.Put(OnLineReceiversOfType);
+            printer.Tab(80);
+            printer.Put(OffLineReceiversOfType);
+            printer.Tab(90);
+            let buffer = format!("{:5.2}",tripsPerSession);
+            printer.Put(buffer);
+            printer.Tab(102);
+            printer.PutLine(&ct.Comment()[0..34]);
+        }
+    }
+    /// Print all car types
+    /// ## Parameters:
+    /// - totalsOnly Totals only?
+    /// - printer Printer device
+    ///
+    /// __Returns__ nothing
+    fn PrintAllCarTypes(&self,totalsOnly: bool,printer: &mut Printer) {
+        let mut allTotalMoves = 0;
+        let mut allTotalAssigns = 0;
+        let mut typeTotal = 0;
+        for carGroup in self.carGroups.iter() {
+            let groupFound = false;
+            let groupCode = carGroup.Group();
+            if groupCode != '\0' {
+                for cto in self.carTypesOrder.iter() {
+                    if *cto == '\0' || *cto == ',' {continue;}
+                    let CtOpt = self.carTypes.get(cto);
+                    if CtOpt.is_none() {continue;}
+                    let carType = CtOpt.unwrap();
+                    if carType.Group() != groupCode {continue;}
+                    typeTotal += 1;
+                    if typeTotal == 52 && totalsOnly {
+                        Self::PrintFormFeed(printer);
+                        self.PrintCarTypesSummaryHeader(printer);
+                    }
+                    if !totalsOnly {printer.PutLine("");}
+                    printer.Put(*cto);
+                    printer.Tab(6);
+                    printer.Put(carType.Type());
+                    printer.Tab(40);
+                    let mut OnLineShippersOfType = 0;
+                    let mut OffLineShippersOfType = 0;
+                    let mut OnLineReceiversOfType = 0;
+                    let mut OffLineReceiversOfType = 0;
+
+                    if !totalsOnly {
+                        printer.Put(carType.Comment());
+                        printer.Tab(110);
+                        printer.Put("Moves");
+                        printer.Tab(120);
+                        printer.PutLine("Assigns");
+                        printer.PutLine("");
+                    }
+                    if totalsOnly {
+                        
+                        for (Ix, ix) in self.industries.iter() {
+                            let typeSymbol = cto;
+                            if ix.LoadsAccepted().contains(*typeSymbol) {
+                                if ix.Type() == IndustryType::Industry {
+                                    OnLineReceiversOfType += 1;
+                                }
+                                if ix.Type() == IndustryType::Offline {
+                                    OffLineReceiversOfType += 1;
+                                }
+                            }
+                            if ix.EmptiesAccepted().contains(*typeSymbol) {
+                                if ix.Type() == IndustryType::Industry {
+                                    OnLineShippersOfType += 1;
+                                }
+                                if ix.Type() == IndustryType::Offline {
+                                    OffLineShippersOfType += 1;
+                                }
+                            }
+                        }
+                    }
+                    self.PrintOneCarType(totalsOnly,*cto,carType,
+                              OnLineShippersOfType,
+                              OffLineShippersOfType,
+                              OnLineReceiversOfType,
+                              OffLineReceiversOfType,
+                              &mut allTotalMoves,
+                              &mut allTotalAssigns,printer);
+                }
+            }
+        }
+        printer.PutLine("");
+
+        Self::PrintDashedLine(printer);
+
+        printer.PutLine("");
+
+        printer.Tab(10);
+        printer.Put("Total cars = "); printer.Put(self.cars.len());
+
+        let mut tripsPerSession: f64 = (allTotalMoves as f64) / (self.sessionNumber as f64);
+
+        printer.Tab(40);
+        printer.Put("Total Moces/Session = "); printer.Put(tripsPerSession);
+        printer.Tab(80);
+
+        tripsPerSession = tripsPerSession / (self.cars.len() as f64);
+        let buffer = format!("Avg Moves/Session = {:5.2}",tripsPerSession);
+        printer.PutLine(&buffer);
+
+        Self::PrintFormFeed(printer);
+    }
     /// Report on car types.
     ///
     /// ## Parameters: 
@@ -5065,6 +5305,43 @@ impl System {
     /// __Returns__ nothing.
     pub fn ReportCarTypes(&self, rtype: CarTypeReport, carType: char, 
                             printer: &mut Printer) {
+        match rtype {
+            CarTypeReport::All => {
+                self.PrintCarTypesHeader(printer);
+                Self::PrintDashedLine(printer);
+                self.PrintAllCarTypes(false,printer);
+            },
+            CarTypeReport::Type => {
+                let CtOpt = self.TheCarType(carType);
+                if CtOpt.is_none() {return;}
+                let ct: &CarType = CtOpt.unwrap();
+                self.PrintCarTypesHeader(printer);
+                Self::PrintDashedLine(printer);
+                printer.PutLine("");
+                printer.Put(carType);
+                printer.Tab(6);
+                printer.Put(ct.Type());
+                printer.Tab(40);
+                printer.Put(ct.Comment());
+                printer.Tab(110);
+                printer.Put("Moves");
+                printer.Tab(120);
+                printer.PutLine("Assigns");
+                printer.PutLine("");
+
+                let mut allTotalMoves = 0;
+                let mut allTotalAssigns = 0;
+                self.PrintOneCarType(false,carType,ct,0,0,0,0,
+                                     &mut allTotalMoves,
+                                     &mut allTotalAssigns,printer);
+
+                Self::PrintFormFeed(printer);
+            }
+            CarTypeReport::Summary => {
+                self.PrintCarTypesSummaryHeader(printer);
+                self.PrintAllCarTypes(true,printer);
+            },
+        };
     }
     /// Car location report.
     ///
