@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250913.1901>
+//  Last Modified : <250913.2020>
 //
 //  Description	
 //
@@ -4651,6 +4651,96 @@ impl System {
             Ix.SetStatsLen(0);
         }
     }
+    /// Print the industry header.
+    /// ## Parameters:
+    /// - printer Printer device.
+    ///
+    /// __Returns__ nothing
+    fn PrintIndustryHeader(printer: &mut Printer) {
+        printer.Put("#");
+        printer.Tab(5);
+        printer.Put("City");
+        printer.Tab(37);
+        printer.Put("Industry");
+        printer.Tab(66);
+        printer.Put("Trk Len");
+        printer.Tab(76);
+        printer.Put("Cur Len");
+        printer.Tab(86);
+        printer.Put("Asn Len");
+        printer.Tab(96);
+        printer.Put("Cars Now");
+        printer.Tab(106);
+        printer.Put("Cars Dst");
+        printer.Tab(116);
+        printer.Put("Lds Avail");
+        printer.Tab(128);
+        printer.PutLine("Emp Avail");
+    }
+    /// Print one industry.
+    /// ## Parameters:
+    /// - Ix The industry index.
+    /// - ixF The industry (File).
+    /// - lenInDiv The updated division length.
+    /// - carsInDiv The updated cars in division count.
+    /// - carsToDiv The updates cars headed to division count.
+    /// - printer Printer device.
+    ///
+    /// __Returns__ nothing
+    fn PrintOneIndustry(&self,Ix: usize,ixF: &IndustryFile,
+                        lenInDiv: &mut u32, carsInDiv: &mut u32,
+                        carsToDiv: &mut u32, printer: &mut Printer) {
+        let message = format!("  Industry: {}",ixF.Name());
+
+        let mut carsTo = 0;
+        let mut carsIn = 0;
+        let mut indLen = 0;
+
+        let mut ldsAvail = 0;
+        let mut emtAvail = 0;
+
+        for Cx in 0..self.cars.len() {
+            let car = &self.cars[Cx];
+            // Count the cars headed to this industry. 
+            if Ix == car.Destination() {carsTo += 1;}
+            // Count the cars already here.
+            if Ix == car.Location() {
+                carsIn += 1;
+                indLen += car.Length();
+            }
+            // Count how many loads and empties are available for this industry.
+            if ixF.LoadsAccepted().contains(car.Type()) {ldsAvail += 1;}
+            if ixF.EmptiesAccepted().contains(car.Type()) {emtAvail += 1;}
+        }
+        // Print this industry's information.
+        printer.Put(Ix);
+        printer.Tab(5);
+        printer.Put(ixF.MyStationIndex());
+        printer.Tab(9);
+        printer.Put(self.stations[&ixF.MyStationIndex()].Name());
+        printer.Tab(37);
+        printer.Put(ixF.Name());
+        printer.Tab(66);
+        printer.Put(ixF.TrackLen());
+        printer.Tab(76);
+        printer.Put(ixF.AssignLen());
+        printer.Tab(86);
+        printer.Put(indLen);
+        printer.Tab(96);
+        printer.Put(carsIn);
+        printer.Tab(106);
+        printer.Put(carsTo);
+        printer.Tab(116);
+        printer.Put(ldsAvail);
+        printer.Tab(128);
+        printer.Put(emtAvail);
+        printer.PutLine("");
+
+        // Accumulate division totals.
+        *carsToDiv += carsTo;
+        *carsInDiv += carsIn;
+        *lenInDiv  += indLen;
+    }    
     /// Report on all industries. 
     ///
     /// ## Parameters: 
@@ -4658,6 +4748,66 @@ impl System {
     ///
     /// __Returns__ nothing.
     pub fn ReportIndustries(&self, printer: &mut Printer) {
+        // Print system banner.
+        self.PrintSystemBanner(printer);
+        // Print report header
+        printer.PutLine("");
+        printer.SetTypeSpacing(TypeSpacing::One);
+        //printer.SetTypeSpacing(TypeSpacing::Double);
+        printer.SetTypeWeight(TypeWeight::Bold);
+        printer.Tab(10);
+        printer.PutLine("INDUSTRY Report");
+        printer.SetTypeSpacing(TypeSpacing::Half);
+        printer.PutLine("");
+        printer.PutLine("");
+        printer.SetTypeWeight(TypeWeight::Normal);
+
+        // Print Industry header
+        Self::PrintIndustryHeader(printer);
+
+        // Print a dashed line
+        Self::PrintDashedLine(printer);
+        // For each division...
+        for (Dx, dx) in &self.divisions {
+            // Get division name and log it. 
+            let divisionName = dx.Name();
+            if divisionName.len() == 0 {continue;}
+            println!("Division: {}",divisionName);
+            // Zero division totals. 
+            let mut carsToDiv: u32 = 0;
+            let mut carsInDiv: u32 = 0;
+            let mut lenInDiv: u32  = 0; 
+            // For ever station in this division... 
+            for (Sx, sx) in self.stations.iter() {
+                if sx.DivisionIndex() != *Dx {continue;}
+                // For every industry at this station... 
+                for (Ix, ix) in self.industries.iter() {
+                    if ix.MyStationIndex() != *Sx {continue;}
+                    // Print this industry's information.
+                    self.PrintOneIndustry(*Ix,ix,
+                                          &mut lenInDiv,
+                                          &mut carsInDiv,
+                                          &mut carsToDiv,printer);
+                }
+            }
+            // Print division summary.
+            printer.PutLine("");
+            let message = format!("Totals for <{}> {}",dx.Symbol(),dx.Name());
+            printer.Put(message);
+            printer.Tab(44);
+            printer.Put("=============================>");
+            printer.Tab(76);
+            printer.Put(lenInDiv);
+            printer.Tab(96);
+            printer.Put(carsInDiv);
+            printer.Tab(106);
+            printer.Put(carsToDiv);
+            printer.PutLine("");
+            printer.PutLine("");
+
+        }
+        // Done.
+        Self::PrintFormFeed(printer);
     }
     /// Report on all trains.
     ///
