@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250914.0839>
+//  Last Modified : <250914.0932>
 //
 //  Description	
 //
@@ -59,11 +59,6 @@ use std::fs;
 use rand::prelude::*;
 use std::sync::Arc;
 use date_time::date_tuple::Date;
-
-/// Scrap yard index (cars marked as scrap).
-const IND_SCRAP_YARD: usize = 999;
-/// RIP track (aka workbench) cars taken out of service for repairs.
-const IND_RIP_TRACK: usize = 1;
 
 /// This is the main Freight Car Forwarder struct.
 ///
@@ -249,6 +244,14 @@ pub enum CarLocationType {
 }
 
 impl System {
+    /// Scrap yard index (cars marked as scrap).
+    const IND_SCRAP_YARD: usize = 999;
+    /// RIP track (aka workbench) cars taken out of service for repairs.
+    const IND_RIP_TRACK: usize = 0;
+    /// WORKBENCH "city"
+    const WORKBENCH_CITY: u8 = 1;
+    /// WORKBENCH "division"
+    const WORKBENCH_DIVISION: u8 = 0;
     /// Return the system name.  This is read from the system file.
     ///
     /// ## Parameters:
@@ -1564,6 +1567,20 @@ impl System {
             }
             industry.IncrementStatsLen(self.industries[Ix].TrackLen());
         }
+        for Cx in 0..self.cars.len() {
+            let newCar: &mut Car = &mut self.cars[Cx];
+            newCar.SetNotDone();
+            newCar.SetLastTrain(0);
+            if self.sessionNumber == 1 && self.shiftNumber == 1 {
+                newCar.ClearTrips();
+                newCar.ClearAssignments();
+            }
+            if newCar.Destination() == 0 {
+                newCar.SetDestination(newCar.Location());
+            }
+            industries.get_mut(&newCar.Location()).unwrap()
+                .AddCar(Cx);
+        }
         Ok((Gx,industries))
     }
     /// Restart loop numbers.
@@ -1697,10 +1714,19 @@ impl System {
 
 	// Read in divisions
         this.ReadDivisions(&mut reader).expect("Read error");
+        if !this.divisions.contains_key(&Self::WORKBENCH_DIVISION) {
+            this.divisions.insert(Self::WORKBENCH_DIVISION,
+                Division::new(String::from("Workbench"),1,' ',' '));
+        }
         //println!("Read divisions");
 	// Read in stations.
         this.ReadStations(&mut reader).expect("Read error");
         //println!("Read Stations");
+        if !this.stations.contains_key(&Self::WORKBENCH_CITY) {
+            this.stations.insert(Self::WORKBENCH_CITY,
+                Station::new(String::from("Workbench"),
+                             String::from("Workbench"),0));
+        }
 	// Read industries file
         this.ReadIndustries(&industriesfile).expect("Read error");
         //println!("Read Industries");
@@ -1827,7 +1853,7 @@ impl System {
                 } else {
                     let car = &self.cars[Cx]; Cx += 1;
                     if car.Length() > 0 {
-                        if car.Destination() != IND_SCRAP_YARD {
+                        if car.Destination() != Self::IND_SCRAP_YARD {
                             self.WriteOneCarToDisk(&car,&mut junkfilestream)
                                 .expect("Error writing car");
                         }
@@ -1837,7 +1863,7 @@ impl System {
             while Cx < self.cars.len() {
                 let car = &self.cars[Cx]; Cx += 1;
                 if car.Length() > 0 {
-                    if car.Destination() != IND_SCRAP_YARD {
+                    if car.Destination() != Self::IND_SCRAP_YARD {
                         self.WriteOneCarToDisk(&car,&mut junkfilestream)
                             .expect("Error writing car");
                      }
@@ -2008,10 +2034,10 @@ impl System {
             for Cx in 0..self.cars.len() { // 2
                 //let car: &mut Car = self.cars.get_mut(Cx).unwrap();
                 //eprintln!("*** Outer Loop: car {} has Destination {}",self.cars[Cx],self.cars[Cx].Destination());
-                if self.cars[Cx].Destination() == IND_SCRAP_YARD {continue;}
+                if self.cars[Cx].Destination() == Self::IND_SCRAP_YARD {continue;}
                 //eprintln!("*** Outer Loop: car {} has Location {}",self.cars[Cx],self.cars[Cx].Location());
-                if self.cars[Cx].Location() == IND_RIP_TRACK {continue;}
-                if self.cars[Cx].Destination() == IND_RIP_TRACK { // 3
+                if self.cars[Cx].Location() == Self::IND_RIP_TRACK {continue;}
+                if self.cars[Cx].Destination() == Self::IND_RIP_TRACK { // 3
                     let newlocation = self.cars[Cx].Location();
                     self.cars[Cx].SetDestination(newlocation);
                 } // 3
@@ -2022,7 +2048,7 @@ impl System {
                 } // 3
                 if self.cars[Cx].Destination() == self.cars[Cx].Location() { // 3
                     // This marks the car for assignment
-                    self.cars[Cx].SetDestination(IND_RIP_TRACK);
+                    self.cars[Cx].SetDestination(Self::IND_RIP_TRACK);
                     // --------------------------------------------------------------
                     // If this is a MIRROR industry, the car moves to a new location,
                     // but it does not change its status - if it was loaded then the
@@ -2030,7 +2056,7 @@ impl System {
                     // --------------------------------------------------------------
                     let mut CarWasMirrored: bool = false;
                     let mut LocIndIx = self.cars[Cx].Location();
-                    if LocIndIx != IND_RIP_TRACK && industries[&LocIndIx]
+                    if LocIndIx != Self::IND_RIP_TRACK && industries[&LocIndIx]
                                                         .MyMirrorIndex() != 0 { // 4
                         if self.cars[Cx].OkToMirrorP() { // 5
                             let MirrorInd = industries[&LocIndIx]
@@ -2103,7 +2129,7 @@ impl System {
 	        // ========================================================================
 	        // If the car has a destination then add this car's
                 // length to the destination's assigned track space
-                if self.cars[Cx].Destination() != IND_RIP_TRACK { // 3
+                if self.cars[Cx].Destination() != Self::IND_RIP_TRACK { // 3
                     let dest = self.cars[Cx].Destination();
                     let carlen = self.cars[Cx].Length();
                     working_industries
@@ -2131,8 +2157,8 @@ impl System {
                 self.cars[Cx].SetLastTrain(0);
                 //eprintln!("*** in assignment loop: car {} has destination {}",self.cars[Cx],self.cars[Cx].Destination());
                 //eprintln!("*** in assignment loop: car {} has location {}",self.cars[Cx],self.cars[Cx].Location());
-                if self.cars[Cx].Destination() != IND_RIP_TRACK {continue;}
-                if self.cars[Cx].Location() == IND_RIP_TRACK {continue;}
+                if self.cars[Cx].Destination() != Self::IND_RIP_TRACK {continue;}
+                if self.cars[Cx].Location() == Self::IND_RIP_TRACK {continue;}
                 CountCars += 1;
                 println!("Processing car {}",self.cars[Cx]);
                 println!("Cars inspected {}",CountCars);
@@ -4324,8 +4350,8 @@ impl System {
         for Cx in 0..self.cars.len() {
             let car = &self.cars[Cx];
             if car.MovementsThisSession() == 0 && !car.IsDoneP() &&
-            car.Location() != IND_SCRAP_YARD && 
-            car.Location() != IND_RIP_TRACK {
+            car.Location() != Self::IND_SCRAP_YARD && 
+            car.Location() != Self::IND_RIP_TRACK {
                 if Total == 0 {
                     println!("{}",self.SystemName());
                     println!("{:<20}{:<18}{:<29} {}","Cars Not Moved","Car type",
@@ -4384,8 +4410,8 @@ impl System {
                           String::from("")];
         for Cx in 0..self.cars.len() {
             let car: &Car = &self.cars[Cx];
-            if car.Location() == IND_SCRAP_YARD ||
-               car.Location() == IND_RIP_TRACK {continue;}
+            if car.Location() == Self::IND_SCRAP_YARD ||
+               car.Location() == Self::IND_RIP_TRACK {continue;}
             if !showAll {
                 if car.MovementsThisSession() == 0 {continue;}
             }
@@ -4908,9 +4934,11 @@ impl System {
     ///
     /// ## Parameters: 
     /// - printer Printer device.
+    /// - working_industries Working industries.
     ///
     /// __Returns__ nothing.
-    pub fn ReportCars(&self, printer: &mut Printer) {
+    pub fn ReportCars(&self, printer: &mut Printer, 
+                      working_industries: &HashMap<usize, IndustryWorking>) {
 
         // System banner
         self.PrintSystemBanner(printer);
@@ -4936,6 +4964,7 @@ impl System {
         for Cx in 0..self.cars.len() {
 	    // For non null car slots...
 	    let car: &Car = &self.cars[Cx];
+            if car.Location() == Self::IND_RIP_TRACK {continue;}
 	    totLines += 1;
 	    // Check page overflow
 	    if totLines > 55 {
@@ -4946,24 +4975,27 @@ impl System {
 	    // Print this car's information
 	    self.PrintOneCarInfo(car,printer);
         }
-        //totLines = 55;
+        totLines = 55;
     
         // Process RIP track (workbench)
-        //ncOnB = IndRipTrackConst().cars.size();
-        //if (ncOnB == 0) {
-        //    Self::PrintFormFeed(printer);
-        //    return;
-        //}
-        //for (Cx = IndRipTrackConst().cars.begin(); Cx != IndRipTrackConst().cars.end(); Cx++) {
-	//    car = *Cx;
-	//    totLines++;
-	//    if (totLines > 55) {
-        //        totLines = 0;
-        //        Self::PrintFormFeed(printer);
-        //        Self::PrintCarHeading(printer);
-	//    }
-	//    self.PrintOneCarInfo(car,printer);
-        //}
+        let ncOnB = working_industries[&Self::IND_RIP_TRACK].NumberOfCars();
+        if ncOnB == 0 {
+            Self::PrintFormFeed(printer);
+            return;
+        }
+        for CCx in 0..ncOnB {
+            let CxOpt = working_industries[&Self::IND_RIP_TRACK].TheCar(CCx);
+            if CxOpt.is_none() {continue;}
+            let Cx = CxOpt.unwrap();
+            let car: &Car = &self.cars[Cx];
+            totLines += 1;
+            if totLines > 55 {
+                totLines = 0;
+                Self::PrintFormFeed(printer);
+                Self::PrintCarHeading(printer);
+	    }
+	    self.PrintOneCarInfo(car,printer);
+        }
         Self::PrintFormFeed(printer);
     }
     /// Report on cars not moved.
