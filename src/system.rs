@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250914.1522>
+//  Last Modified : <250914.2139>
 //
 //  Description	
 //
@@ -2494,10 +2494,10 @@ impl System {
     /// Update industry car counts.
     ///
     /// ## Parameters:
-    /// None
+    /// - working_industries Working Industries
     ///
     /// __Returns__ nothing.
-    fn GetIndustryCarCounts(&mut self,working_industries: &mut HashMap<usize, IndustryWorking>) {
+    fn GetIndustryCarCounts(&self,working_industries: &mut HashMap<usize, IndustryWorking>) {
         for Ix in working_industries.values_mut() {
             Ix.SetUsedLen(0);
         }
@@ -5343,16 +5343,228 @@ impl System {
             },
         };
     }
+    /// Print a header for all location reports.
+    /// ## Parameters;
+    /// - printer Printer device.
+    /// - working_industries Working Industries
+    ///
+    /// __Returns__ nothing
+    fn PrintLocCommon(&self,printer: &mut Printer,
+                      working_industries: &mut HashMap<usize, IndustryWorking>) {
+        self.GetIndustryCarCounts(working_industries);
+        self.PrintSystemBanner(printer);
+        printer.PutLine("");
+        printer.SetTypeSpacing(TypeSpacing::One);
+        //printer.SetTypeSpacing(TypeSpacing::Double);
+        printer.SetTypeWeight(TypeWeight::Bold);
+        printer.Tab(10);
+        printer.PutLine("CAR LOCATION Report");
+        printer.SetTypeSpacing(TypeSpacing::Half);
+        printer.PutLine("");
+        printer.PutLine("");
+        printer.SetTypeWeight(TypeWeight::Normal);
+        printer.SetTypeSpacing(TypeSpacing::One);
+
+    }
+    /// Print one car location report.
+    /// ## Parameters:
+    /// - Cx The car index to print location information for.
+    /// - printer Printer device.
+    ///
+    /// __Returns__ nothing
+    fn PrintOneCarLocation(&self,Cx: usize,printer: &mut Printer) {
+        let car: &Car = &self.cars[Cx]; 
+        let CtOpt = self.carTypes.get(&car.Type());
+        let carTypeDescr: String = match CtOpt {
+            None => String::from("Unknown"),
+            Some(ct) => ct.Type(),
+        };
+	printer.Tab(27);
+	printer.Put(car.Marks());
+	printer.Tab(40);
+	printer.Put(car.Number());
+	printer.Tab(51);
+	printer.Put(carTypeDescr);
+	printer.Tab(87);
+	printer.Put(self.stations[
+                    &self.industries[
+                        &car.Destination()].MyStationIndex()].Name());
+	printer.Tab(113);
+	printer.Put(self.industries[&car.Destination()].Name());
+	printer.PutLine("");
+    }
+    /// Print a location report for a single industry.
+    /// ## Parameters:
+    /// - Ix The industry to print a report for.
+    /// - Sx The station to print a report for.
+    /// - firstOne Is this the first one?
+    /// - printer Printer device.
+    /// - working_industries Working Industries
+    ///
+    /// __Returns__ nothing
+    fn PrintLocOneIndustry(&self,Ix: usize,Sx: u8,
+                           firstOne: &mut bool,printer: &mut Printer,
+                      working_industries: &HashMap<usize, IndustryWorking>) {
+        if working_industries[&Ix].MyStationIndex() != Sx {return;}
+
+        let carsAtIndustry = working_industries[&Ix].NumberOfCars();
+
+        if *firstOne {
+            Self::PrintDashedLine(printer);
+            *firstOne = false;
+            printer.Put(self.stations[&Sx].Name());
+        }
+	printer.Tab(27);
+	printer.Put(working_industries[&Ix].Name());
+	printer.Tab(52);
+        let buffer = format!("<{}> ({}/{})",Ix,
+                working_industries[&Ix].UsedLen(),
+		self.industries[&Ix].TrackLen());
+	printer.Put(buffer);
+	printer.Tab(77);
+	printer.Put("Total cars");
+	printer.Tab(97);
+	printer.Put(carsAtIndustry); printer.PutLine("");
+
+        if self.printYards || 
+            self.industries[&Ix].Type() != IndustryType::Yard {
+            if carsAtIndustry > 0 {
+                printer.PutLine("");
+                for CCx in 0..carsAtIndustry {
+                    let CCxOpt = working_industries[&Ix].TheCar(CCx);
+                    if CCxOpt.is_none() {continue;}
+                    self.PrintOneCarLocation(CCxOpt.unwrap(),printer);
+                }
+            }
+        }
+        printer.PutLine("");
+    }
+    /// Print a location report for one industry.
+    /// ## Parameters:
+    /// - Ix The industry's index.
+    /// - printer Printer device.
+    /// - working_industries Working Industries
+    ///
+    /// __Returns__ nothing
+    fn ReportLocIndustry(&self, Ix: usize, printer: &mut Printer,
+                      working_industries: &mut HashMap<usize, IndustryWorking>) {
+        let ix: &IndustryFile = match self.industries.get(&Ix) {
+            None => {return;},
+            Some(industry) => industry,
+        };
+        let Sx = ix.MyStationIndex();
+        let name = ix.Name();
+        if name.len() == 0 {return;}
+        println!("Print all cars at {}",name);
+        let mut firstOne = true;
+        self.PrintLocCommon(printer,working_industries);
+        self.PrintLocOneIndustry(Ix,Sx,&mut firstOne,printer,
+                                working_industries);
+        Self::PrintFormFeed(printer);
+    }
+    /// Print a location report for one station.
+    /// ## Parameters:
+    /// - Sx The station's index.
+    /// - printer Printer device.
+    /// - working_industries Working Industries
+    ///
+    /// __Returns__ nothing
+    fn ReportLocStation(&self, Sx: u8,printer: &mut Printer,
+                      working_industries: &mut HashMap<usize, IndustryWorking>) {
+        let sx: &Station = match self.stations.get(&Sx) {
+            None => {return;},
+            Some(station) => station,
+        };
+        let name = sx.Name();
+        if name.len() == 0 {return;}
+        println!("Print all cars at {}",name);
+        self.PrintLocCommon(printer,working_industries);
+        let mut firstOne = true;
+        for (Ix, ix) in self.industries.iter() {
+            if ix.MyStationIndex() != Sx {continue;}
+            self.PrintLocOneIndustry(*Ix,Sx,&mut firstOne,printer,
+                                    working_industries);
+        }
+        Self::PrintFormFeed(printer);
+    }
+    /// Print a location report for one division.
+    /// ## Parameters:
+    /// - Dx The division's index.
+    /// - printer Printer device.
+    /// - working_industries Working Industries
+    ///
+    /// __Returns__ nothing
+    fn ReportLocDivision(&self,Dx: u8,printer:  &mut Printer,
+                      working_industries: &mut HashMap<usize, IndustryWorking>) {
+        let dx: &Division = match self.divisions.get(&Dx) {
+            None => {return;},
+            Some(division) => division,
+        };
+        let name = dx.Name();
+        if name.len() == 0 {return;}
+        self.PrintLocCommon(printer,working_industries);
+
+        for (Sx, sx) in self.stations.iter() {
+            if sx.DivisionIndex() != Dx {continue;}
+            println!("Print all cars at {}",sx.Name());
+            let mut firstOne = true;
+            for (Ix, ix) in self.industries.iter() {
+                if ix.MyStationIndex() != *Sx {continue;}
+                self.PrintLocOneIndustry(*Ix,*Sx,&mut firstOne,printer,
+                                        working_industries);
+            }
+        }
+        Self::PrintFormFeed(printer);
+    }
+    /// Print a location report for all locations.
+    /// ## Parameters:
+    /// - printBench Print cars at the workbench?
+    /// - printer Printer device.
+    /// - working_industries Working Industries
+    ///
+    /// __Returns__ nothing
+    fn ReportLocAll(&self,printBench: bool,printer: &mut Printer,
+                      working_industries: &mut HashMap<usize, IndustryWorking>) {
+        //let forStart = if printBench {1} else {2};
+        for (Sx, sx) in self.stations.iter() {
+            if !printBench && *Sx == Self::WORKBENCH_CITY {continue;}
+            println!("Print all cars at {}",sx.Name());
+            let mut firstOne = true;
+            for (Ix, ix) in self.industries.iter() {
+                if !printBench && *Ix == Self::IND_RIP_TRACK {continue;}
+                if *Sx != ix.MyStationIndex() {continue;}
+                self.PrintLocOneIndustry(*Ix,*Sx,&mut firstOne,printer,
+                                        working_industries);
+            }
+        }
+        Self::PrintFormFeed(printer);
+    }
     /// Car location report.
     ///
     /// ## Parameters: 
     /// - cltype Type of report. 
     /// - index Index of thing to report by (industry, station, or division).
     /// - printer Printer device.
+    /// - working_industries Working Industries
     ///
     /// __Returns__ nothing.
     pub fn ReportCarLocations(&self, cltype: CarLocationType, index: usize, 
-                                printer: &mut Printer) {
+                                printer: &mut Printer,
+                      working_industries: &mut HashMap<usize, IndustryWorking>) {
+        match cltype {
+            CarLocationType::INDUSTRY => {
+                self.ReportLocIndustry(index,printer,working_industries);
+            },
+            CarLocationType::STATION => {
+                self.ReportLocStation(index as u8,printer,working_industries);
+            },
+            CarLocationType::DIVISION => {
+                self.ReportLocDivision(index as u8,printer,working_industries);
+            },
+            CarLocationType::ALL => {
+                self.ReportLocAll(index != 0,printer,working_industries);
+            },
+        };
     }
     /// Industry analysis report. 
     ///
