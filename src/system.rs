@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250915.0955>
+//  Last Modified : <250915.1043>
 //
 //  Description	
 //
@@ -5777,5 +5777,55 @@ impl System {
     ///
     /// __Returns__ nothing.
     pub fn ReportCarOwners(&self, ownerInitials: String, printer: &mut Printer) {
+        let oxOpt = self.owners.get(&ownerInitials);
+        if oxOpt.is_none() {return;}
+        let ox = oxOpt.unwrap();
+        let ownerName = &ox.Name();
+        let mut carsOwned = 0;
+
+        for Cx in 0..self.cars.len() {
+            let car: &Car = &self.cars[Cx];
+            if car.Owner() == ownerInitials {
+                carsOwned += 1;
+                if carsOwned == 1 {
+                    self.PrintSystemBanner(printer);
+                    printer.PutLine("");
+                    printer.SetTypeSpacing(TypeSpacing::One);
+                    //printer.SetTypeSpacing(TypeSpacing::Double);
+                    printer.SetTypeWeight(TypeWeight::Bold);
+                    printer.Tab(10);
+                    printer.Put("CAR OWNER Report -- ");
+                    printer.Put(ownerName.clone());
+                    printer.SetTypeSpacing(TypeSpacing::Half);
+                    printer.PutLine("");
+                    printer.PutLine("");
+                    printer.SetTypeWeight(TypeWeight::Normal);
+                    Self::PrintDashedLine(printer);
+                }
+                printer.Put(carsOwned);
+                printer.Tab(8);
+                printer.Put(car.Marks());
+                printer.Tab(18);
+                printer.Put(car.Number());
+                printer.Tab(28);
+                if car.LoadedP() {printer.Put('L');}
+                else {printer.Put('E');}
+                printer.Tab(31);
+                printer.Put(car.Length());
+                printer.Tab(37);
+                let typeName: String = match self.carTypes.get(&car.Type()) {
+                    Some(ct) => ct.Type(),
+                    None => String::from("Unknown"),
+                };
+                printer.Put(typeName);
+                printer.Tab(70);
+                printer.Put("at "); 
+                printer.Put(self.industries[&car.Location()].Name());
+                printer.Tab(96);
+                printer.Put("dest "); 
+                printer.PutLine(&self.industries[&car.Destination()].Name());
+            }
+        }
+        if carsOwned > 0 {Self::PrintFormFeed(printer);}
     }
 }
