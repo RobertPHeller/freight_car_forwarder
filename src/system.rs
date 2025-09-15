@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250914.2139>
+//  Last Modified : <250915.0955>
 //
 //  Description	
 //
@@ -5566,13 +5566,208 @@ impl System {
             },
         };
     }
+    /// Print analysis header
+    /// ## Parameters:
+    /// - printer The print device.
+    ///
+    /// __Returns__ nothing
+    fn PrintAnalysisHeader(printer: &mut Printer) {
+        // Eligible  Deliv  Cars Per  TrkLen/  CarsLen/  % Track
+        // Cars      Cars   Shift     Shift    Shift     Use/Shift
+        printer.Tab(66);
+        printer.Put("Eligible");
+        printer.Tab(76);
+        printer.Put("Deliv");
+        printer.Tab(86);
+        printer.Put("Cars Per");
+        printer.Tab(96);
+        printer.Put("TrkLen/");
+        printer.Tab(107);
+        printer.Put("CarsLen/");
+        printer.Tab(118);
+        printer.PutLine("% Track");
+
+        printer.Put("#");
+        printer.Tab(5);
+        printer.Put("City");
+        printer.Tab(37);
+        printer.Put("Industry");
+        printer.Tab(66);
+        printer.Put("Cars");
+        printer.Tab(76);
+        printer.Put("Cars");
+        printer.Tab(86);
+        printer.Put("Shift");
+        printer.Tab(96);
+        printer.Put("Shifts");
+        printer.Tab(107);
+        printer.Put("Shifts");
+        printer.Tab(118);
+        printer.PutLine("Use/Shift");
+    }
+    /// Print one analysis
+    /// ## Parameters:
+    /// - Ix Industry index
+    /// - carsToDiv Cars to div counter
+    /// - printer Printer device
+    /// - working_industries Working Industries
+    ///
+    /// __Returns__ nothing
+    fn PrintOneAnalysis(&self,Ix: usize,carsToDiv: &mut u32,
+                        printer: &mut Printer,
+                        working_industries: &HashMap<usize, IndustryWorking>) {
+	let mut carsAvail = 0;
+
+        for Cx in 0..self.cars.len() {
+            let car: &Car = &self.cars[Cx];
+            if self.industries[&Ix].LoadsAccepted().contains(car.Type()) {
+                carsAvail += 1;
+	        continue;
+            }
+            if self.industries[&Ix].EmptiesAccepted().contains(car.Type()) {
+                carsAvail += 1;
+                continue;
+            }
+        }
+        printer.Put(Ix);
+        printer.Tab(5);
+        let Sx = self.industries[&Ix].MyStationIndex();
+        printer.Put(Sx);
+        printer.Tab(9);
+        printer.Put(self.stations[&Sx].Name());
+        printer.Tab(37);
+        printer.Put(self.industries[&Ix].Name());
+        printer.Tab(66);
+        printer.Put(carsAvail);
+        printer.Tab(76);
+        printer.Put(working_industries[&Ix].CarsNum());
+        printer.Tab(86);
+
+        let carsNum = working_industries[&Ix].CarsNum();
+        let period = self.statsPeriod;
+        let carsPerSession = (carsNum as f64) / (period as f64);
+
+        let buffer = format!("{:6.2}",carsPerSession);
+        printer.Put(buffer);
+        printer.Tab(96);
+        let buffer = format!("{:7.1}",
+                (working_industries[&Ix].StatsLen() as f64) / 
+                        (self.statsPeriod as f64));
+        printer.Put(buffer);   
+        printer.Tab(107);
+        let buffer = format!("{:7.1}",(working_industries[&Ix].CarsLen() as f64) 
+                            / (self.statsPeriod as f64));
+        printer.Put(buffer);
+        printer.Tab(118);
+
+        let carsLen = working_industries[&Ix].CarsLen();
+        let trackLen = self.industries[&Ix].TrackLen();
+
+        let percentUse: f64;
+        if trackLen > 0 {
+            percentUse = (carsLen as f64) / (trackLen as f64);
+        } else {
+            println!("Track length = 0 for {}",self.industries[&Ix].Name());
+            percentUse = 0.0;
+        }
+
+        let buffer = format!("{:6.2}",percentUse * 100.0);
+        printer.PutLine(&buffer);
+
+        if self.industries[&Ix].Type() == IndustryType::Yard {
+            *carsToDiv += working_industries[&Ix].NumberOfCars() as u32;
+        }
+    }
+
     /// Industry analysis report. 
     ///
     /// ## Parameters: 
     /// - printer Printer device.
+    /// - working_industries Working Industries
     ///
     /// __Returns__ nothing.
-    pub fn ReportAnalysis(&self, printer: &mut Printer) {
+    pub fn ReportAnalysis(&self, printer: &mut Printer,
+                        working_industries: &HashMap<usize, IndustryWorking>) {
+        self.PrintSystemBanner(printer);
+    
+        printer.PutLine("");
+        printer.SetTypeSpacing(TypeSpacing::One);
+        //printer.SetTypeSpacing(TypeSpacing::Double);
+        printer.SetTypeWeight(TypeWeight::Bold);
+        printer.Tab(6);
+        printer.PutLine("Industry Utilization Analysis");
+        printer.SetTypeSpacing(TypeSpacing::One);
+        //printer.SetTypeSpacing(TypeSpacing::Double);
+        printer.SetTypeWeight(TypeWeight::Bold);
+        printer.Tab(15);
+        printer.Put("Shifts = "); printer.Put(self.statsPeriod);
+        printer.PutLine("");
+        printer.PutLine("");
+        printer.SetTypeSpacing(TypeSpacing::Half);
+        printer.PutLine("");
+        printer.PutLine("");
+        printer.SetTypeWeight(TypeWeight::Normal);              
+    
+        Self::PrintAnalysisHeader(printer);
+
+        Self::PrintDashedLine(printer);
+
+        let mut grandTotalCarsToDiv = 0;
+
+        let mut analysisIndustriesCount = 0;
+
+        for (Dx, dx) in self.divisions.iter() {
+            let dname = dx.Name();
+            if dname.len() == 0 {continue;}
+            for (Sx, sx) in self.stations.iter() {
+                if sx.DivisionIndex() != *Dx {continue;}
+                for (Ix, ix) in self.industries.iter() {
+                    if ix.MyStationIndex() != *Sx {continue;}
+                    analysisIndustriesCount += 1;
+                }
+            }
+        }
+        for (Dx, dx) in self.divisions.iter() {
+            let dname = dx.Name();
+            if dname.len() == 0 {continue;}
+            let mut carsToDiv = 0;
+            printer.PutLine("");
+            for (Sx, sx) in self.stations.iter() {
+                if sx.DivisionIndex() != *Dx {continue;}
+                for (Ix, ix) in self.industries.iter() {
+                    if ix.MyStationIndex() != *Sx {continue;}
+                    self.PrintOneAnalysis(*Ix,&mut carsToDiv,printer,
+                                            working_industries);
+                }
+            }
+            grandTotalCarsToDiv += carsToDiv;
+            printer.PutLine("");
+            let message = format!("==========  <{}> {} local industries summary --------",dx.Symbol(),dname);
+            printer.Put(message);
+            printer.Tab(76);
+            printer.Put(carsToDiv);
+            printer.Tab(85);
+            let buffer = format!("{:7.2}",(carsToDiv as f64)/(self.statsPeriod as f64));
+            printer.Put(buffer);
+            printer.Tab(98);
+            for id in 0..28 {
+                printer.Put('-');
+            }
+            printer.PutLine("");
+        }
+        printer.PutLine("");
+        printer.Put("==========  Grand Total all divisions  ========================");
+        printer.Tab(76);
+        printer.Put(grandTotalCarsToDiv);
+        printer.Tab(85);
+        let buffer = format!("{:7.2}",(grandTotalCarsToDiv as f64)/(self.statsPeriod as f64));
+        printer.Put(buffer);
+        printer.Tab(98);
+        for id in 0..28 {
+            printer.Put('-');
+        }
+        printer.PutLine("");
+        Self::PrintFormFeed(printer);
     }
     /// Report on a specified car owner. 
     ///
