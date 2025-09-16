@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:14:13
-//  Last Modified : <250915.2216>
+//  Last Modified : <250916.1450>
 //
 //  Description	
 //
@@ -41,14 +41,14 @@ extern crate getopts;
 use getopts::Options;
 use std::env;
 //use std::io;
-use std::io::{self, Write};
+use std::io::{self, Write, Error, ErrorKind};
 use std::path::PathBuf;
 use std::ffi::OsStr;
 use std::fs;
 use std::collections::HashMap;
-pub use freight_car_forwarder::system::System;
+pub use freight_car_forwarder::system::*;
 pub use freight_car_forwarder::industry::IndustryWorking;
-pub use freight_car_forwarder::fcfprintpdf::*;
+//pub use freight_car_forwarder::fcfprintpdf::*;
 //use freight_car_forwarder::switchlist::*;
 
 pub mod menu;
@@ -67,21 +67,33 @@ fn print_usage(program: &str, opts: Options) {
 }
 
 
-fn run_one_train(system: &mut System, printer: &Printer) {
+fn run_one_train(system: &mut System, 
+                 working_industries: &mut HashMap<usize, IndustryWorking>,
+                 printer: &mut Printer)  -> io::Result<()> {
+    println!("{}",system.SystemName());
+    println!("\nEnter train name to run: \n");
+    let mut key = String::new();
+    print!("Train: "); io::stdout().flush().unwrap();
+    let status = io::stdin().read_line(&mut key)?;
+    if status == 0 {return Err(Error::new(ErrorKind::UnexpectedEof,"End of file"));}
+    let trainName = key.trim();
+    match system.TrainByName(trainName.to_string()) {
+        Some(train) => system.RunOneTrain(train.Number(),false,
+                                          working_industries,printer),
+        None => println!("No such train: {}",trainName),
+    };
+    Ok(())
 }
 
-fn ask_for_filename(prompt: &str, extension: &str) -> String {
-    let mut result: String = String::new();
+fn ask_for_filename(prompt: &str, extension: &str) -> io::Result<String> {
+    let result: String; // = String::new();
     let os_extension = OsStr::new(extension);
     loop {
         let mut answer = String::new();
         print!("{} name (*.{})? ",prompt,extension); 
         io::stdout().flush().unwrap();
-        let status = match io::stdin().read_line(&mut answer) {
-            Ok(m) => { m },
-            Err(f) => { eprintln!("{}", f.to_string()); 0 },
-        };
-        if status == 0 {break;}
+        let status = io::stdin().read_line(&mut answer)?;
+        if status == 0 {return Err(Error::new(ErrorKind::UnexpectedEof,"End of file"));}
         let origpath = PathBuf::from(answer.trim());
         //eprintln!("*** ask_for_filename(), origpath is {:?}", origpath);
         //eprintln!("*** ask_for_filename(), origpath.parent() is {:?}", origpath.parent());
@@ -94,13 +106,10 @@ fn ask_for_filename(prompt: &str, extension: &str) -> String {
             None         => PathBuf::from("."),
         };
         //eprintln!("*** ask_for_filename(), parent is {:?}",parent);
-        let mut path = match fs::canonicalize(parent) {
-                                Ok(parentpath) => parentpath,
-                                Err(f)      => {eprintln!("{}", f.to_string()); continue;},
-                              };
+        let mut path = fs::canonicalize(parent)?;
         //eprintln!("*** ask_for_filename(), (before set_file_name) path is {:?}", path);
         match origpath.file_name() {
-            Some(filename) => path.set_file_name(filename),
+            Some(filename) => path = path.join(filename),
             None           => (),
         };
         //eprintln!("*** ask_for_filename(), (after set_file_name) path is {:?}", path);
@@ -113,11 +122,8 @@ fn ask_for_filename(prompt: &str, extension: &str) -> String {
         } else if path.extension() != Some(os_extension) {
             print!("File has wrong extension, use anyway (yN)? ");
             io::stdout().flush().unwrap();
-            let status = match io::stdin().read_line(&mut answer) {
-                Ok(m) => { m },
-                Err(f) => { eprintln!("{}", f.to_string()); 0 },
-            };
-            if status == 0 {break;}
+            let status = io::stdin().read_line(&mut answer)?;
+            if status == 0 {return Err(Error::new(ErrorKind::UnexpectedEof,"End of file"));}
             match answer.chars().next().unwrap_or('N') {
                 'Y' | 'y' => match path.to_str() {
                                 Some(pathname) => 
@@ -133,7 +139,7 @@ fn ask_for_filename(prompt: &str, extension: &str) -> String {
             };
         }
     }
-    result
+    Ok(result)
 }
 
 fn manage_trains_and_printing<W>(system: &mut System,stdout: &mut W,working_industries: &mut HashMap<usize, IndustryWorking>) -> io::Result<()>
@@ -185,7 +191,7 @@ where
         let mut needwait = true;
         match key {
             'N' | 'n' => { 
-                         printfile = ask_for_filename("Print file","pdf");
+                         printfile = ask_for_filename("Print file","pdf")?;
                          needwait = false;
                          },
             'Y' | 'y' => {
@@ -245,7 +251,7 @@ where
                             let mut printer: Printer = Printer::new(&printfile,
                                                                 "One train",
                                                                 PageSize::Letter);
-                            run_one_train(system,&mut printer);
+                            run_one_train(system,working_industries,&mut printer)?;
                             printfile = String::new();
                         }
                       },
@@ -260,7 +266,7 @@ where
                             printfile = String::new();
                         }
                       },
-            'R' | 'r' => {break;}
+            'R' | 'r' => {break;},
             _ => {panic!("Should never get here");},
         }
         if needwait {wait_any_key(stdout,"Hit any key to continue")?;}
@@ -268,66 +274,268 @@ where
     Ok(())
 }
 
-//fn reports_menu(system: &System) {
-//}
+fn menu_car_type<W>(system: &System,  stdout: &mut W) 
+        -> io::Result<Option<char>>
+where
+    W: io::Write,
+{
+    let mut CTMenuString: String = String::from("");
+    let mut allowedV = Vec::from(system.CarTypesOrder());
+    allowedV.push(' ');
+    let allowed = allowedV.as_slice();
+    let mut tcount = 0;
+    for t in system.CarTypesOrder() {
+        let ct = system.TheCarType(*t).unwrap();
+        let buf = format!("Enter <{}> for {:11.11} ",*t,ct.Type());
+        CTMenuString += &buf;
+        tcount += 1;
+        if tcount == 3 {
+            CTMenuString += "\n";
+            tcount = 0;
+        }
+    }
+    CTMenuString += "Enter < > to return\n";
+    let CTMenu: &str = &CTMenuString;
+    let answer = menu(stdout,CTMenu,allowed)?;
+    if answer != ' ' {
+        Ok(Some(answer))
+    } else {
+        Ok(None)
+    }
+}
 
-fn movements_by_train(system: &System) { 
+fn car_type_report<W>(system: &System,  stdout: &mut W,printer: &mut Printer) -> io::Result<()> 
+where
+    W: io::Write,
+{
+    let CTReportMenu: &str = &(system.SystemName() + "\n" + "\n" +
+        "Enter <A> for all types\n" +
+        "Enter <T> for a specific type\n" +
+        "Enter <S> for a summery report\n" +
+        "Enter [ATS]: ");
+    let reporttype = menu(stdout,CTReportMenu,&['A','a','T','t','S','s'])?;
+    match reporttype {
+        'A' | 'a' => system.ReportCarTypes(CarTypeReport::All,' ',printer),
+        'T' | 't' => {
+                    let typechar = menu_car_type(system,stdout)?;
+                    if typechar.is_some() {
+                        system.ReportCarTypes(CarTypeReport::Type,
+                                              typechar.unwrap(),printer);
+                    };
+                    },
+        'S' | 's' => system.ReportCarTypes(CarTypeReport::Summary,' ',printer),
+        _ => panic!("Should never get here!"),
+    };
+    Ok(())
+}
+
+fn car_locations_report(system: &System, printer: &mut Printer,
+                        working_industries: &mut HashMap<usize, IndustryWorking>) -> io::Result<()> {
+    Ok(())
+}
+
+fn owners_peport(system: &System,printer: &mut Printer) -> io::Result<()> 
+{
+    Ok(())
+}
+
+fn reports_menu<W>(system: &System,stdout: &mut W,
+                    working_industries: &mut HashMap<usize, IndustryWorking>) -> io::Result<()> 
+where
+     W: io::Write,
+{
+    let mut printfile = String::from("");
+    loop {
+        let a = if printfile.len() == 0 {
+            String::from("Print file name is unset\nEnter <P> To set print filename\n")
+        } else {
+            format!("Print file name is {}\n",printfile)
+        };
+        
+        let z = if printfile.len() == 0 {
+            String::from("Enter [PITCNLOAWR]: ")
+        } else {
+            String::from("Enter [ITCNLOAWR]: ")
+        };
+        let ReportsMenu: &str = &(system.SystemName() + "\n" + "\n" +
+            &a +
+            "Enter <I> for Industries Report\n" +
+            "Enter <T> for Trains Report\n" +
+            "Enter <C> for Cars Report\n" +
+            "Enter <N> for Cars Not Moved Report\n" +
+            "Enter <L> for Car (Load) types Report\n" +
+            "Enter <O> for Car lOcations Report\n" +
+            "Enter <A> for Analysis Report\n" +
+            "Enter <W> for Car oWners Report\n" +
+            &z);
+        let allowed: &[char] = if printfile.len() == 0 {
+            &['P','p','I','i','T','t','C','c','N','n','L','l','O','o','A','a',
+              'W','w','R','r']
+        } else {
+            &['I','i','T','t','C','c','N','n','L','l','O','o','A','a','W','w',
+              'R','r']
+        };
+        let key = menu(stdout,ReportsMenu,allowed)?;
+        //let mut needwait = true;
+        match key {
+            'P' | 'p' => { 
+                         printfile = ask_for_filename("Print file","pdf")?;
+                         //needwait = false;
+                         },
+            'I' | 'i' => {
+                        if printfile.len() == 0 {
+                            println!("Select a PDF file to print to!");
+                        } else {
+                            let mut printer: Printer = Printer::new(&printfile,
+                                                        "Industries Report",
+                                                        PageSize::Letter);
+                            system.ReportIndustries(&mut printer);
+                            printfile = String::new(); 
+                        }
+                         },
+            'T' | 't' => {
+                        if printfile.len() == 0 {
+                            println!("Select a PDF file to print to!");
+                        } else {
+                            let mut printer: Printer = Printer::new(&printfile,
+                                                        "Trains Report",
+                                                        PageSize::Letter);
+                            system.ReportTrains(&mut printer);
+                            printfile = String::new(); 
+                        }
+                         },
+            'C' | 'c' => {
+                        if printfile.len() == 0 {
+                            println!("Select a PDF file to print to!");
+                        } else {
+                            let mut printer: Printer = Printer::new(&printfile,
+                                                        "Cars Report",
+                                                        PageSize::Letter);
+                            system.ReportCars(&mut printer,
+                                              working_industries);
+                            printfile = String::new(); 
+                        }
+                         },
+            'N' | 'n' => {
+                        if printfile.len() == 0 {
+                            println!("Select a PDF file to print to!");
+                        } else {
+                            let mut printer: Printer = Printer::new(&printfile,
+                                                        "Cars Not Moved Report",
+                                                        PageSize::Letter);
+                            system.ReportCarsNotMoved(&mut printer,
+                                              working_industries);
+                            printfile = String::new(); 
+                        }
+                         },
+            'L' | 'l' => {
+                        if printfile.len() == 0 {
+                            println!("Select a PDF file to print to!");
+                        } else {
+                            let mut printer: Printer = Printer::new(&printfile,
+                                                        "Cars Types Report",
+                                                        PageSize::Letter);
+                            car_type_report(system,stdout,&mut printer)?;
+                            printfile = String::new(); 
+                        }
+                         },
+            'O' | 'o' => {
+                        if printfile.len() == 0 {
+                            println!("Select a PDF file to print to!");
+                        } else {
+                            let mut printer: Printer = Printer::new(&printfile,
+                                                        "Cars Locations Report",
+                                                        PageSize::Letter);
+                            car_locations_report(system,&mut printer,
+                                              working_industries)?;
+                            printfile = String::new(); 
+                        }
+                         },
+            'A' | 'a' => {
+                        if printfile.len() == 0 {
+                            println!("Select a PDF file to print to!");
+                        } else {
+                            let mut printer: Printer = Printer::new(&printfile,
+                                                        "Analysis Report",
+                                                        PageSize::Letter);
+                            system.ReportAnalysis(&mut printer,
+                                              working_industries);
+                            printfile = String::new(); 
+                        }
+                         },
+            'W' | 'w' => {
+                        if printfile.len() == 0 {
+                            println!("Select a PDF file to print to!");
+                        } else {
+                            let mut printer: Printer = Printer::new(&printfile,
+                                                        "Owners Report",
+                                                        PageSize::Letter);
+                            owners_peport(system,&mut printer)?;
+                            printfile = String::new(); 
+                        }
+                         },
+            'R' | 'r' => {break;},
+            _ => {panic!("Should never get here");}, 
+        }
+        //if needwait {
+        //    wait_any_key(stdout,"Hit any key to continue")?;
+        //} 
+    }
+    Ok(())
+}
+
+fn movements_by_train(system: &System) -> io::Result<()> { 
     println!("{}",system.SystemName());
     println!("\nEnter train name to show car movements\n");
     let mut key = String::new();
     print!("Train: "); io::stdout().flush().unwrap();
-    let status = match io::stdin().read_line(&mut key) {
-        Ok(m) => { m },
-        Err(f) => { eprintln!("{}", f.to_string()); 0 },
-    };
-    if status == 0 {return;}
-    match system.TrainByName(key.trim().to_string()) {
+    let status = io::stdin().read_line(&mut key)?;
+    if status == 0 {return Err(Error::new(ErrorKind::UnexpectedEof,"End of file"));}
+    let trainName = key.trim();
+    match system.TrainByName(trainName.to_string()) {
         Some(val) => system.ShowCarMovements(false,Some(val),None),
-        None => (),
+        None => println!("No such train: {}",trainName),
     };
+    Ok(())
 }
 
-fn movements_by_location(system: &System) {
+fn movements_by_location(system: &System) -> io::Result<()> {
     println!("{}",system.SystemName());
     println!("\nEnter location code to show car movements\n");
     let mut key = String::new();
     print!("Location: "); io::stdout().flush().unwrap();
-    let status = match io::stdin().read_line(&mut key) {
-        Ok(m) => { m },
-        Err(f) => { eprintln!("{}", f.to_string()); 0 },
+    let status = io::stdin().read_line(&mut key)?;
+    if status == 0 {return Err(Error::new(ErrorKind::UnexpectedEof,"End of file"));}
+    let Ix = match key.trim().parse::<usize>() {
+        Ok(m) => m,
+        Err(e) => {println!("{}",e.to_string()); return Ok(());}
     };
-    if status == 0 {return;}
-    match key.trim().parse::<usize>() {
-        Ok(Ix) => { let IOpt = system.IndustryByIndex(Ix);
-                    if IOpt.is_none() {
-                        println!("No such industry: {}",Ix);
-                    } else {
-                        system.ShowCarMovements(true,None,IOpt);
-                    };
-                   },
-        Err(f) => { eprintln!("{}", f.to_string());},
+    let IOpt = system.IndustryByIndex(Ix);
+    if IOpt.is_none() {
+        println!("No such industry: {}",Ix);
+    } else {
+        system.ShowCarMovements(true,None,IOpt);
     };
-    
+    Ok(())    
 }
 
 //fn compile_car_movements(system: &System) {
 //}
 
-fn show_cars_in_division(system: &System) {
+fn show_cars_in_division(system: &System)  -> io::Result<()> {
     println!("{}",system.SystemName());
     println!("\nEnter division symbol to show car movements\n");
     let mut key = String::new();
     print!("Division symbol: "); io::stdout().flush().unwrap();
-    let status = match io::stdin().read_line(&mut key) {
-        Ok(m) => { m },
-        Err(f) => { eprintln!("{}", f.to_string()); 0 },
-    };
-    if status == 0 {return;}
-    let divindex = system.FindDivisionIndexBySymbol(key.chars().next().unwrap_or(' '));
+    let status = io::stdin().read_line(&mut key)?;
+    if status == 0 {return Err(Error::new(ErrorKind::UnexpectedEof,"End of file"));}
+    let divsymb = key.chars().next().unwrap_or(' ');
+    let divindex = system.FindDivisionIndexBySymbol(divsymb);
     match divindex {
         Some(Dx) => system.ShowCarsInDivision(Dx),
-        None => (),
+        None => println!("No such division: {}",divsymb),
     };
+    Ok(())
 }
 
 fn show_car_movements<W>(system: &System,stdout: &mut W) -> io::Result<()> 
@@ -353,22 +561,24 @@ where
         let key = menu(stdout,CarMoveMenu,&['N','n','M','m','T','t',
                                             'L','l','E','e','D','d',
                                             'A','a','?','R','r'])?;
-        let mut needwait = true;
+        //let mut needwait = true;
         match key {
             'N' | 'n' => system.ShowCarsNotMoved(),
             'M' | 'm' => system.ShowCarMovements(false, None, None),
-            'T' | 't' => movements_by_train(&system),
-            'L' | 'l' => movements_by_location(&system),
+            'T' | 't' => movements_by_train(&system)?,
+            'L' | 'l' => movements_by_location(&system)?,
             'E' | 'e' => system.ShowCarMovements(true, None, None),
             //'C' | 'c' => compile_car_movements(&system),
-            'D' | 'd' => show_cars_in_division(&system),
+            'D' | 'd' => show_cars_in_division(&system)?,
             'A' | 'a' => system.ShowTrainTotals(),
             //'U' | 'u' => system.MarkAllCarsInUse(),
             '?'         => system.ListTrainNames(false,None),
             'R' | 'r'  => {break;},
             _ => panic!("Should never get here"),
         }
-        if needwait {wait_any_key(stdout,"Hit any key to continue")?;}
+        //if needwait {
+            wait_any_key(stdout,"Hit any key to continue")?;
+        //}
     }
     Ok(())
 }
@@ -440,7 +650,7 @@ fn main() -> io::Result<()> {
              'A' | 'a' => system.CarAssignment(&mut working_industries),
              'C' | 'c' => {show_car_movements(&system,&mut stdout)?;
                             needwait = false;},
-             //'R' | 'r' => reports_menu(&system),
+             'R' | 'r' => {reports_menu(&system,&mut stdout,&mut working_industries)?;needwait = false;}
              'I' | 'i' => system.ResetIndustryStats(&mut working_industries),
              'Q' | 'q' => break,
              _ => panic!("Unreconized command character: {}",cmd),

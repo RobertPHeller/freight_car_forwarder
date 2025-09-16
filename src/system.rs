@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250915.2220>
+//  Last Modified : <250916.1426>
 //
 //  Description	
 //
@@ -488,7 +488,7 @@ impl System {
     /// __Returns__ a reference to a train or None.
     pub fn TrainByName(&self, name: String) -> Option<&Train> {
         let result = self.trainIndex.get(&name);
-        if result == None {
+        if result.is_none() {
             return None;
         }
         self.trains.get(result.unwrap())
@@ -837,6 +837,9 @@ impl System {
     /// __Returns__ nothing.
     pub fn SetPrintem(&mut self,flag: bool) {
         self.printem = flag;
+    }
+    pub fn CarTypesOrder(&self) -> &[char] {
+        &self.carTypesOrder
     }
     /// Utility to get a line after skipping any intervening comments.
     ///
@@ -1983,7 +1986,7 @@ impl System {
     /// - c The car type character.
     ///
     /// __Returns__ a reference to a CarType or None
-    fn TheCarType(&self, c: char) -> Option<&CarType> {
+    pub fn TheCarType(&self, c: char) -> Option<&CarType> {
         self.carTypes.get(&c)
     }
     ///  Return car status information. 
