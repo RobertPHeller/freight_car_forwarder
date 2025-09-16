@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250915.1043>
+//  Last Modified : <250915.2220>
 //
 //  Description	
 //
@@ -2747,8 +2747,12 @@ impl System {
             } else {
                 trainName = self.trains[&self.cars[Cx].LastTrain()].Name();
             }
-            let temp = &trainName[0..6];
-            printer.Put(temp);
+            if trainName.len() < 6 {
+                printer.Put(trainName);
+            } else {
+                let temp = &trainName[0..6];
+                printer.Put(temp);
+            }
             printer.Tab(84);
             if self.wayFreight {
                 printer.Put("at "); 
@@ -3783,8 +3787,12 @@ impl System {
 
         // Make sure the industry remaining lengths are up to date.
         for (Ix, ind) in working_industries.iter_mut() {
-            let remlen = self.industries[Ix].TrackLen() - ind.UsedLen();
-            ind.SetRemLen(remlen);
+            if self.industries[Ix].TrackLen() < ind.UsedLen() {
+                ind.SetRemLen(0);
+            } else {
+                let remlen = self.industries[Ix].TrackLen() - ind.UsedLen();
+                ind.SetRemLen(remlen);
+            }
         }
         // Fan out based on train type.
         match train.Type() {

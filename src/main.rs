@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:14:13
-//  Last Modified : <250912.2044>
+//  Last Modified : <250915.2216>
 //
 //  Description	
 //
@@ -50,6 +50,9 @@ pub use freight_car_forwarder::system::System;
 pub use freight_car_forwarder::industry::IndustryWorking;
 pub use freight_car_forwarder::fcfprintpdf::*;
 //use freight_car_forwarder::switchlist::*;
+
+pub mod menu;
+use crate::menu::*;
 
 /// Print command line usage.
 ///
@@ -133,54 +136,86 @@ fn ask_for_filename(prompt: &str, extension: &str) -> String {
     result
 }
 
-fn manage_trains_and_printing(system: &mut System, working_industries: &mut HashMap<usize, IndustryWorking>) {
+fn manage_trains_and_printing<W>(system: &mut System,stdout: &mut W,working_industries: &mut HashMap<usize, IndustryWorking>) -> io::Result<()>
+where
+     W: io::Write,
+{
     let mut printfile = String::from("");
     loop {
-        println!("{}\n",system.SystemName()); 
-        if printfile.len() == 0 {
-            println!("Print file name is unset\n");
-            println!("Enter <N> To set print filename");
+        let a = if printfile.len() == 0 {
+            String::from("Print file name is unset\nEnter <N> To set print filename\n")
         } else {
-            println!("Print file name is {}\n",printfile);
-        }
-        println!("Enter <O> Run all Trains in Operating session");
-        println!("Enter <B> Run the Boxmove trains");
-        println!("Enter <T> Run Trains one at a time");
-        println!("Enter <P> Print yard lists, etc");
-        println!("Enter <other> To return to the main menu");
-        let mut command = String::new();
-        print!("Your command: "); io::stdout().flush().unwrap();
-        let status = match io::stdin().read_line(&mut command) {
-            Ok(m) => { m },
-            Err(f) => { eprintln!("{}", f.to_string()); 0 },
+            format!("Print file name is {}\n",printfile)
         };
-        if status == 0 {break;}
-        let key = command.chars().next().unwrap_or(' ');
+        let b = if printfile.len() == 0 {
+            String::from("Enter [NYA2L+DFOBTPR]: ")
+        } else {
+            String::from("Enter [YA2L+DFOBTPR]: ")
+        };
+        let c = format!("Enter <Y> to toggle PrintYards ({})\n",
+                        system.PrintYards());
+        let d = format!("Enter <A> to toggle PrintAlpha ({})\n",
+                        system.PrintAlpha());
+        let e = format!("Enter <2> to toggle PrintAtwice ({})\n",
+                        system.PrintAtwice());
+        let f = format!("Enter <L> to toggle PrintList ({})\n",
+                        system.PrintList());
+        let g = format!("Enter <+> to toggle PrintLtwice ({})\n",
+                        system.PrintLtwice());
+        let h = format!("Enter <D> to toggle PrintDispatch ({})\n",
+                        system.PrintDispatch());
+        let i = format!("Enter <F> to toggle Printem ({})\n",
+                        system.Printem());
+        let TrainsAndPrintingMenu: &str = &(system.SystemName() + "\n" + "\n" +
+            &a + &c + &d + &e + &f + &g + &h + &i +
+            "Enter <O> Run all Trains in Operating session\n" +
+            "Enter <B> Run the Boxmove trains\n" +
+            "Enter <T> Run Trains one at a time\n" +
+            "Enter <P> Print yard lists, etc\n" +
+            "Enter <R> To return to the main menu\n" +
+            &b);
+        let allowed: &[char] = if printfile.len() == 0 {
+            &['N','n','Y','y','A','a','2','L','l','+','D','d','F','f','O','o',
+              'B','b','T','t','P','p','R','r']
+        } else {
+            &['Y','y','A','a','2','L','l','+','D','d','F','f','O','o','B','b',
+              'T','t','P','p','R','r',]
+        }; 
+        let key = menu(stdout,TrainsAndPrintingMenu,allowed)?;
+        let mut needwait = true;
         match key {
             'N' | 'n' => { 
-                        if printfile.len() != 0 {
-                            loop {
-                                println!("Print file name is {}\n",printfile);
-                                print!("Do you really want to change it (y|N)?");
-                                io::stdout().flush().unwrap();
-                                let status = match io::stdin().read_line(&mut command) {
-                                     Ok(m) => { m },
-                                    Err(f) => { eprintln!("{}", f.to_string()); 0 }, 
-                                };
-                                if status == 0 {break;}
-                                let key = command.chars().next().unwrap_or(' ');
-                                match key {
-                                    'Y' | 'y' => {
-                                        printfile = ask_for_filename("Print file","pdf");
-                                        break;
-                                        },
-                                    'N' | 'n' | '\n' => {break;}
-                                    _ => {println!("Please anser Y or N");},
-                                };
-                            }
-                        } else {
-                            printfile = ask_for_filename("Print file","pdf");
-                        } },
+                         printfile = ask_for_filename("Print file","pdf");
+                         needwait = false;
+                         },
+            'Y' | 'y' => {
+                        system.SetPrintYards(!system.PrintYards());
+                        needwait = false;
+                        }
+            'A' | 'a' => {
+                        system.SetPrintAlpha(!system.PrintAlpha());
+                        needwait = false;
+                        }
+            '2'       => {
+                        system.SetPrintAtwice(!system.PrintAtwice());
+                        needwait = false;
+                        },
+            'L' | 'l' => {
+                        system.SetPrintList(!system.PrintList());
+                        needwait = false;
+                        },
+            '+'       => {
+                        system.SetPrintLtwice(!system.PrintLtwice());
+                        needwait = false;
+                        },
+            'D' | 'd' => {
+                        system.SetPrintDispatch(!system.PrintDispatch());
+                        needwait = false;
+                        },
+            'F' | 'f' => {
+                        system.SetPrintem(!system.Printem());
+                        needwait = false;
+                        },
             'O' | 'o' => {
                         if printfile.len() == 0 {
                             println!("Select a PDF file to print to!");
@@ -225,9 +260,12 @@ fn manage_trains_and_printing(system: &mut System, working_industries: &mut Hash
                             printfile = String::new();
                         }
                       },
-            _ => {break;},
+            'R' | 'r' => {break;}
+            _ => {panic!("Should never get here");},
         }
+        if needwait {wait_any_key(stdout,"Hit any key to continue")?;}
     }
+    Ok(())
 }
 
 //fn reports_menu(system: &System) {
@@ -292,29 +330,30 @@ fn show_cars_in_division(system: &System) {
     };
 }
 
-fn show_car_movements(system: &System) {
+fn show_car_movements<W>(system: &System,stdout: &mut W) -> io::Result<()> 
+where
+    W: io::Write,
+{
+    let CarMoveMenu: &str = &(system.SystemName() + "\n" + "\n" +
+        "Enter <N>     to show cars NOT moved\n" +
+        "Enter <M>     to show car movements\n" +
+        "Enter <T>     to show car movements by train\n" +
+        "Enter <L>     to show car movements by location\n" +
+        "Enter <E>     to show cars moved and NOT moved\n" +
+        //"Enter <C>     to compile car movements\n" +
+        "Enter <D>     to show cars in division\n" +
+        "Enter <A>     to show train totals\n" +
+        //"Enter <U>     to mark ALL cars in use\n" +
+        "Enter <?>     to list train names\n" +
+        //"Enter train name for a single train\n" +
+        "Enter <R> To return to the main menu\n" +
+        "Enter [NMTLEDA?R]: ");
+
     loop {
-        println!("{}\n",system.SystemName());
-        println!("Enter <N>     to show cars NOT moved");
-        println!("Enter <M>     to show car movements");
-        println!("Enter <T>     to show car movements by train");
-        println!("Enter <L>     to show car movements by location");
-        println!("Enter <E>     to show cars moved and NOT moved");
-        //println!("Enter <C>     to compile car movements");
-        println!("Enter <D>     to show cars in division");
-        println!("Enter <A>     to show train totals");
-        //println!("Enter <U>     to mark ALL cars in use");
-        println!("Enter <?>     to list train names");
-        //println!("Enter train name for a single train");
-        println!("Enter <other> To return to the main menu");
-        let mut command = String::new();
-        print!("Your command: "); io::stdout().flush().unwrap();
-        let status = match io::stdin().read_line(&mut command) {
-            Ok(m) => { m },
-            Err(f) => { eprintln!("{}", f.to_string()); 0 },
-        };
-        if status == 0 {break;}
-        let key = command.chars().next().unwrap_or(' ');
+        let key = menu(stdout,CarMoveMenu,&['N','n','M','m','T','t',
+                                            'L','l','E','e','D','d',
+                                            'A','a','?','R','r'])?;
+        let mut needwait = true;
         match key {
             'N' | 'n' => system.ShowCarsNotMoved(),
             'M' | 'm' => system.ShowCarMovements(false, None, None),
@@ -326,9 +365,12 @@ fn show_car_movements(system: &System) {
             'A' | 'a' => system.ShowTrainTotals(),
             //'U' | 'u' => system.MarkAllCarsInUse(),
             '?'         => system.ListTrainNames(false,None),
-            _ => {break;},
+            'R' | 'r'  => {break;},
+            _ => panic!("Should never get here"),
         }
+        if needwait {wait_any_key(stdout,"Hit any key to continue")?;}
     }
+    Ok(())
 }
 
 /// Main program.
@@ -337,7 +379,7 @@ fn show_car_movements(system: &System) {
 /// None.
 ///
 /// __Returns__ nothing.
-fn main() {
+fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
     let program = args[0].clone();
 
@@ -350,45 +392,41 @@ fn main() {
     };
     if matches.opt_present("h") {
         print_usage(&program, opts);
-        return;
+        return Ok(());
     };
     //let output = matches.opt_str("o").expect("Missing option");
     let systemfile = if !matches.free.is_empty() {
         matches.free[0].clone()
     } else {
         print_usage(&program, opts);
-        return;
+        panic!("Missing system file!");
     };
     
     let (mut system, mut working_industries) = System::new(systemfile);
     
+    let MainMenu: &str = &(system.SystemName() + "\n" +
+        "\n" +
+        "Enter <L> Load cars file " + &system.CarsFile() + "\n" +
+        "Enter <S> Save cars file " + &system.CarsFile() + "\n" +
+        "Enter <M> Manage trains/printing\n" +
+        //"Enter <V> View car information\n" +
+        //"Enter <E> Edit car information\n" +
+        //"Enter <N> Add a New car\n" +
+        //"Enter <D> Delete an existing car\n" +
+        "Enter <U> Show Unassigned cars\n" +
+        "Enter <A> Run the car Assignment procedure\n" +
+        "Enter <C> Show Cars on screen\n" +
+        "Enter <R> Go to Reports Menu\n" +
+        "Enter <I> Reset Industry statistics\n" +
+        "Enter <Q> Quit -- exit NOW\n" +
+        "Enter [LSMUACRIQ]: ");
+
+    let mut stdout = io::stdout();
     loop {
-        println!("{}",system.SystemName());
-        println!("");
-        println!("Enter <L> Load cars file {}",system.CarsFile());
-        println!("Enter <S> Save cars file {}",system.CarsFile());
-        //println!("Enter <G> Groups = {}", SelectGroups$);
-        println!("Enter <M> Manage trains/printing");
-        //println!("Enter <V> View car information");
-        //println!("Enter <E> Edit car information");
-        //println!("Enter <N> Add a New car");
-        //println!("Enter <D> Delete an existing car");
-        println!("Enter <U> Show Unassigned cars");
-        println!("Enter <A> Run the car Assignment procedure");
-        println!("Enter <C> Show Cars on screen");
-        println!("Enter <R> Go to Reports Menu");
-        println!("Enter <I> Reset Industry statistics");
-        println!("Enter <Q> Quit -- exit NOW");
-        let mut command = String::new();
-        println!("");
-        print!("Enter [LSMUACRIQ]: ");
-        io::stdout().flush().unwrap();
-        let status = match io::stdin().read_line(&mut command) {
-            Ok(m) => { m }
-            Err(f) => { eprintln!("{}", f.to_string()); 0 }
-        };
-        if status == 0 {break;}
-        let cmd = command.chars().next().unwrap_or(' ');
+        let mut needwait = true;
+        let cmd = menu(&mut stdout,MainMenu,&['L','l','S','s','M','m','U','u',
+                                              'A','a','C','c','R','r','I','i',
+                                              'Q','q'])?;
         match cmd {
             'L' | 'l' => working_industries = system.ReLoadCarFile(),
             'S' | 's' =>
@@ -396,14 +434,18 @@ fn main() {
                     true => println!("Cars saved."),
                     false => println!("Cars not saved."),
                 }, 
-             'M' | 'm' => manage_trains_and_printing(&mut system,&mut working_industries),
+             'M' | 'm' => {manage_trains_and_printing(&mut system,&mut stdout,&mut working_industries)?;
+                            needwait = false;},
              'U' | 'u' => system.ShowUnassignedCars(),
              'A' | 'a' => system.CarAssignment(&mut working_industries),
-             'C' | 'c' => show_car_movements(&system),
+             'C' | 'c' => {show_car_movements(&system,&mut stdout)?;
+                            needwait = false;},
              //'R' | 'r' => reports_menu(&system),
              'I' | 'i' => system.ResetIndustryStats(&mut working_industries),
              'Q' | 'q' => break,
-             _ => println!("Unreconized command character: {}",cmd),
+             _ => panic!("Unreconized command character: {}",cmd),
         }
+        if needwait {wait_any_key(&mut stdout,"Hit any key to continue")?;}
     }
+    Ok(())
 }

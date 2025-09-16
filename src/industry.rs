@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:14:28
-//  Last Modified : <250914.1249>
+//  Last Modified : <250915.1110>
 //
 //  Description	
 //
@@ -240,7 +240,13 @@ impl IndustryWorking {
     pub fn RemLen(&self) -> u32 {self.remLen}
     pub fn SetRemLen(&mut self, rl: u32) {self.remLen = rl;}
     pub fn AddRemLen(&mut self, rl: u32) {self.remLen += rl;}
-    pub fn SubRemLen(&mut self, rl: u32) {self.remLen -= rl;}
+    pub fn SubRemLen(&mut self, rl: u32) {
+        if self.remLen < rl {
+            self.remLen = 0;
+        } else {
+            self.remLen -= rl;
+        }
+    }
 }
 
 impl fmt::Display for IndustryFile {
