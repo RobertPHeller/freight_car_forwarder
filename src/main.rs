@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:14:13
-//  Last Modified : <250916.1450>
+//  Last Modified : <250916.1611>
 //
 //  Description	
 //
@@ -73,7 +73,7 @@ fn run_one_train(system: &mut System,
     println!("{}",system.SystemName());
     println!("\nEnter train name to run: \n");
     let mut key = String::new();
-    print!("Train: "); io::stdout().flush().unwrap();
+    print!("Train: "); io::stdout().flush()?;
     let status = io::stdin().read_line(&mut key)?;
     if status == 0 {return Err(Error::new(ErrorKind::UnexpectedEof,"End of file"));}
     let trainName = key.trim();
@@ -91,7 +91,7 @@ fn ask_for_filename(prompt: &str, extension: &str) -> io::Result<String> {
     loop {
         let mut answer = String::new();
         print!("{} name (*.{})? ",prompt,extension); 
-        io::stdout().flush().unwrap();
+        io::stdout().flush()?;
         let status = io::stdin().read_line(&mut answer)?;
         if status == 0 {return Err(Error::new(ErrorKind::UnexpectedEof,"End of file"));}
         let origpath = PathBuf::from(answer.trim());
@@ -121,7 +121,7 @@ fn ask_for_filename(prompt: &str, extension: &str) -> io::Result<String> {
             };
         } else if path.extension() != Some(os_extension) {
             print!("File has wrong extension, use anyway (yN)? ");
-            io::stdout().flush().unwrap();
+            io::stdout().flush()?;
             let status = io::stdin().read_line(&mut answer)?;
             if status == 0 {return Err(Error::new(ErrorKind::UnexpectedEof,"End of file"));}
             match answer.chars().next().unwrap_or('N') {
@@ -312,8 +312,10 @@ where
         "Enter <A> for all types\n" +
         "Enter <T> for a specific type\n" +
         "Enter <S> for a summery report\n" +
-        "Enter [ATS]: ");
-    let reporttype = menu(stdout,CTReportMenu,&['A','a','T','t','S','s'])?;
+        "Enter <R> to return to the report menu\n" +
+        "Enter [ATSR]: ");
+    let reporttype = menu(stdout,CTReportMenu,&['A','a','T','t','S','s',
+                                                'R','r'])?;
     match reporttype {
         'A' | 'a' => system.ReportCarTypes(CarTypeReport::All,' ',printer),
         'T' | 't' => {
@@ -324,13 +326,76 @@ where
                     };
                     },
         'S' | 's' => system.ReportCarTypes(CarTypeReport::Summary,' ',printer),
+        'R' | 'r' => (),
         _ => panic!("Should never get here!"),
     };
     Ok(())
 }
 
-fn car_locations_report(system: &System, printer: &mut Printer,
-                        working_industries: &mut HashMap<usize, IndustryWorking>) -> io::Result<()> {
+fn get_usize(prompt: &str) -> io::Result<usize> {
+    let mut answer = String::new();
+    print!("\n{}",prompt); io::stdout().flush()?;
+    let status = io::stdin().read_line(&mut answer)?;
+    if status == 0 {return Err(Error::new(ErrorKind::UnexpectedEof,"End of file"));}
+    let result = match answer.trim().parse::<usize>() {
+        Ok(m) => m,
+        Err(e) => {println!("{}",e.to_string()); return Ok(0);}
+    };
+    Ok(result)
+}
+
+fn get_yesno<W>(stdout: &mut W,prompt: &str) -> io::Result<bool>
+where
+    W: io::Write,
+{
+    let YesNoMenu: &str = &(String::from(prompt) + "\nEnter [YN]: ");
+    let answer = menu(stdout,YesNoMenu,&['Y','y','N','n'])?;
+    match answer {
+        'Y' | 'y' => Ok(true),
+        'N' | 'n' => Ok(false),
+        _ => panic!("Should never get here!"),
+    }
+}
+fn car_locations_report<W>(system: &System, stdout: &mut W,
+                        printer: &mut Printer,
+                    working_industries: &mut HashMap<usize, IndustryWorking>) 
+        -> io::Result<()> 
+where
+    W: io::Write,
+{
+    let LocReportMenu: &str = &(system.SystemName() + "\n" + "\n" +
+        "Enter <I> for Cars at an Industry\n" +
+        "Enter <S> for Cars at a Station\n" +
+        "Enter <D> for Cars at a Division\n" +
+        "Enter <A> for Cars at All locations\n" +
+        "Enter <R> to return to the report menu\n" +
+        "Enter [ISDAR]: ");
+    let reporttype = menu(stdout,LocReportMenu,&['I','i','S','s','D','d',
+                                                 'A','a','R','r'])?;
+    match reporttype {
+        'I' | 'i' => {
+                    let ind = get_usize("Industry index:")?;
+                    system.ReportCarLocations(CarLocationType::INDUSTRY,ind,
+                            printer,working_industries);
+                    },
+        'S' | 's' => {
+                    let ind = get_usize("Station index:")?;
+                    system.ReportCarLocations(CarLocationType::STATION,ind,
+                            printer,working_industries);
+                    },
+        'D' | 'd' => {
+                    let ind = get_usize("Division index:")?;
+                    system.ReportCarLocations(CarLocationType::DIVISION,ind,
+                            printer,working_industries);
+                    },
+        'A' | 'a' =>{
+                    let ind = get_yesno(stdout,"Print Workbench Cars?")?;
+                    system.ReportCarLocations(CarLocationType::ALL,ind as usize,
+                            printer,working_industries);
+                    },
+        'R' | 'r' => (),
+        _ => panic!("Should not ever get here."),
+    }
     Ok(())
 }
 
@@ -446,7 +511,7 @@ where
                             let mut printer: Printer = Printer::new(&printfile,
                                                         "Cars Locations Report",
                                                         PageSize::Letter);
-                            car_locations_report(system,&mut printer,
+                            car_locations_report(system,stdout,&mut printer,
                                               working_industries)?;
                             printfile = String::new(); 
                         }
@@ -488,7 +553,7 @@ fn movements_by_train(system: &System) -> io::Result<()> {
     println!("{}",system.SystemName());
     println!("\nEnter train name to show car movements\n");
     let mut key = String::new();
-    print!("Train: "); io::stdout().flush().unwrap();
+    print!("Train: "); io::stdout().flush()?;
     let status = io::stdin().read_line(&mut key)?;
     if status == 0 {return Err(Error::new(ErrorKind::UnexpectedEof,"End of file"));}
     let trainName = key.trim();
@@ -503,7 +568,7 @@ fn movements_by_location(system: &System) -> io::Result<()> {
     println!("{}",system.SystemName());
     println!("\nEnter location code to show car movements\n");
     let mut key = String::new();
-    print!("Location: "); io::stdout().flush().unwrap();
+    print!("Location: "); io::stdout().flush()?;
     let status = io::stdin().read_line(&mut key)?;
     if status == 0 {return Err(Error::new(ErrorKind::UnexpectedEof,"End of file"));}
     let Ix = match key.trim().parse::<usize>() {
@@ -526,7 +591,7 @@ fn show_cars_in_division(system: &System)  -> io::Result<()> {
     println!("{}",system.SystemName());
     println!("\nEnter division symbol to show car movements\n");
     let mut key = String::new();
-    print!("Division symbol: "); io::stdout().flush().unwrap();
+    print!("Division symbol: "); io::stdout().flush()?;
     let status = io::stdin().read_line(&mut key)?;
     if status == 0 {return Err(Error::new(ErrorKind::UnexpectedEof,"End of file"));}
     let divsymb = key.chars().next().unwrap_or(' ');
