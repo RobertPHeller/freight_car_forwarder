@@ -5,6 +5,7 @@ edition = "2021"
 authors = ["Robert Heller <heller@deepsoft.com>"]
 description = "Port of the C++ port of Timothy O'Connor's Freight Car Forwarding system."
 license = "GNU Public License, V 2.0"
+license-file = "COPYING"
 
 [dependencies]
 getopts = "0.2"
