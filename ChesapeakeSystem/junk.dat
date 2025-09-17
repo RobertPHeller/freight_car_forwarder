@@ -1,0 +1,810 @@
+ 2
+ 1
+ 493
+
+'============================================================================
+'
+' This is the cars file for the CLE
+'
+'============================================================================
+
+' ^ last completed session number
+' ^ The maximum number of cars in this database
+
+'============================================================================
+'
+'
+' This file must be kept in ALPHABETICAL ORDER !!
+'
+'
+' Date: June 24 1996
+'
+'============================================================================
+'
+' <type>                                        -- from CARTYPES.DAT
+' <railroad reporting marks> or <lessor/lessee> -- 9 characters max
+' <car number> or <car number/number of units>  -- 8 characters max
+' <car home divisions>                          -- from SYSTEM.DAT
+' <extreme car length>                          -- 1 to 999
+' <clearance plate>                             -- from PLATE.DAT
+' <car weight class>                            -- from WEIGHT.DAT
+' <light weight in tons>                        -- 1 to 999
+' <load limit in tons>                          -- 1 to 999
+' <loaded/empty status>                         -- L or E
+' <ok to mirror>                                -- Y or N
+' <fixed route>                                 -- Y or N
+' <car owner's 3 character initals>             -- from OWNERS.DAT
+' <car is done moving for this session>         -- Y or N
+' <last train to handle the car>                -- from TRAINS.DAT
+' <actual movements this session>               -- 0 or more
+' <car's present location>                      -- from INDUS.DAT
+' <car's destination>                           -- from INDUS.DAT
+' <number of car trips>                         --
+' <number of car assignments>                   --
+'
+'============================================================================
+'
+'       online divisions        1234567890ab
+'       unit coal divisions     efghijk
+'       interchange divisions   ABCDE
+'       Northern divisions      NOPQRSTUV
+'       Western divisions       nopqrst
+'       Eastern divisions       uvwx
+'       Southern divisions      HIJK
+'
+'============================================================================
+'
+'
+' A car is loaded in a HOME division for any destination. When not in a
+' HOME division- the car is loaded only to return to a HOME destination.
+'
+'============================================================================
+
+'############################################################################
+'
+' These cars run between Slayton/Melcher/Hitop and Public Service of New Jersey
+'
+'       2 Melcher AND
+'       2 Slayton AND
+'       2 Hitop         --> w Dover             (mines ship to w.......)**
+'       w Dover         --> b Hitop   AND       (empties sent to 2b....)
+'                       --> 2 Slayton AND
+'                       --> 2 Melcher
+'                       
+'
+'       ** The Melcher and Slayton mines also ship retail coal east --
+'          to keep these cars together they use the FIXED ROUTE option.
+
+' RR        NUM      HOMEDIVS              LEN C W LTWT LDLMT S M F OWN D TRN N LOC DEST MOVS TRPS
+
+=,D&H      ,    4827,2w,                    35,1,1,  20,   70,E,N,Y,   ,Y,  1,2, 59,  59,   2,   0
+=,D&H      ,    5000,2w,                    35,1,1,  20,   70,E,N,Y,   ,Y,  2,2, 59,  59,   2,   0
+=,D&H      ,    5061,2w,                    35,1,1,  20,   70,E,N,Y,   ,N,  3,1, -1,  59,   1,   0
+=,D&H      ,    5200,2w,                    35,1,1,  20,   70,E,N,Y,   ,Y,  4,2, 59,  59,   2,   0
+=,D&H      ,    5299,2w,                    35,1,1,  20,   70,E,N,Y,   ,Y,  5,2, 59,  59,   2,   0
+=,D&H      ,    5370,2w,                    35,1,1,  20,   70,E,N,Y,   ,Y,  6,2, 59,  59,   2,   0
+=,D&H      ,    5374,2w,                    35,1,1,  20,   70,E,N,Y,   ,Y,  7,2, 59,  59,   2,   0
+
+=,D&H      ,    5463,2w,                    35,1,1,  20,   70,E,N,Y,   ,Y,  8,2, 59,  59,   2,   0
+=,D&H      ,    5491,2w,                    35,1,1,  20,   70,E,N,Y,   ,N,  9,1,  3,  59,   1,   0
+=,D&H      ,    5539,2w,                    35,1,1,  20,   70,E,N,Y,   ,N, 10,1,  3,  59,   1,   0
+=,D&H      ,    5541,2w,                    35,1,1,  20,   70,E,N,Y,   ,N, 11,2, 55,  55,   2,   0
+=,D&H      ,    5580,2w,                    35,1,1,  20,   70,E,N,Y,   ,N, 12,1,  3,  59,   1,   0
+=,D&H      ,    5585,2w,                    35,1,1,  20,   70,L,N,Y,   ,Y, 13,1,  2, 146,   1,   0
+=,D&H      ,    5586,2w,                    35,1,1,  20,   70,L,N,Y,   ,N, 14,1,  3, 146,   1,   0
+
+=,D&H      ,    5588,2w,                    35,1,1,  20,   70,L,N,Y,   ,Y, 15,1, -1, 146,   1,   0
+=,D&H      ,    5611,2w,                    35,1,1,  20,   70,L,N,Y,   ,N, 16,1,  3, 146,   1,   0
+=,D&H      ,    6028,2w,                    35,1,1,  20,   70,L,N,Y,   ,Y, 17,1,  2, 146,   1,   0
+=,D&H      ,    6037,2w,                    35,1,1,  20,   70,E,N,Y,   ,N, 18,2, 55,  55,   2,   0
+=,D&H      ,    6105,2w,                    35,1,1,  20,   70,E,N,Y,   ,N, 19,1,  3,  59,   1,   0
+=,D&H      ,    6107,2w,                    35,1,1,  20,   70,E,N,Y,   ,N, 20,2, 55,  55,   2,   0
+=,D&H      ,    6108,2w,                    35,1,1,  20,   70,E,N,Y,   ,N, 21,1,  3,  59,   1,   0
+
+=,D&H      ,    6109,2w,                    35,1,1,  20,   70,E,N,Y,   ,N, 22,2, 55,  55,   2,   0
+=,D&H      ,    6150,2w,                    35,1,1,  20,   70,E,N,Y,   ,N, 23,1,  3,  59,   1,   0
+=,D&H      ,    6195,2w,                    35,1,1,  20,   70,L,N,Y,   ,N, 24,1,  3, 146,   1,   0
+=,D&H      ,    6652,2w,                    35,1,1,  20,   70,E,N,Y,   ,N, 25,2, 55,  55,   2,   0
+
+=,D&H      ,    6279,2w,                    35,1,1,  20,   70,L,N,Y,   ,Y, 26,1,  2, 146,   1,   0
+=,D&H      ,    6279,2w,                    35,1,1,  20,   70,L,N,Y,   ,N,  0,1,  3, 146,   1,   0
+=,D&H      ,    6291,2w,                    35,1,1,  20,   70,L,N,Y,   ,Y,  0,1,  2, 146,   1,   0
+=,D&H      ,    6291,2w,                    35,1,1,  20,   70,L,N,Y,   ,N,  0,1,  3, 146,   1,   0
+
+=,D&H      ,    6417,bw,                    35,1,1,  20,   70,E,N,Y,   ,N,  0,1,  3, 112,   1,   0
+=,D&H      ,    6430,bw,                    35,1,1,  20,   70,E,N,Y,   ,N,  0,1,  3, 112,   1,   0
+=,D&H      ,    6431,bw,                    35,1,1,  20,   70,E,N,Y,   ,N,  0,1,  3, 112,   1,   0
+=,D&H      ,    6432,bw,                    35,1,1,  20,   70,E,N,Y,   ,N,  0,1,  3, 112,   1,   0
+
+=,D&H      ,    6432,bw,                    35,1,1,  20,   70,L,N,Y,   ,N,  0,0,112, 146,   0,   0
+=,D&H      ,    6433,bw,                    35,1,1,  20,   70,L,N,Y,   ,N,  0,0,112, 146,   0,   0
+=,D&H      ,    6652,bw,                    35,1,1,  20,   70,L,N,Y,   ,N,  0,0,112, 146,   0,   0
+=,D&H      ,    7000,bw,                    35,1,1,  20,   70,L,N,Y,   ,N,  0,0,112, 146,   0,   0
+
+'############################################################################
+'
+' These ore cars run between Port Dibble and Hurlin Steel
+'
+'       g Port Dibble   --> 2 Charleston        (port ships to 2.......)
+'       2 Charleston    --> g Port Dibble       (empties sent to g.....)
+
+' RR        NUM      HOMEDIVS              LEN C W LTWT LDLMT S M F OWN D TRN N LOC DEST MOVS TRPS
+
+],CW       ,   40219,g,                     40,1,1,  25,   90,L,N,N,   ,N,  0,1, 32,  32,   1,   0
+],CW       ,   40000,g,                     40,1,1,  25,   90,L,N,N,   ,N,  0,1, 32,  32,   1,   0
+],CW       ,   40000,g,                     40,1,1,  25,   90,L,N,N,   ,N,  0,1, 32,  32,   1,   0
+],CW       ,   40000,g,                     40,1,1,  25,   90,L,N,N,   ,N,  0,1, 32,  32,   1,   0
+],CW       ,   40000,g,                     40,1,1,  25,   90,L,N,N,   ,N,  0,1, 32,  32,   1,   0
+],CW       ,   40000,g,                     40,1,1,  25,   90,L,N,N,   ,N,  0,1, 32,  32,   1,   0
+],CW       ,   40000,g,                     40,1,1,  25,   90,L,N,N,   ,N,  0,1, 32,  32,   1,   0
+],CW       ,   40000,g,                     40,1,1,  25,   90,L,N,N,   ,N,  0,1, 32,  32,   1,   0
+],CW       ,   40000,g,                     40,1,1,  25,   90,L,N,N,   ,N,  0,1, 32,  32,   1,   0
+],CW       ,   40000,g,                     40,1,1,  25,   90,L,N,N,   ,N,  0,1, 32,  32,   1,   0
+],CW       ,   40000,g,                     40,1,1,  25,   90,L,N,N,   ,N,  0,1, 32,  32,   1,   0
+],CW       ,   40000,g,                     40,1,1,  25,   90,L,N,N,   ,N,  0,1, 32,  32,   1,   0
+],CW       ,   40000,g,                     40,1,1,  25,   90,L,N,N,   ,N,  0,1, 32,  32,   1,   0
+],CW       ,   40000,g,                     40,1,1,  25,   90,L,N,N,   ,N,  0,1, 32,  32,   1,   0
+],CW       ,   40000,g,                     40,1,1,  25,   90,L,N,N,   ,N,  0,1, 32,  32,   1,   0
+],CW       ,   40000,g,                     40,1,1,  25,   90,L,N,N,   ,N,  0,1, 32,  32,   1,   0
+],CW       ,   40000,g,                     40,1,1,  25,   90,L,N,N,   ,N,  0,1, 32,  32,   1,   0
+],CW       ,   40000,g,                     40,1,1,  25,   90,L,N,N,   ,N,  0,1, 32,  32,   1,   0
+],CW       ,   40000,g,                     40,1,1,  25,   90,L,N,N,   ,N,  0,1, 32,  32,   1,   0
+],CW       ,   40356,g,                     40,1,1,  25,   90,L,N,N,   ,N,  0,1, 32,  32,   1,   0
+
+'############################################################################
+'
+' These cars run between Hurlin Steel and Grafton
+'
+'       E Grafton       --> 2 Charleston        (mine ships to eh2.....)
+'       2 Charleston    --> E Grafton           (empties sent to E.....)
+
+' RR        NUM      HOMEDIVS              LEN C W LTWT LDLMT S M F OWN D TRN N LOC DEST MOVS TRPS
+
+\,GSCX     ,    3102,E2,                    50,2,3,  30,  130,E,N,Y,   ,N,  0,0,  3, 181,   0,   0
+\,GSCX     ,    3000,E2,                    50,2,3,  30,  130,E,N,Y,   ,N,  0,0,  3, 181,   0,   0
+\,GSCX     ,    313x,E2,                    50,2,3,  30,  130,E,N,Y,   ,N,  0,0,  3, 181,   0,   0
+\,GSCX     ,    3103,E2,                    50,2,3,  30,  130,E,N,Y,   ,N,  0,0,  3, 181,   0,   0
+\,GSCX     ,    5034,E2,                    50,2,3,  30,  130,E,N,Y,   ,N,  0,0,  3, 181,   0,   0
+\,GSCX     ,    5049,E2,                    50,2,3,  30,  130,E,N,Y,   ,N,  0,0,  3, 181,   0,   0
+\,GSCX     ,    5044,E2,                    50,2,3,  30,  130,E,N,Y,   ,N,  0,0,  3, 181,   0,   0
+\,GSCX     ,    5055,E2,                    50,2,3,  30,  130,E,N,Y,   ,N,  0,0,  3, 181,   0,   0
+\,GSCX     ,    5066,E2,                    50,2,3,  30,  130,E,N,Y,   ,N,  0,0,  3, 181,   0,   0
+\,GSCX     ,    5131,E2,                    50,2,3,  30,  130,E,N,Y,   ,N,  0,0,  3, 181,   0,   0
+\,GSCX     ,    5132,E2,                    50,2,3,  30,  130,E,N,Y,   ,N,  0,0,  3, 181,   0,   0
+\,GSCX     ,    5133,E2,                    50,2,3,  30,  130,E,N,Y,   ,N,  0,0,  3, 181,   0,   0
+
+\,GSCX     ,    5134,E2,                    50,2,3,  30,  130,L,N,Y,   ,N,  0,3, 33,  33,   3,   0
+\,GSCX     ,    5136,E2,                    50,2,3,  30,  130,L,N,Y,   ,N,  0,1, -1,  33,   1,   0
+\,GSCX     ,    5148,E2,                    50,2,3,  30,  130,L,N,Y,   ,N,  0,3, 33,  33,   3,   0
+\,GSCX     ,    7011,E2,                    50,2,3,  30,  130,L,N,Y,   ,N,  0,3, 33,  33,   3,   0
+\,GSCX     ,    7037,E2,                    50,2,3,  30,  130,L,N,Y,   ,N,  0,3, 33,  33,   3,   0
+\,GSCX     ,    7044,E2,                    50,2,3,  30,  130,L,N,Y,   ,N,  0,3, 33,  33,   3,   0
+\,GSCX     ,    7078,E2,                    50,2,3,  30,  130,L,N,Y,   ,N,  0,3, 33,  33,   3,   0
+\,GSCX     ,    7088,E2,                    50,2,3,  30,  130,L,N,Y,   ,N,  0,3, 33,  33,   3,   0
+\,GSCX     ,    7100,E2,                    50,2,3,  30,  130,L,N,Y,   ,N,  0,3, 33,  33,   3,   0
+\,GSCX     ,    7112,E2,                    50,2,3,  30,  130,L,N,Y,   ,N,  0,3, 33,  33,   3,   0
+\,GSCX     ,    7122,E2,                    50,2,3,  30,  130,L,N,Y,   ,N,  0,3, 33,  33,   3,   0
+\,GSCX     ,    7133,E2,                    50,2,3,  30,  130,L,N,Y,   ,N,  0,3, 33,  33,   3,   0
+
+'############################################################################
+'
+' These cars are loaded -- Elkins to Gap- SMC to Port Clinton
+'
+'       D Elkins        --> e GAP               (mine ships to eh......)
+' *MIR* e Gap           --> f SMC
+'       f SMC           --> i Port Clinton      (mine ships to agijk...)
+' *MIR* i Port Clinton  --> D Elkins
+
+' RR        NUM      HOMEDIVS              LEN C W LTWT LDLMT S M F OWN D TRN N LOC DEST MOVS TRPS
+
+;,ATSF     ,   85861,eifD,                  50,1,3,  30,  130,L,Y,Y,   ,N,  0,1,  2,  95,   1,   0
+;,ATSF     ,   85854,eifD,                  50,1,3,  30,  130,L,Y,Y,   ,N,  0,1,  2,  95,   1,   0
+;,ATSF     ,   85853,eifD,                  50,1,3,  30,  130,L,Y,Y,   ,N,  0,1,  2,  95,   1,   0
+;,ATSF     ,   85858,eifD,                  50,1,3,  30,  130,L,Y,Y,   ,N,  0,1,  2,  95,   1,   0
+;,ATSF     ,   85850,eifD,                  50,1,3,  30,  130,L,Y,Y,   ,N,  0,1,  2,  95,   1,   0
+
+`,B&O      ,   12783,eifD,                  35,1,1,  20,   70,L,Y,Y,   ,N,  0,1,  2,  95,   1,   0
+`,B&O      ,   12000,eifD,                  35,1,1,  20,   70,L,Y,Y,   ,N,  0,1,  2,  95,   1,   0
+`,B&O      ,   12000,eifD,                  35,1,1,  20,   70,L,Y,Y,   ,N,  0,1,  2,  95,   1,   0
+`,B&O      ,   12000,eifD,                  35,1,1,  20,   70,L,Y,Y,   ,N,  0,1,  2,  95,   1,   0
+`,B&O      ,   12000,eifD,                  35,1,1,  20,   70,L,Y,Y,   ,N,  0,1,  2,  95,   1,   0
+
+' These cars are empty -- Gap to Elkins- Port Clinton to SMC
+'
+'       e Gap           --> D Elkins            (empties sent to DEb69.)
+' *MIR* D Elkins        --> i Port Clinton
+'       i Port Clinton  --> f SMC               (empties sent to f.....)
+' *MIR* f SMC           --> e Gap
+
+' RR        NUM      HOMEDIVS              LEN C W LTWT LDLMT S M F OWN D TRN N LOC DEST MOVS TRPS
+
+`,ATSF     ,  180517,eifD,                  35,1,1,  20,   70,E,Y,Y,   ,N,  0,1,106, 106,   1,   0
+`,LV       ,   14002,eifD,                  35,1,1,  20,   70,E,Y,Y,   ,N,  0,1,106, 106,   1,   0
+`,DL&W     ,   86971,eifD,                  35,1,1,  20,   70,E,Y,Y,   ,N,  0,1,106, 106,   1,   0
+`,LV       ,   1400x,eifD,                  35,1,1,  20,   70,E,Y,Y,   ,N,  0,1,106, 106,   1,   0
+`,D&H      ,    5660,eifD,                  35,1,1,  20,   70,E,Y,Y,   ,N,  0,1,106, 106,   1,   0
+`,ATSF     ,  180892,eifD,                  35,1,1,  20,   70,E,Y,Y,   ,N,  0,1,106, 106,   1,   0
+
+`,ERIE     ,   38191,eifD,                  35,1,1,  20,   70,E,Y,Y,   ,N,  0,1,106, 106,   1,   0
+`,ERIE     ,   38000,eifD,                  35,1,1,  20,   70,E,Y,Y,   ,N,  0,1,106, 106,   1,   0
+`,ERIE     ,   38000,eifD,                  35,1,1,  20,   70,E,Y,Y,   ,N,  0,1,106, 106,   1,   0
+`,ERIE     ,   38000,eifD,                  35,1,1,  20,   70,E,Y,Y,   ,N,  0,1,106, 106,   1,   0
+`,ERIE     ,   38000,eifD,                  35,1,1,  20,   70,E,Y,Y,   ,N,  0,1,106, 106,   1,   0
+
+'############################################################################
+'
+' These cars are loaded -- Grafton to Gap- SMC to Port Dibble
+'
+'       E Grafton       --> e Gap               (mine ships to eh2.....)
+' *MIR* e Gap           --> f SMC
+'       f SMC           --> g Port Dibble       (mine ships to agijk...)
+' *MIR* g Port Dibble   --> E Grafton
+
+' RR        NUM      HOMEDIVS              LEN C W LTWT LDLMT S M F OWN D TRN N LOC DEST MOVS TRPS
+
+_,ATSF     ,  178447,egfE,                  40,1,2,  20,   90,L,Y,Y,   ,Y,  0,1,138, 138,   1,   0
+_,ATSF     ,  178580,egfE,                  40,1,2,  20,   90,L,Y,Y,   ,Y,  0,1,138, 138,   1,   0
+_,ATSF     ,  178666,egfE,                  40,1,2,  20,   90,L,Y,Y,   ,Y,  0,1,138, 138,   1,   0
+_,ATSF     ,  178447,egfE,                  40,1,2,  20,   90,L,Y,Y,   ,Y,  0,1,138, 138,   1,   0
+_,ATSF     ,  178589,egfE,                  40,1,2,  20,   90,L,Y,Y,   ,Y,  0,1,138, 138,   1,   0
+_,ATSF     ,  178662,egfE,                  40,1,2,  20,   90,L,Y,Y,   ,Y,  0,1,138, 138,   1,   0
+
+' These cars are empty -- Gap to Grafton- Port Dibble to SMC
+
+'       e Gap           --> E Grafton           (empties sent to DEb69.)
+' *MIR* E Grafton       --> g Port Dibble
+'       g Port Dibble   --> f SMC               (empties sent to f.....)
+' *MIR* f SMC           --> e Gap
+
+' RR        NUM      HOMEDIVS              LEN C W LTWT LDLMT S M F OWN D TRN N LOC DEST MOVS TRPS
+
+_,CW       ,   35495,egfE,                  50,2,3,  30,  130,E,Y,Y,   ,N,  0,0,138, 106,   0,   0
+_,CW       ,   35000,egfE,                  50,2,3,  30,  130,E,Y,Y,   ,N,  0,0,138, 106,   0,   0
+_,CW       ,   35000,egfE,                  50,2,3,  30,  130,E,Y,Y,   ,N,  0,0,138, 106,   0,   0
+_,CW       ,   35000,egfE,                  50,2,3,  30,  130,E,Y,Y,   ,N,  0,0,138, 106,   0,   0
+_,CW       ,   35000,egfE,                  50,2,3,  30,  130,E,Y,Y,   ,N,  0,0,138, 106,   0,   0
+_,CW       ,   35499,egfE,                  50,2,3,  30,  130,E,Y,Y,   ,N,  0,0,138, 106,   0,   0
+
+_,CW       ,   35276,egfE,                  50,2,3,  30,  130,E,Y,Y,   ,N,  0,1,106, 106,   1,   0
+_,CW       ,   35304,egfE,                  50,2,3,  30,  130,E,Y,Y,   ,N,  0,1,106, 106,   1,   0
+_,CW       ,   35335,egfE,                  50,2,3,  30,  130,E,Y,Y,   ,N,  0,1,106, 106,   1,   0
+_,CW       ,   35336,egfE,                  50,2,3,  30,  130,E,Y,Y,   ,N,  0,1,106, 106,   1,   0
+_,CW       ,   35478,egfE,                  50,2,3,  30,  130,E,Y,Y,   ,N,  0,1,106, 106,   1,   0
+_,CW       ,   35479,egfE,                  50,2,3,  30,  130,E,Y,Y,   ,N,  0,1,106, 106,   1,   0
+_,CW       ,   35498,egfE,                  50,2,3,  30,  130,E,Y,Y,   ,N,  0,1,106, 106,   1,   0
+
+'############################################################################
+'
+' These cars run between Port Dibble and Grafton
+'
+'       E Grafton       --> h Port Dibble       (mine ships to eh2.....)
+'       h Port Dibble   --> E Grafton           (empties sent to DE9...)
+
+' RR        NUM      HOMEDIVS              LEN C W LTWT LDLMT S M F OWN D TRN N LOC DEST MOVS TRPS
+
+`,DL&W     ,   85420,Eh,                    35,1,1,  20,   70,L,N,Y,   ,Y,  0,2,139, 139,   2,   0
+`,DL&W     ,   85438,Eh,                    35,1,1,  20,   70,L,N,Y,   ,N,  0,1, -1, 139,   1,   0
+`,DL&W     ,   85453,Eh,                    35,1,1,  20,   70,L,N,Y,   ,Y,  0,2,139, 139,   2,   0
+`,DL&W     ,   85499,Eh,                    35,1,1,  20,   70,L,N,Y,   ,Y,  0,2,139, 139,   2,   0
+`,DL&W     ,   86686,Eh,                    35,1,1,  20,   70,L,N,Y,   ,Y,  0,2,139, 139,   2,   0
+_,CR       ,  431182,Eh,                    40,1,2,  20,   90,L,N,Y,   ,Y,  0,2,139, 139,   2,   0
+_,CR       ,  431182,Eh,                    40,1,2,  20,   90,L,N,Y,   ,Y,  0,2,139, 139,   2,   0
+_,CR       ,  431182,Eh,                    40,1,2,  20,   90,L,N,Y,   ,Y,  0,2,139, 139,   2,   0
+_,CR       ,  431182,Eh,                    40,1,2,  20,   90,L,N,Y,   ,Y,  0,2,139, 139,   2,   0
+_,CR       ,  431182,Eh,                    40,1,2,  20,   90,L,N,Y,   ,Y,  0,2,139, 139,   2,   0
+
+`,IC       ,   85867,Eh,                    35,1,1,  20,   70,L,N,Y,   ,Y,  0,2,139, 139,   2,   0
+`,VGN      ,    2000,Eh,                    35,1,1,  20,   70,L,N,Y,   ,Y,  0,2,139, 139,   2,   0
+`,VGN      ,    2000,Eh,                    35,1,1,  20,   70,L,N,Y,   ,Y,  0,2,139, 139,   2,   0
+`,VGN      ,    2000,Eh,                    35,1,1,  20,   70,L,N,Y,   ,Y,  0,2,139, 139,   2,   0
+`,VGN      ,    2000,Eh,                    35,1,1,  20,   70,L,N,Y,   ,Y,  0,2,139, 139,   2,   0
+`,VGN      ,    2000,Eh,                    35,1,1,  20,   70,L,N,Y,   ,Y,  0,2,139, 139,   2,   0
+`,VGN      ,    2000,Eh,                    35,1,1,  20,   70,L,N,Y,   ,Y,  0,2,139, 139,   2,   0
+`,VGN      ,    2000,Eh,                    35,1,1,  20,   70,L,N,Y,   ,Y,  0,2,139, 139,   2,   0
+`,VGN      ,    2000,Eh,                    35,1,1,  20,   70,L,N,Y,   ,Y,  0,2,139, 139,   2,   0
+`,VGN      ,    2610,Eh,                    35,1,1,  20,   70,L,N,Y,   ,Y,  0,2,139, 139,   2,   0
+
+'############################################################################
+'
+' These cars run between Port Dibble and Huntington
+'
+'       9 Huntington    --> h Port Dibble       (mine ships to eh......)
+'       h Port Dibble   --> 9 Huntington        (empties sent to DE9...)
+
+' RR        NUM      HOMEDIVS              LEN C W LTWT LDLMT S M F OWN D TRN N LOC DEST MOVS TRPS
+
+{,UP       ,   44710,9h,                    50,1,3,  30,  130,L,N,Y,   ,Y,  0,1,139, 139,   1,   0
+{,UP       ,   44794,9h,                    50,1,3,  30,  130,L,N,Y,   ,Y,  0,1,139, 139,   1,   0
+{,UP       ,   44955,9h,                    50,1,3,  30,  130,L,N,Y,   ,Y,  0,1,139, 139,   1,   0
+{,UP       ,   45383,9h,                    50,1,3,  30,  130,L,N,Y,   ,Y,  0,1,139, 139,   1,   0
+{,UP       ,   44587,9h,                    50,1,3,  30,  130,L,N,Y,   ,Y,  0,1,139, 139,   1,   0
+{,UP       ,   45802,9h,                    50,1,3,  30,  130,L,N,Y,   ,Y,  0,1,139, 139,   1,   0
+
+'############################################################################
+'
+' These cars are loaded -- Elkins to Port Dibble
+'
+'       D Elkins        --> h Port Dibble       (mine ships to eh......)
+' *MIR* h Port Dibble   --> D Elkins            (empties sent to DE9...)  next 180->139
+
+' RR        NUM      HOMEDIVS              LEN C W LTWT LDLMT S M F OWN D TRN N LOC DEST MOVS TRPS
+
+_,ATSF     ,  178589,hD,                    40,1,2,  20,   90,L,Y,Y,   ,Y,  0,2,139, 139,   2,   0
+_,ATSF     ,  178000,hD,                    40,1,2,  20,   90,L,Y,Y,   ,Y,  0,2,139, 139,   2,   0
+_,ATSF     ,  178000,hD,                    40,1,2,  20,   90,L,Y,Y,   ,Y,  0,2,139, 139,   2,   0
+_,ATSF     ,  178000,hD,                    40,1,2,  20,   90,L,Y,Y,   ,Y,  0,2,139, 139,   2,   0
+_,ATSF     ,  178000,hD,                    40,1,2,  20,   90,L,Y,Y,   ,Y,  0,2,139, 139,   2,   0
+_,ATSF     ,  178000,hD,                    40,1,2,  20,   90,L,Y,Y,   ,Y,  0,2,139, 139,   2,   0
+_,ATSF     ,  178000,hD,                    40,1,2,  20,   90,L,Y,Y,   ,Y,  0,2,139, 139,   2,   0
+_,ATSF     ,  178000,hD,                    40,1,2,  20,   90,L,Y,Y,   ,Y,  0,2,139, 139,   2,   0
+_,ATSF     ,  178000,hD,                    40,1,2,  20,   90,L,Y,Y,   ,Y,  0,2,139, 139,   2,   0
+
+' These cars are empty -- Port Dibble to Elkins
+'
+'       h Port Dibble   --> D Elkins            (empties sent to DE9...)
+' *MIR* D Elkins        --> h Port Dibble       (mine ships to eh......)  next 139->180
+
+`,ERIE     ,   26237,Dh,                    35,1,1,  20,   70,L,Y,Y,   ,Y,  0,2,139, 139,   2,   0
+`,ERIE     ,   26237,Dh,                    35,1,1,  20,   70,L,Y,Y,   ,Y,  0,2,139, 139,   2,   0
+`,ERIE     ,   26237,Dh,                    35,1,1,  20,   70,L,Y,Y,   ,Y,  0,2,139, 139,   2,   0
+`,ERIE     ,   26237,Dh,                    35,1,1,  20,   70,L,Y,Y,   ,Y,  0,2,139, 139,   2,   0
+`,NYSW     ,    5423,Dh,                    35,1,1,  20,   70,L,Y,Y,   ,Y,  0,2,139, 139,   2,   0
+`,NYSW     ,    5000,Dh,                    35,1,1,  20,   70,L,Y,Y,   ,Y,  0,2,139, 139,   2,   0
+`,NYSW     ,    5000,Dh,                    35,1,1,  20,   70,L,Y,Y,   ,Y,  0,2,139, 139,   2,   0
+`,NYSW     ,    5000,Dh,                    35,1,1,  20,   70,L,Y,Y,   ,Y,  0,2,139, 139,   2,   0
+`,NYSW     ,    5000,Dh,                    35,1,1,  20,   70,L,Y,Y,   ,Y,  0,2,139, 139,   2,   0
+
+'############################################################################
+'
+' These cars are loaded -- SMC to Waynesboro- Bruceton to Gap
+'
+'       6 Bruceton      --> e Gap               (mine ships to e.......)
+' *MIR* e Gap           --> f SMC
+'       f SMC           --> z Waynesboro        (mine ships to zgijk...)
+' *MIR* a Waynesboro    --> 6 Bruceton
+
+' RR        NUM      HOMEDIVS              LEN C W LTWT LDLMT S M F OWN D TRN N LOC DEST MOVS TRPS
+
+{,ATSF     ,  183068,ezf6,                  40,1,2,  20,   90,L,Y,Y,   ,N,  0,1,105, 105,   1,   0
+{,ATSF     ,  183000,ezf6,                  40,1,2,  20,   90,L,Y,Y,   ,N,  0,1,105, 105,   1,   0
+{,ATSF     ,  183000,ezf6,                  40,1,2,  20,   90,L,Y,Y,   ,N,  0,1,105, 105,   1,   0
+{,ATSF     ,  183000,ezf6,                  40,1,2,  20,   90,L,Y,Y,   ,N,  0,1,105, 105,   1,   0
+
+_,CN       ,  322660,ezf6,                  40,1,2,  20,   90,L,Y,Y,   ,N,  0,1,105, 105,   1,   0
+_,CN       ,  322660,ezf6,                  40,1,2,  20,   90,L,Y,Y,   ,N,  0,1,105, 105,   1,   0
+_,CN       ,  322660,ezf6,                  40,1,2,  20,   90,L,Y,Y,   ,N,  0,1,105, 105,   1,   0
+_,N&W      ,   38876,ezf6,                  40,1,2,  20,   90,L,Y,Y,   ,N,  0,1,105, 105,   1,   0
+_,CR       ,  131182,ezf6,                  40,1,2,  20,   90,L,Y,Y,   ,N,  0,1,105, 105,   1,   0
+_,CR       ,  131182,ezf6,                  40,1,2,  20,   90,L,Y,Y,   ,N,  0,1,105, 105,   1,   0
+_,CR       ,  131182,ezf6,                  40,1,2,  20,   90,L,Y,Y,   ,N,  0,1,105, 105,   1,   0
+_,B&O      ,  435004,ezf6,                  40,1,2,  20,   90,L,Y,Y,   ,N,  0,1,105, 105,   1,   0
+_,C&O      ,   10886,ezf6,                  40,1,2,  20,   90,L,Y,Y,   ,N,  0,1,105, 105,   1,   0
+_,ATSF     ,  182068,ezf6,                  40,1,2,  20,   90,L,Y,Y,   ,N,  0,1,105, 105,   1,   0
+
+_,WM       ,    1596,ezf6,                  40,1,2,  20,   90,L,Y,Y,   ,N,  0,1,105, 105,   1,   0
+_,WM       ,    1596,ezf6,                  40,1,2,  20,   90,L,Y,Y,   ,N,  0,1,105, 105,   1,   0
+_,WM       ,    1596,ezf6,                  40,1,2,  20,   90,L,Y,Y,   ,N,  0,1,105, 105,   1,   0
+_,WM       ,    0000,ezf6,                  40,1,2,  20,   90,L,Y,Y,   ,N,  0,1,105, 105,   1,   0
+_,WM       ,   17880,ezf6,                  40,1,2,  20,   90,L,Y,Y,   ,N,  0,1,105, 105,   1,   0
+_,WM       ,   17880,ezf6,                  40,1,2,  20,   90,L,Y,Y,   ,N,  0,1,105, 105,   1,   0
+
+' These cars are empty -- Gap to Bruceton- Waynesboro to SMC
+'
+'       e Gap           --> 6 Bruceton          (empties sent to DEb69.)
+' *MIR* 6 Bruceton      --> a Waynesboro
+'       a Waynesboro    --> f SMC               (empties sent to f.....)
+' *MIR* f SMC           --> e Gap
+
+`,DEEX     ,      14,eaf6,                  50,2,3,  30,  130,E,Y,Y,   ,N,  0,0, 95, 109,   0,   0
+`,DEEX     ,      xx,eaf6,                  50,2,3,  30,  130,E,Y,Y,   ,N,  0,0, 95, 109,   0,   0
+`,DEEX     ,      xx,eaf6,                  50,2,3,  30,  130,E,Y,Y,   ,N,  0,0, 95, 109,   0,   0
+`,DEEX     ,      xx,eaf6,                  50,2,3,  30,  130,E,Y,Y,   ,N,  0,0, 95, 109,   0,   0
+
+\,GSCX     ,     130,eaf6,                  50,2,3,  30,  130,E,Y,Y,   ,N,  0,1,109, 109,   1,   0
+\,GSCX     ,     1xx,eaf6,                  50,2,3,  30,  130,E,Y,Y,   ,N,  0,1,109, 109,   1,   0
+\,GSCX     ,     1xx,eaf6,                  50,2,3,  30,  130,E,Y,Y,   ,N,  0,1,109, 109,   1,   0
+\,GSCX     ,     1xx,eaf6,                  50,2,3,  30,  130,E,Y,Y,   ,N,  0,1,109, 109,   1,   0
+
+_,EL       ,   31742,eaf6,                  40,1,2,  20,   90,E,Y,Y,   ,N,  0,1,109, 109,   1,   0
+_,EL       ,   32100,eaf6,                  40,1,2,  20,   90,E,Y,Y,   ,N,  0,1,109, 109,   1,   0
+_,EL       ,   32146,eaf6,                  40,1,2,  20,   90,E,Y,Y,   ,N,  0,1,109, 109,   1,   0
+_,EL       ,   32455,eaf6,                  40,1,2,  20,   90,E,Y,Y,   ,N,  0,1,109, 109,   1,   0
+_,EL       ,   32500,eaf6,                  40,1,2,  20,   90,E,Y,Y,   ,N,  0,1,109, 109,   1,   0
+_,EL       ,   32564,eaf6,                  40,1,2,  20,   90,E,Y,Y,   ,N,  0,1,109, 109,   1,   0
+_,EL       ,   32600,eaf6,                  40,1,2,  20,   90,E,Y,Y,   ,N,  0,1,109, 109,   1,   0
+
+_,NKP      ,   80091,eaf6,                  40,1,2,  20,   90,E,Y,Y,   ,N,  0,0, 95, 109,   0,   0
+_,NKP      ,   80096,eaf6,                  40,1,2,  20,   90,E,Y,Y,   ,N,  0,0, 95, 109,   0,   0
+_,NKP      ,   80100,eaf6,                  40,1,2,  20,   90,E,Y,Y,   ,N,  0,0, 95, 109,   0,   0
+_,WM       ,    1596,eaf6,                  40,1,2,  20,   90,E,Y,Y,   ,N,  0,0, 95, 109,   0,   0
+_,WM       ,    1596,eaf6,                  40,1,2,  20,   90,E,Y,Y,   ,N,  0,0, 95, 109,   0,   0
+_,WM       ,    0000,eaf6,                  40,1,2,  20,   90,E,Y,Y,   ,N,  0,0, 95, 109,   0,   0
+_,WM       ,    0000,eaf6,                  40,1,2,  20,   90,E,Y,Y,   ,N,  0,0, 95, 109,   0,   0
+_,C&O      ,  108871,eaf6,                  40,1,2,  20,   90,E,Y,Y,   ,N,  0,0, 95, 109,   0,   0
+
+'############################################################################
+'
+' These cars are loaded -- Huntington to Gap- SMC to Port Clinton
+'
+'       9 Huntington    --> e Gap               (mine ships to eh......)
+' *MIR* e Gap           --> f SMC
+'       f SMC           --> j Port Clinton      (mine ships to agijk...)
+' *MIR* j Port Clinton  --> 9 Huntington
+
+' RR        NUM      HOMEDIVS              LEN C W LTWT LDLMT S M F OWN D TRN N LOC DEST MOVS TRPS
+
+_,B&M      ,   71714,9fej,                  40,1,2,  20,   90,L,Y,Y,   ,Y,  0,1, -1,  95,   1,   0
+_,B&O      ,   12783,9fej,                  40,1,2,  20,   90,L,Y,Y,   ,Y,  0,1,  2,  95,   1,   0
+_,B&O      ,   12783,9fej,                  40,1,2,  20,   90,L,Y,Y,   ,Y,  0,1,  2,  95,   1,   0
+_,B&O      ,   12783,9fej,                  40,1,2,  20,   90,L,Y,Y,   ,Y,  0,1,  2,  95,   1,   0
+_,B&O      ,   12783,9fej,                  40,1,2,  20,   90,L,Y,Y,   ,Y,  0,1,  2,  95,   1,   0
+_,B&O      ,   12783,9fej,                  40,1,2,  20,   90,L,Y,Y,   ,Y,  0,1,  2,  95,   1,   0
+_,LV       ,   12908,9fej,                  40,1,2,  20,   90,L,Y,Y,   ,Y,  0,1,  2,  95,   1,   0
+
+' These cars are empty -- Port Clinton to SMC- Gap to Huntington
+'
+'       i Port Clinton  --> f SMC               (empties sent to f.....)
+' *MIR* f SMC           --> e Gap
+'       e Gap           --> 9 Huntington        (empties sent to DEb69.)
+' *MIR* 9 Huntington    --> i Port Clinton
+
+`,NKP      ,   80090,9fej,                  35,1,1,  20,   70,E,Y,Y,   ,N,  0,1,269, 269,   1,   0
+`,NKP      ,   80000,9fej,                  35,1,1,  20,   70,E,Y,Y,   ,N,  0,1,269, 269,   1,   0
+`,NKP      ,   80000,9fej,                  35,1,1,  20,   70,E,Y,Y,   ,N,  0,1,269, 269,   1,   0
+`,NKP      ,   80000,9fej,                  35,1,1,  20,   70,E,Y,Y,   ,N,  0,1,269, 269,   1,   0
+`,NKP      ,   80000,9fej,                  35,1,1,  20,   70,E,Y,Y,   ,N,  0,1,269, 269,   1,   0
+`,NKP      ,   80000,9fej,                  35,1,1,  20,   70,E,Y,Y,   ,N,  0,1,269, 269,   1,   0
+`,NKP      ,   80094,9fej,                  35,1,1,  20,   70,E,Y,Y,   ,N,  0,1,269, 269,   1,   0
+
+'############################################################################
+'
+' These cars are loaded -- SMC to Port Clinton- Hitop to Gap
+'
+'       b Hitop         --> e Gap               (mine ships to e.......)
+' *MIR* e Gap           --> f SMC
+'       f SMC           --> k Port Clinton      (mine ships to agijk...)
+' *MIR* k Port Clinton  --> b Hitop
+
+`,D&H      ,    4827,befk,                  35,1,1,  20,   70,L,Y,Y,   ,Y,  0,1,  2,  95,   1,   0
+`,D&H      ,    4000,befk,                  35,1,1,  20,   70,L,Y,Y,   ,Y,  0,1,  2,  95,   1,   0
+`,D&H      ,    5000,befk,                  35,1,1,  20,   70,L,Y,Y,   ,Y,  0,1,  2,  95,   1,   0
+`,D&H      ,    5611,befk,                  35,1,1,  20,   70,L,Y,Y,   ,Y,  0,1,  2,  95,   1,   0
+
+' These cars are empty -- Port Clinton to SMC- Gap to Hitop
+'
+'       e Gap           --> b Hitop             (empties sent to DEb69.)
+' *MIR* b Hitop         --> i Port Clinton
+'       i Port Clinton  --> f SMC               (empties sent to f.....)
+' *MIR* f SMC           --> e Gap
+
+' RR        NUM      HOMEDIVS              LEN C W LTWT LDLMT S M F OWN D TRN N LOC DEST MOVS TRPS
+
+`,D&H      ,     123,befk,                  35,1,1,  20,   70,E,Y,Y,   ,N,  0,1,  3, 112,   1,   0
+`,D&H      ,     124,befk,                  35,1,1,  20,   70,E,Y,Y,   ,N,  0,1,  3, 112,   1,   0
+`,D&H      ,    5370,befk,                  35,1,1,  20,   70,E,Y,Y,   ,N,  0,1,  3, 112,   1,   0
+`,undec    ,    0000,befk,                  35,1,1,  20,   70,E,Y,Y,   ,N,  0,1,  3, 112,   1,   0
+
+`,undec    ,    0000,befk,                  35,1,1,  20,   70,E,Y,Y,   ,N,  0,1,106, 106,   1,   0
+`,undec    ,    0000,befk,                  35,1,1,  20,   70,E,Y,Y,   ,N,  0,1,106, 106,   1,   0
+`,D&H      ,    5504,befk,                  35,1,1,  20,   70,E,Y,Y,   ,N,  0,1,106, 106,   1,   0
+`,D&H      ,    5564,befk,                  35,1,1,  20,   70,E,Y,Y,   ,N,  0,1,106, 106,   1,   0
+
+'############################################################################
+'
+'
+'               And Now For General Service Freight Cars
+'
+'
+'############################################################################
+
+' RR        NUM      HOMEDIVS              LEN C W LTWT LDLMT S M F OWN D TRN N LOC DEST MOVS TRPS
+
+V,ACFX     ,   27052,,                      55,2,3,  30,  130,L,N,N,   ,N,  0,0, 11,  98,   0,   0
+V,ACFX     ,   27058,,                      55,2,3,  30,  130,L,N,N,   ,N,  0,0, 10, 222,   0,   0
+T,ACFX     ,   48907,,                      55,2,3,  30,  130,L,N,N,   ,N,  0,0, 10,  98,   0,   0
+!,ATSF     ,   11074,nopqNOPQRS,            50,1,2,  30,   80,L,N,N,   ,N,  0,0, 10, 222,   0,   0
+*,ATSF     ,   12456,NOPQRSnopqrst,         50,1,1,  30,   70,L,N,N,   ,N,  0,2,102, 102,   2,   0
+u,ATSF     ,   91906,nopqNOPQRSTUV9,        50,2,3,  30,  130,L,N,N,   ,N,  0,0, 10, 220,   0,   0
+T,ATSF     ,  300437,NOPQRSnopqrst2,        50,1,2,  30,  100,L,N,N,   ,N,  0,0, 10, 222,   0,   0
+U,ATSF     ,  309693,NOPQRSnopqrst,         50,2,3,  30,  130,L,N,N,   ,N,  0,0, 10, 268,   0,   0
+K,AW       ,    3003,rst97HIJKACa,          40,1,1,  35,   65,L,N,N,   ,N,  0,0,  9, 260,   0,   0
+k,B&M      ,    9076,uvxB0,                 50,2,3,  30,  100,E,N,N,   ,N,  0,0, 91, 140,   0,   0
+#,B&M      ,   73020,0uvxB,                 50,1,2,  30,   80,L,N,N,   ,N,  0,1,  3, 141,   1,   0
+/,B&M      ,   75446,0uvxB,                 40,1,1,  20,   60,L,N,N,   ,N,  0,0,  3, 150,   0,   0
+9,B&O      ,  471100,STUVrswu0,             50,1,2,  30,   80,L,N,N,LBX,N,  0,2,  9, 259,   2,   0
+5,B&O      ,  481214,STUVrswu0,             50,1,2,  30,   80,L,N,N,LBX,N,  0,0, 10, 222,   0,   0
+5,B&O      ,  481214,STUVrswu0,             50,1,2,  30,   80,L,N,N,LBX,N,  0,1, 70,  70,   1,   0
+5,B&O      ,  481214,STUVrswu0,             50,1,2,  30,   80,E,N,N,   ,N,  0,1,  2, 147,   1,   0
+N,BAR      ,      98,vx,                    60,2,2,  45,  100,E,N,N,   ,N,  0,1,143, 143,   1,   0
+!,BAR      ,    7564,vx,                    40,1,1,  25,   60,L,N,N,   ,N,  0,1,  3, 141,   1,   0
+N,BREX     ,     142,NOPQRSnopqrU,          50,1,2,  40,   90,L,N,N,   ,N,  0,1,102, 102,   1,   0
+N,BRMX     ,    5237,NOPQRSTUnopqrst9,      50,1,2,  40,   90,L,N,N,   ,N,  0,1,221, 221,   1,   0
+/,C&H      ,    3343,4570uvx,               40,1,1,  20,   40,E,N,N,   ,N,  0,0,  9, 144,   0,   0
+/,CLE      ,    2037,,                      50,1,2,  30,   80,L,N,N,   ,N,  0,1,  3, 222,   1,   0
+4,CLE      ,   60683,,                      50,1,2,  30,   90,L,N,N,   ,N,  0,1,111, 111,   1,   0
+4,CLE      ,   60690,,                      50,1,2,  30,   90,E,N,N,   ,N,  0,1, -1,  99,   1,   0
+4,CLE      ,   60719,,                      50,1,2,  30,   90,E,N,N,   ,N,  0,1, -1,  99,   1,   0
+1,CLE      ,   68600,,                      50,1,2,  30,   90,E,N,N,   ,N,  0,1, 78,  78,   1,   0
+1,CLE      ,   68613,,                      50,1,2,  30,   90,L,N,N,   ,N,  0,0,  2,  62,   0,   0
+1,CLE      ,   68638,,                      50,1,2,  30,   90,L,N,N,   ,N,  0,0,  2,  65,   0,   0
+1,CLE      ,   68646,,                      50,1,2,  30,   90,L,N,N,   ,N,  0,1,  2, 102,   1,   0
+1,CLE      ,   68649,,                      50,1,2,  30,   90,L,N,N,   ,N,  0,1, -1, 150,   1,   0
+1,CLE      ,   68652,,                      50,1,2,  30,   90,E,N,N,   ,N,  0,1,  2,  68,   1,   0
+2,CLE      ,   68653,,                      50,1,2,  30,   90,L,N,N,   ,N,  0,0,  2,  91,   0,   0
+0,CLE      ,   68804,,                      50,1,2,  30,   90,E,N,N,   ,N,  0,1,  3, 222,   1,   0
+0,CLE      ,   68811,,                      50,1,2,  30,   90,E,N,N,   ,N,  0,0,  6, 222,   0,   0
+0,CLE      ,   68815,,                      50,1,2,  30,   90,E,N,N,   ,N,  0,1,222, 222,   1,   0
+0,CLE      ,   68816,,                      50,1,2,  30,   90,L,N,N,   ,N,  0,2,  9, 259,   2,   0
+2,CLE      ,   68820,,                      50,1,2,  30,   90,L,N,N,   ,N,  0,1,  2, 102,   1,   0
+2,CLE      ,   68890,,                      50,1,2,  30,   90,L,N,N,   ,N,  0,1, 83,  83,   1,   0
+h,CGW      ,     278,NOPQRSnop,             50,1,2,  40,  100,L,N,N,   ,N,  0,0, 11, 222,   0,   0
+!,CHV      ,    1060,,                      40,1,1,  20,   70,L,N,N,   ,N,  0,0,  9, 260,   0,   0
+K,CM       ,   25003,,                      40,1,1,  25,   60,E,N,N,   ,N,  0,0,  2,  74,   0,   0
+$,CN       ,  486520,NTUVx,                 40,1,1,  20,   70,E,N,N,   ,N,  0,1,185, 185,   1,   0
+$,CN       ,  522360,NTUVx,                 40,1,1,  20,   70,L,N,N,   ,N,  0,2, 22,  22,   2,   0
+$,CP       ,  223847,NOPQRST,               40,1,1,  20,   80,E,N,N,   ,N,  0,2,  9, 179,   2,   0
+$,CP       ,  269668,NOPQRST,               40,1,1,  20,   80,L,N,N,   ,N,  0,2,  9, 259,   2,   0
+W,CPWX     ,  606316,NOPQRST,               55,2,3,  30,  130,L,N,N,   ,N,  0,0, 10, 227,   0,   0
+N,CRD      ,   50013,RSTUV80uvx75pqr,       50,1,2,  43,   95,L,N,N,   ,N,  0,0, 10, 222,   0,   0
+N,CRD      ,   50062,RSTUV80uvx75pqr,       50,1,2,  43,   95,E,N,N,   ,N,  0,0, -1, 198,   0,   0
+N,CRD      ,   50063,RSTUV80uvx75pqr,       50,1,2,  43,   95,L,N,N,   ,N,  0,0, 10, 222,   0,   0
+N,CRD      ,   50066,RSTUV80uvx75pqr,       50,1,2,  43,   95,E,N,N,   ,N,  0,0, -1, 192,   0,   0
+N,CRD      ,   50070,RSTUV80uvx75pqr,       50,1,2,  43,   95,E,N,N,   ,N,  0,2,  9, 190,   2,   0
+N,CRD      ,   50071,RSTUV80uvx75pqr,       50,1,2,  43,   95,L,N,N,   ,N,  0,2,222, 222,   2,   0
+N,CRD      ,   50073,RSTUV80uvx75pqr,       50,1,2,  43,   95,E,N,N,   ,N,  0,1,262, 262,   1,   0
+N,CRD      ,   50074,RSTUV80uvx75pqr,       50,1,2,  43,   95,E,N,N,   ,N,  0,0,  9, 260,   0,   0
+N,CRD      ,   50099,RSTUV80uvx75pqr,       50,1,2,  43,   95,L,N,N,   ,N,  0,2,222, 222,   2,   0
+N,CRD      ,   50101,RSTUV80uvx75pqr,       50,1,2,  43,   95,E,N,N,   ,N,  0,0, -1, 262,   0,   0
+N,CRD      ,   50102,RSTUV80uvx75pqr,       50,1,2,  43,   95,E,N,N,   ,N,  0,0,  9, 260,   0,   0
+3,CW/RBOX  ,   93360,,                      50,1,2,  30,   90,L,N,N,   ,N,  0,1, -1, 199,   1,   0
+
+' RR        NUM      HOMEDIVS              LEN C W LTWT LDLMT S M F OWN D TRN N LOC DEST MOVS TRPSDS
+
+^,D&H      ,     120,,                      35,1,1,  20,   70,L,N,N,   ,N,  0,1, 34,  34,   1,   0
+^,D&H      ,     125,,                      35,1,1,  20,   70,E,N,N,   ,N,  0,0,  2,  90,   0,   0
+*,D&H      ,     827,Buvx,                  50,1,1,  40,   80,L,N,N,   ,N,  0,1, 65,  65,   1,   0
+*,D&H      ,     836,Buvx,                  50,1,1,  40,   80,E,N,N,   ,N,  0,1,  2,  68,   1,   0
+V,D&H      ,   12000,Buvx,                  55,2,3,  30,  120,E,N,N,   ,N,  0,1,141, 141,   1,   0
+V,D&H      ,   12129,Buvx,                  55,2,3,  30,  120,E,N,N,   ,N,  0,1,142, 142,   1,   0
+P,D&H      ,   12846,,                      40,1,1,  30,  100,L,N,N,   ,N,  0,1,  3, 199,   1,   0
+P,D&H      ,   12916,,                      40,1,1,  30,  100,L,N,N,   ,N,  0,1,  2, 199,   1,   0
+P,D&H      ,   12934,,                      40,1,1,  30,  100,E,N,N,   ,N,  0,0,  9,  27,   0,   0
+/,D&H      ,   17630,Buvx,                  40,1,1,  20,   70,L,N,N,   ,N,  0,1,221, 221,   1,   0
+6,D&H      ,   17630,Buvx,                  40,1,1,  20,   70,L,N,N,   ,N,  0,1, -1, 221,   1,   0
+!,D&H      ,   19795,Buvx,                  40,1,1,  20,   40,E,N,N,   ,N,  0,1,  3, 142,   1,   0
+!,D&H      ,   19908,Buvx,                  40,1,1,  20,   65,L,N,N,   ,N,  0,1,221, 221,   1,   0
+#,D&H      ,   19924,Buvx,                  40,1,1,  20,   60,E,N,N,   ,N,  0,0, 62, 140,   0,   0
+#,D&H      ,   19967,Buvx,                  40,1,1,  20,   70,L,N,N,   ,N,  0,1, 67,  67,   1,   0
+!,D&H      ,   20064,Buvx,                  50,1,2,  30,   90,L,N,N,   ,N,  0,1, 20,  20,   1,   0
+!,D&H      ,   20065,Buvx,                  50,1,2,  30,   90,L,N,N,   ,Y,  0,2,155, 155,   2,   0
+.,D&H      ,   22006,Buvx,                  50,1,2,  30,   90,L,N,N,   ,N,  0,0, 11, 149,   0,   0
+.,D&H      ,   22027,Buvx,                  50,1,2,  30,   90,L,N,N,   ,N,  0,0, 11, 148,   0,   0
+4,D&H      ,   24002,Buvx,                  50,1,2,  30,   60,L,N,N,   ,N,  0,1, 67,  67,   1,   0
+4,D&H      ,   24003,Buvx,                  50,1,1,  30,   60,L,N,N,   ,N,  0,1, 67,  67,   1,   0
+5,D&H      ,   24004,Buvx,                  50,1,2,  30,   90,L,N,N,   ,N,  0,1,185, 185,   1,   0
+5,D&H      ,   24008,Buvx,                  50,1,2,  30,   90,L,N,N,   ,N,  0,1, 83,  83,   1,   0
+5,D&H      ,   24009,Buvx,                  50,1,2,  30,   90,E,N,N,   ,N,  0,1,147, 147,   1,   0
+.,D&H      ,   24137,Buvx,                  50,1,1,  30,   80,L,N,N,   ,N,  0,1,140, 140,   1,   0
+.,D&H      ,   24394,Buvx,                  50,1,2,  30,   90,L,N,N,   ,N,  0,0, -1, 141,   0,   0
+#,D&H      ,   27200,Buvx,                  50,1,2,  30,   90,L,N,N,   ,N,  0,1, 56,  56,   1,   0
+*,D&H      ,   29111,Buvx,                  50,1,2,  30,   90,E,N,N,   ,N,  0,1, -1, 141,   1,   0
+*,D&H      ,   31223,Buvx,                  50,1,2,  30,   70,L,N,N,   ,N,  0,1, 65,  65,   1,   0
+#,DECX     ,  120259,Buvx0,                 50,1,1,  30,   60,L,N,N,   ,N,  0,1, 50,  50,   1,   0
+!,DPDX/NMRA,    1970,,                      50,1,2,  30,   90,E,N,N,   ,N,  0,0, 44, 199,   0,   0
+1,DRGW     ,   68265,NOPQRSnopq,            50,1,2,  30,   90,L,N,N,   ,N,  0,2, 96,  96,   2,   0
+|,EL       ,   29764,,                      35,1,1,  20,   70,L,N,N,   ,N,  0,0,113,  73,   0,   0
+$,EL       ,   70250,RSTUV80Buvx,           40,1,1,  20,   70,L,N,N,   ,N,  0,1,  2, 199,   1,   0
+$,EL       ,   70371,RSTUV80Buvx,           40,1,1,  20,   70,L,N,N,   ,N,  0,1,  2, 199,   1,   0
+.,EL       ,   71478,RSTUV80Buvx,           50,1,2,  30,   90,L,N,N,   ,N,  0,1,  2, 199,   1,   0
+.,EL       ,   71497,RSTUV80Buvx,           50,1,2,  30,   90,L,N,N,   ,N,  0,1,  2, 199,   1,   0
+.,EL       ,   71501,RSTUV80Buvx,           50,1,2,  30,   90,L,N,N,   ,N,  0,1,  2, 199,   1,   0
+/,EL       ,   80006,RSTUV80Buvx,           40,1,1,  20,   70,L,N,N,   ,N,  0,1,  2, 199,   1,   0
+$,EL       ,   87333,RSTUV80Buvx,           40,1,1,  20,   70,L,N,N,   ,N,  0,1,  2, 199,   1,   0
+$,EL       ,   88057,RSTUV80Buvx,           40,1,1,  20,   70,E,N,N,   ,N,  0,1,  2, 182,   1,   0
+$,EL       ,   88059,RSTUV80Buvx,           40,1,1,  20,   70,L,N,N,   ,N,  0,1,  2, 199,   1,   0
+$,EL       ,   88088,RSTUV80Buvx,           40,1,1,  20,   70,E,N,N,   ,N,  0,1,  2, 189,   1,   0
+$,EL       ,   88243,RSTUV80Buvx,           40,1,1,  20,   70,E,N,N,   ,N,  0,1,  2, 188,   1,   0
+R,ERIE     ,    4065,RSTUV80Buvx,           35,1,2,  20,   90,E,N,N,   ,N,  0,0, 44, 186,   0,   0
+r,ERIE     ,   14510,RSTUV80Buvx,           40,1,1,  20,   70,E,N,N,   ,N,  0,0, 29, 184,   0,   0
+.,ERIE     ,   67584,RSTUV80Buvx,           50,1,2,  30,   60,E,N,N,   ,N,  0,1,182, 182,   1,   0
+$,ERIE     ,   78964,RSTUV80Buvx,           40,1,1,  20,   70,L,N,N,   ,N,  0,3,108, 108,   3,   0
+
+' RR        NUM      HOMEDIVS              LEN C W LTWT LDLMT S M F OWN D TRN N LOC DEST MOVS TRPSDS
+
+P,GACX     ,   45990,,                      50,1,2,  30,  100,E,N,N,   ,N,  0,0,  6, 141,   0,   0
+i,GATX/DOW ,   10300,9BCTrs,                40,1,1,  25,   80,L,N,N,   ,N,  0,0, 11,  98,   0,   0
+h,GATX     ,  697012,ikpqPQABC,             40,1,1,  25,   80,L,N,N,   ,N,  0,1,221, 221,   1,   0
+j,GBW      ,      54,NOPQRS,                50,2,3,  30,  120,L,N,N,   ,N,  0,1,221, 221,   1,   0
+8,GN       ,    3584,NOPQRS,                40,1,1,  20,   70,E,N,N,   ,N,  0,1,  2, 191,   1,   0
+G,GPEX     ,    1075,,                      50,1,1,  40,   80,L,N,N,   ,N,  0,0, 93,  41,   0,   0
+2,GSN      ,  458017,,                      50,1,2,  30,   90,E,N,N,   ,N,  0,0, 44, 199,   0,   0
+2,GSN      ,  459001,,                      50,1,2,  30,   90,L,N,N,   ,N,  0,1,  2,  44,   1,   0
+G,HERX     ,    1003,,                      40,1,1,  25,   65,L,N,N,LBX,N,  0,1,  2,  74,   1,   0
+M,IC       ,   50300,NOPQRSnopqrs,          40,1,1,  25,   60,L,N,N,   ,N,  0,2,220, 220,   2,   0
+|,IC       ,   85867,,                      40,1,1,  25,   95,L,N,N,   ,N,  0,0,113,  73,   0,   0
+5,KCS      ,    1365,nopqrsNOPQRS,          50,1,2,  30,   90,E,N,N,   ,N,  0,1,  9, 259,   1,   0
+U,L&N      ,   38598,qrst9,                 50,1,2,  30,  110,L,N,N,   ,N,  0,0, 11, 199,   0,   0
+#,LNE      ,    8498,Bvx,                   40,1,1,  24,   74,L,N,N,TBO,N,  0,1,108, 108,   1,   0
+K,LMcN&L   ,    1464,0uvx57HIJK,            40,1,1,  30,   60,E,N,N,LBX,N,  0,1,  2, 142,   1,   0
+.,LV       ,    8352,Bvx,                   50,1,1,  30,   70,L,N,N,   ,N,  0,0, 11, 142,   0,   0
+R,LV       ,   51201,Bvx,                   35,1,2,  25,   90,E,N,N,   ,N,  0,0, 44, 141,   0,   0
+$,MCRR     ,   82307,RSTUV8,                40,1,1,  25,   60,L,N,N,   ,N,  0,2, 22,  22,   2,   0
+K,MDT      ,    9040,B0uvxVTSuvx,           40,1,1,  25,   60,E,N,N,   ,N,  0,1,  2, 140,   1,   0
+K,MDT/NYC  ,   13060,B0uvxVTSuvx,           40,1,1,  25,   60,L,N,N,LBX,N,  0,1, 79,  79,   1,   0
+N,MEC      ,      02,Bvx,                   50,2,2,  40,   90,E,N,N,   ,N,  0,1,140, 140,   1,   0
+t,MEC      ,    1115,Bvx,                   50,1,1,  30,   70,L,N,N,   ,N,  0,1,143, 143,   1,   0
+8,MEC      ,    9000,Bvx,                   50,1,1,  30,   90,L,N,N,   ,N,  0,0, 11, 141,   0,   0
+#,MILW     ,   18454,NOPQRSnopqr,           40,1,1,  22,   72,L,N,N,TBO,N,  0,0, 11, 108,   0,   0
+T,MP       ,  721067,NOPQRSnopqrs,          50,1,2,  30,  100,L,N,N,   ,N,  0,0, 11,  98,   0,   0
+Q,MP       ,720987/2,NOPQRSnopqrs,          80,1,2,  55,  190,L,N,N,   ,N,  0,0, 11, 199,   0,   0
+u,MP       ,  950189,NOPQRSnopqrs,          50,2,3,  30,  130,L,N,N,   ,N,  0,1, -1, 221,   1,   0
+~,N&W      ,   22050,,                      35,1,1,  20,   70,L,N,N,   ,N,  0,0,113,  73,   0,   0
+~,N&W      ,   34806,,                      35,1,1,  20,   70,L,N,N,   ,N,  0,0,113,  73,   0,   0
+y,N&W      ,   97750,7HBC89st,              50,1,2,  40,   90,E,N,N,   ,N,  0,2,  9, 265,   2,   0
+y,N&W      ,   97758,7HBC89st,              50,1,2,  40,   90,L,N,N,   ,N,  0,1,221, 221,   1,   0
+O,NADX     ,    3012,NOPQRS,                40,1,1,  30,   60,L,N,N,LBX,N,  0,2,220, 220,   2,   0
+i,NATX     ,   26628,nopq,                  40,1,1,  25,   75,L,N,N,   ,N,  0,0, 11,  98,   0,   0
+~,NKP      ,   80101,,                      35,1,1,  20,   70,E,N,N,   ,N,  0,0, 73, 113,   0,   0
+~,NKP      ,   80099,,                      35,1,1,  20,   70,E,N,N,   ,N,  0,0, 73, 113,   0,   0
+8,NKP      ,   85119,TUV8,                  50,1,1,  30,   80,E,N,N,   ,N,  0,0, -1, 179,   0,   0
+:,NH       ,   30564,Bvx,                   40,1,1,  20,   50,L,N,N,   ,N,  0,1,  3, 141,   1,   0
+#,NH       ,   45082,Bvx,                   40,1,1,  20,   50,E,N,N,   ,N,  0,1,140, 140,   1,   0
+O,NIRX/EL  ,   60001,BvxU,                  50,1,2,  40,   90,E,N,N,   ,N,  0,0,  9, 198,   0,   0
+.,NJ       ,     809,Buv,                   50,1,2,  30,   70,L,N,N,   ,N,  0,2,  9, 145,   2,   0
+N,NJDX     ,   41035,Bvx,                   50,1,2,  40,   90,L,N,N,   ,N,  0,0, 11, 140,   0,   0
+#,NP       ,   15827,NOPQRSnopqr,           40,1,1,  23,   73,L,N,N,TBO,N,  0,2,108, 108,   2,   0
+N,NPM      ,     544,NOPQRSTUV89nopqr,      50,1,2,  40,   90,L,N,N,   ,N,  0,0,  2,  79,   0,   0
+N,NPM      ,     870,NOPQRSTUV89nopqr,      50,1,2,  40,   90,E,N,N,   ,N,  0,1, -1, 179,   1,   0
+N,NPM      ,     873,NOPQRSTUV89nopqr,      50,1,2,  40,   90,E,N,N,   ,N,  0,2,  9, 259,   2,   0
+U,NSL      ,     901,Buvx,                  30,2,3,  30,  130,E,N,N,   ,N,  0,0,  3, 140,   0,   0
+K,NYC      ,    9040,NOPQRSTUV8Bvx,         40,1,1,  30,   60,L,N,N,   ,N,  0,1,184, 184,   1,   0
+*,NYC      ,   20035,NOPQRSTUV8Bvx,         50,1,1,  30,   50,E,N,N,   ,N,  0,2, 99,  99,   2,   0
+E,NYC      ,   46044,NOPQRSTUV8Bvx,         50,1,2,  30,   80,L,N,N,   ,N,  0,0, 93, 198,   0,   0
+D,NYC      ,   80775,NOPQRSTUV8Bvx,         50,1,2,  30,   90,E,N,N,   ,N,  0,0, 44, 141,   0,   0
+r,NYC      ,  715225,NOPQRSTUV8Bvx,         50,1,2,  30,  100,E,N,N,   ,N,  0,0, 29, 140,   0,   0
+R,NYC      ,  880500,NOPQRSTUV8Bvx,         35,1,1,  25,   90,L,N,N,   ,N,  0,2,  3,  44,   2,   0
+R,NYC      ,  881449,NOPQRSTUV8Bvx,         35,1,1,  25,   90,L,N,N,   ,N,  0,2,  3,  44,   2,   0
+V,NYC      ,  886813,NOPQRSTUV8Bvx,         55,2,3,  35,  130,E,N,N,   ,N,  0,1,  4, 142,   1,   0
+V,NYC      ,  892012,NOPQRSTUV8Bvx,         55,2,3,  35,  130,E,N,N,   ,N,  0,1,  4, 141,   1,   0
+N,NYMX     ,    1020,NOPQRSTUV8Bvx,         50,1,2,  40,   90,L,N,N,   ,N,  0,0, 11, 140,   0,   0
+5,NYSW     ,     505,vx,                    40,1,1,  20,   50,E,N,N,   ,N,  0,1,  2, 140,   1,   0
+$,P&E/NYC  ,    4222,NOPQRSTUV8Bvx,         40,1,1,  20,   60,L,N,N,   ,N,  0,1,  2, 199,   1,   0
+6,PC       ,   21068,NOPQRSTUV8Bvx,         50,1,2,  35,   95,E,N,N,   ,N,  0,0,  6, 140,   0,   0
+
+' RR        NUM      HOMEDIVS              LEN C W LTWT LDLMT S M F OWN D TRN N LOC DEST MOVS TRPSDS
+
+N,PFE      ,    1527,NOPQRSTUVnopqrst9,     50,1,2,  40,   90,E,N,N,   ,N,  0,0,  9, 188,   0,   0
+N,PFE      ,    3015,NOPQRSTUVnopqrst9,     50,1,2,  40,   90,L,N,N,   ,N,  0,1,  2, 185,   1,   0
+N,PFE      ,   30152,NOPQRSTUVnopqrst9,     50,1,2,  40,   90,L,N,N,   ,N,  0,1,102, 102,   1,   0
+N,PFE      ,  300207,NOPQRSTUVnopqrst9,     50,1,2,  40,   90,E,N,N,   ,N,  0,2,  9, 179,   2,   0
+N,PFE      ,  301527,NOPQRSTUVnopqrst9,     50,1,2,  40,   90,E,N,N,   ,N,  0,1,  4, 259,   1,   0
+:,PRR      ,  100800,Buv80NOPQRSTUVqr,      40,1,1,  20,   40,L,N,N,   ,N,  0,1, 53,  53,   1,   0
+:,PRR      ,  116489,Buv80NOPQRSTUVqr,      40,1,1,  20,   40,L,N,N,   ,N,  0,1,  3, 145,   1,   0
+p,PTC      ,      28,vx,                    40,1,1,  20,   30,L,N,N,   ,N,  0,1,184, 184,   1,   0
+K,QREX     ,   90104,,                      40,1,1,  25,   60,L,N,N,LBX,N,  0,1, 52,  52,   1,   0
+6,RBBX     ,   79522,NOPQRSnopq,            50,1,2,  40,   90,L,N,N,   ,N,  0,0,  2,  75,   0,   0
+7,RBOX     ,   10485,,                      50,1,2,  30,   90,E,N,N,   ,N,  0,1,  4,  40,   1,   0
+5,RBOX     ,   11116,,                      50,1,2,  30,   90,L,N,N,   ,N,  0,1,  9, 268,   1,   0
+r,RDG      ,    4050,Buv,                   50,1,2,  30,   90,L,N,N,   ,N,  0,0, -1,  29,   0,   0
+r,RDG      ,   33024,Buv,                   50,1,2,  30,  100,E,N,N,   ,N,  0,0, 29, 145,   0,   0
+F,REA      ,     224,,                      40,1,1,  20,   40,L,N,N,LBX,N,  0,1, 77,  77,   1,   0
+G,REA      ,     509,,                      50,1,1,  40,   70,L,N,N,LBX,N,  0,1, 78,  78,   1,   0
+F,REA      ,    1875,,                      40,1,1,  20,   40,L,N,N,LBX,N,  0,1, 77,  77,   1,   0
+G,REX      ,    6101,,                      40,1,1,  25,   60,L,N,N,   ,N,  0,1,  2, 185,   1,   0
+%,SC       ,    2819,1,                     40,1,1,  25,   95,L,N,N,   ,N,  0,0, 90,  34,   0,   0
+%,SC       ,    2837,1,                     40,1,1,  25,   95,L,N,N,   ,N,  0,0, 90,  34,   0,   0
+%,SC       ,    2869,1,                     40,1,1,  25,   95,L,N,N,   ,N,  0,0, 90,  34,   0,   0
+%,SC       ,    2910,1,                     40,1,1,  25,   95,E,N,N,   ,N,  0,0,  2,  90,   0,   0
+),SCCX     ,    1245,,                      40,1,1,  25,   75,L,N,N,   ,N,  0,1, -1, 221,   1,   0
+),SCCX     ,    2006,,                      40,1,1,  25,   75,E,N,N,   ,N,  0,2,  9, 190,   2,   0
+R,SF       ,      12,,                      35,1,2,  25,   90,E,N,N,   ,N,  0,0, 44, 220,   0,   0
+6,SFRB     ,    5642,NOPQRSTUVnopqrst9,     50,1,2,  40,   90,E,N,N,   ,N,  0,1,  2, 185,   1,   0
+N,SFRC     ,    1002,NOPQRSTUVnopqrst9,     60,2,2,  40,  100,L,N,N,   ,N,  0,2,  9, 179,   2,   0
+O,SFRC     ,   55360,NOPQRSTUVnopqrst9,     60,2,2,  40,  100,E,N,N,   ,N,  0,0,  9, 188,   0,   0
+N,SFRD     ,    2248,NOPQRSTUVnopqrst9,     50,1,2,  40,   80,L,N,N,   ,N,  0,2,185, 185,   2,   0
+K,SFRD     ,    8392,NOPQRSTUVnopqrst9,     40,1,1,  30,   60,L,N,N,   ,N,  0,1,147, 147,   1,   0
+X,SHPX/TEN ,   46478,,                      50,2,3,  30,  130,E,N,N,   ,N,  0,3, 27,  27,   3,   0
+V,SHPX     ,   52508,,                      40,1,1,  30,   80,L,N,N,   ,N,  0,1,  2,  44,   1,   0
+E,SLSF     ,   15568,1NOPQRSTUVnopq,        50,1,2,  30,   90,E,Y,N,   ,N,  0,1,  2,  93,   1,   0
+-,SM       ,    3371,,                      50,1,2,  30,   90,L,N,N,   ,N,  0,1,140, 140,   1,   0
+6,SOU      ,     904,qrst97BHIJK,           50,1,2,  30,   90,E,N,N,   ,N,  0,1,  2, 262,   1,   0
+T,SOU      ,    6142,A7HIJK12qrst50,        40,1,2,  30,   90,L,N,N,   ,N,  0,0, 90, 150,   0,   0
+p,SOU      ,   52095,qrst97BHIJK,           50,1,2,  30,   90,E,N,N,   ,N,  0,1,  4, 227,   1,   0
+#,SP       ,  127439,NOPQRSTUVnopqrst9,     40,1,1,  20,   70,L,N,N,   ,N,  0,2,108, 108,   2,   0
+0,SP       ,  163985,NOPQRSTUVnopqrst9,     40,1,1,  20,   70,L,N,N,LBX,N,  0,2,  3, 110,   2,   0
+u,SP       ,  328000,NOPQRSTUVnopqrst9,     50,1,2,  30,   80,L,N,N,   ,N,  0,1,  2, 199,   1,   0
+U,SP       ,  400833,NOPQRSTUVnopqrst9,     50,1,2,  30,  100,E,N,N,   ,N,  0,2,  9, 190,   2,   0
+2,SP       ,  656556,NOPQRSTUVnopqrst9,     50,1,2,  30,   90,L,N,N,   ,N,  0,2,  3,  44,   2,   0
+N,SPFE     ,  454466,NOPQRSTUVnopqrst9,     60,2,2,  50,  110,L,N,N,   ,N,  0,1,  2, 185,   1,   0
+N,SPFE     ,  454000,NOPQRSTUVnopqrst9,     60,2,2,  50,  110,L,N,N,   ,N,  0,1, -1, 141,   1,   0
+N,SPFE     ,  454000,NOPQRSTUVnopqrst9,     60,2,2,  50,  110,L,N,N,   ,N,  0,1,  2, 185,   1,   0
+N,SPFE     ,  454000,NOPQRSTUVnopqrst9,     60,2,2,  50,  110,L,N,N,   ,N,  0,1,142, 142,   1,   0
+N,SPFE     ,  454000,NOPQRSTUVnopqrst9,     60,2,2,  50,  110,L,N,N,   ,N,  0,1,  2, 199,   1,   0
+N,SPFE     ,  454000,NOPQRSTUVnopqrst9,     60,2,2,  50,  110,L,N,N,   ,N,  0,2,185, 185,   2,   0
+N,SPFE     ,  454000,NOPQRSTUVnopqrst9,     60,2,2,  50,  110,L,N,N,   ,N,  0,1,111, 111,   1,   0
+N,SPFE     ,  454000,NOPQRSTUVnopqrst9,     60,2,2,  50,  110,L,N,N,   ,N,  0,1,111, 111,   1,   0
+N,SPFE     ,  454000,NOPQRSTUVnopqrst9,     60,2,2,  50,  110,L,N,N,   ,N,  0,0, 11, 222,   0,   0
+N,SPFE     ,  454000,NOPQRSTUVnopqrst9,     60,2,2,  50,  110,L,N,N,   ,N,  0,1,143, 143,   1,   0
+N,SPFE     ,  454000,NOPQRSTUVnopqrst9,     60,2,2,  50,  110,L,N,N,   ,N,  0,1,  2, 185,   1,   0
+N,SPFE     ,  454000,NOPQRSTUVnopqrst9,     60,2,2,  50,  110,L,N,N,   ,N,  0,2,  3, 110,   2,   0
+N,SPFE     ,  454000,NOPQRSTUVnopqrst9,     60,2,2,  50,  110,L,N,N,   ,N,  0,2,223, 223,   2,   0
+N,SPFE     ,  454000,NOPQRSTUVnopqrst9,     60,2,2,  50,  110,L,N,N,   ,N,  0,2,  9, 259,   2,   0
+N,SPFE     ,  454476,NOPQRSTUVnopqrst9,     60,2,2,  50,  110,L,N,N,   ,N,  0,0,  9, 260,   0,   0
+
+' RR        NUM      HOMEDIVS              LEN C W LTWT LDLMT S M F OWN D TRN N LOC DEST MOVS TRPSDS
+
+2,SSW      ,   42598,NOPQRSTUVnopqrst9,     50,1,2,  30,   90,E,N,N,   ,N,  0,1, 50,  50,   1,   0
+(,SVX/MOBIL,     114,,                      40,1,1,  25,   75,L,N,N,   ,N,  0,0,  3,  52,   0,   0
+(,SVX/MOBIL,     442,,                      40,1,1,  25,   75,L,N,N,   ,N,  0,2,  9, 145,   2,   0
+(,SVX/MOBIL,    1442,,                      40,1,1,  25,   75,L,N,N,   ,N,  0,1,147, 147,   1,   0
+5,TH&B     ,    3378,TUV8,                  40,1,1,  20,   70,L,N,N,   ,N,  0,1,148, 148,   1,   0
+N,TLDX/LIBY,    0000,,                      50,1,2,  40,   90,L,N,N,   ,N,  0,1, 40,  40,   1,   0
+),TXC      ,    2266,,                      40,1,1,  25,   75,L,N,N,   ,N,  0,2, 71,  71,   2,   0
+A,U&D      ,     110,,                      40,1,1,  25,   65,L,N,N,   ,N,  0,2, 82,  82,   2,   0
+U,UP       ,   12276,NOPQRSTUVnopqrst9,     50,1,2,  30,  100,E,N,N,   ,N,  0,1,  2, 189,   1,   0
+U,UP       ,   12302,NOPQRSTUVnopqrst9,     50,1,2,  30,  100,E,N,N,   ,N,  0,1,  2, 188,   1,   0
+U,UP       ,   12398,NOPQRSTUVnopqrst9,     50,1,2,  30,  100,E,N,N,   ,N,  0,1,  2, 179,   1,   0
+V,UP       ,   21609,NOPQRSTUVnopqrst9,     40,2,3,  30,  130,L,N,N,   ,N,  0,2,  3,  44,   2,   0
+V,UP       ,   21695,NOPQRSTUVnopqrst9,     50,2,3,  30,  130,E,N,N,   ,N,  0,1,260, 260,   1,   0
+U,UP       ,   21753,NOPQRSTUVnopqrst9,     50,1,3,  30,  120,L,N,N,   ,N,  0,0, 10, 199,   0,   0
+I,UP       ,   48306,NOPQRSTUVnopqrst9,     40,1,1,  20,   40,L,N,N,   ,N,  0,0, 10, 199,   0,   0
+},UP       ,   88024,26b98A,                40,1,1,  25,   90,L,N,N,   ,N,  0,0,113,  73,   0,   0
+$,UP       ,  159279,NOPQRSTUVnopqrst9,     40,1,1,  20,   70,E,N,N,   ,N,  0,1,  2, 185,   1,   0
+$,UP       ,  169946,NOPQRSTUVnopqrst9,     40,1,1,  20,   70,L,N,N,   ,N,  0,0, 10,  22,   0,   0
+*,UP       ,  170401,NOPQRSTUVnopqrst9,     50,1,2,  30,   90,L,N,N,   ,N,  0,1,  2, 185,   1,   0
+S,UP       ,  219346,NOPQRSTUVnopqrst9,     35,1,2,  20,   70,L,N,N,   ,N,  0,0, 10,  44,   0,   0
+S,UP       ,  219349,NOPQRSTUVnopqrst9,     35,1,2,  20,   70,L,N,N,   ,N,  0,0, 11,  98,   0,   0
+U,UP       ,  218268,NOPQRSTUVnopqrst9,     50,1,2,  30,  100,L,N,N,   ,N,  0,0, 10,  22,   0,   0
+R,UP       ,  220214,NOPQRSnopqrs89,        35,1,2,  25,   90,E,N,N,   ,N,  0,0, 44, 191,   0,   0
+N,UP       ,  460146,NOPQRSTUVnopqrst9,     60,2,2,  45,  110,L,N,N,   ,N,  0,1,  2, 185,   1,   0
+6,UP       ,  490200,NOPQRSTUVnopqrst9,     50,2,2,  40,  100,L,N,N,   ,N,  0,0, -1, 110,   0,   0
+6,UP       ,  490700,NOPQRSTUVnopqrst9,     50,2,2,  40,  100,L,N,N,   ,N,  0,1,  2,  75,   1,   0
+*,UP       ,  508591,NOPQRSTUVnopqrst9,     50,1,2,  30,   90,L,N,N,   ,N,  0,0, 10, 110,   0,   0
+O,UPFE     ,  461550,NOPQRSTUVnopqrst9,     60,2,2,  50,  110,E,N,N,   ,N,  0,0,110, 192,   0,   0
+M,URTX     ,   39842,NOPQRS,                40,1,1,  30,   60,E,N,N,   ,N,  0,0,110, 191,   0,   0
+U,VUHX     ,     100,,                      50,2,3,  30,  130,E,N,N,   ,N,  0,0,  6, 222,   0,   0
+U,VUHX     ,     105,,                      50,2,3,  30,  130,E,N,N,   ,N,  0,1,220, 220,   1,   0
+U,VUHX     ,     110,,                      50,2,3,  30,  130,E,N,N,   ,N,  0,0,  3, 220,   0,   0
+K,WFEX     ,     710,NOPQRS,                40,1,1,  25,   65,L,N,N,   ,N,  0,0,110, 193,   0,   0
+O,WFCX     ,    8813,NOPQRS,                50,1,2,  35,   80,E,N,N,   ,N,  0,0,110, 191,   0,   0
+2,WP       ,   38244,NOPQRSnopq,            50,1,2,  30,   90,L,N,N,   ,N,  0,0, 10,  20,   0,   0
+Z,WSPX     ,     224,,                      40,1,1,  25,   75,L,N,N,   ,N,  0,0, 10, 199,   0,   0
+4,VTR      ,     139,Bvx,                   40,1,1,  20,   70,L,N,N,LBX,N,  0,1,184, 184,   1,   0
+
+'============================================================================
+'
+' The trick with always empty/always loaded coal hoppers is they are set
+' up to travel from a loader to a receiver- then are MIRRORED to another
+' loader and sent to a second receiver- whence they are MIRRORED back to
+' the first loader. Empty cars just move in a reverse pattern.
+'
+' In other words mine "A" can be a MIRROR for empties- yet cars that are
+' "mirrored" to A will not be mirrored again. Also- individual cars may
+' be set up to be "NONmirrorable" so mine "A" can also function normally
+' receiving "empty" cars and shipping the same cars out "loaded".
+'
+' A mine can also ship loads to different destinations. To keep unit coal
+' blocks together- the cars are set up with appropriate "home" divisions.
+'
+' For example- mine A ships to ports X and Y.
+'
+' Car 1's "homes" are Port X and power plant P. When loaded at mine A car
+' 1 can only be shipped to X. From X it mirrors to mine B. Now B ships to
+' power plants P and Q. So the car is directed to P- its other home. At P
+' the car mirrors to A again.
+'
+' Car 2's "homes" are Y and Q. It also travels from mines A and B- but it
+' always moves in a different pattern than car 1.
+'
+' Final trick: FIXED-ROUTE cars can be routed only to home divisions- and
+' also only to destinations of their assignment industry.
+'
+' Recap: 3 tricks for unit loads
+'
+'       Industry may or may not have a MIRROR
+'       Cars may or may not be allowed to MIRROR
+'       Cars may or may not be FIXED ROUTE
+'
+' Now ain't that simple?
+'
+'============================================================================

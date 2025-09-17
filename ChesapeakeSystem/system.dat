@@ -1,0 +1,439 @@
+Chesapeake System
+
+indus.dat
+trains.dat
+orders.dat
+owners.dat
+cartypes.dat
+cars.dat
+stats.dat
+
+'----------------------------------------------------------------------------
+'
+' North Shore Model RR Club "Chesapeake System" -- division schematic
+'
+'----------------------------------------------------------------------------
+'
+' Date: June 24 1996
+'
+'
+'
+'                     ijk                                        
+'      NOPQRS   T    #                                            
+'        #______#___/                                         x  
+'                   \ U    V                                   #
+'                    #    #                                 v /
+'                     \  /                                   #
+'                      \/                                 u /
+'                       \ 8                                #
+'                        #              B               0 /
+'                         \ ED         #                 #
+'                      6   #          /                 /
+'                       #   \  c   1 /   e   3       4 /   5
+'                        \   \_*____*___*___*_________*_____*__* gh
+' nop  q  r  s  t  9  2   \  /     /       / \         \
+'  #___#__#__#__#__#___*___\/     /       /   \         \
+'                        \       #       *     #         #
+'                         \     C       / f     A       7 \
+'                          #           /                   #
+'                         b           /                   H \
+'                                    #                       #
+'                                   a                       I \
+'                                                              #
+'                                                             J \
+'                                                                #
+'                                                               K
+'
+'****************************************************************************
+'
+' Divisions
+'
+'    #          Numeric identifier
+'    Symbol     Symbolic alphanumeric identifier (A-Z a-z 0-9)
+'    Home       Numeric Home yard of the division
+'    Area       Symbolic alphanumeric Area identifier
+'    Name       Text name of the division
+'
+' Note that several "divisions" can share a Home Yard, but the Home Yard
+' belongs to only one station which in turn belongs to a single Division.
+'
+' When this is true, cars must be "forwarded" to the Home Yard on behalf
+' of those extra divisions.
+'
+' The purpose of this is finer car-waybill-routing. For example, each of
+' the Chicago line trains terminate at Morgantown, but their cars may be
+' destined for California or Michigan, which are in different divisions.
+'
+'****************************************************************************
+ 
+Divisions = 70
+
+'    HOME
+'# S YARD A NAME
+'---------------
+
+ 1,1,   2,2,Elkton
+ 6,6,   2,2,Bruceton
+13,e,   2,2,Gap
+61,B,   2,h,Hagerstown
+62,C,   2,r,Roanoke
+59,c,   2,2,Crystal Springs
+
+ 2,2,   3,3,Charleston
+12,b,   3,3,Hitop
+
+ 3,3,   4,4,Larkin Falls
+60,A,   4,A,Lynchburg
+11,a,   4,a,Waynesboro
+14,f,   4,4,Maynards Corner
+
+ 4,4,   5,5,Fredericksburg
+
+ 5,5,   6,6,Hampton News
+
+'    HOME
+'# S YARD A NAME
+'---------------
+
+65,z,  15,z,Waynesboro
+
+63,D,  16,#,Elkins
+64,E,  16,#,Grafton
+
+15,g,  17,@,Port Dibble
+16,h,  17,@,Port Dibble
+
+17,i,  18,!,Port Clinton
+18,j,  18,!,Port Clinton
+19,k,  18,!,Port Clinton
+
+44,w,  19,$,PSNJ
+
+
+'    HOME
+'# S YARD A NAME
+'---------------
+
+10,0,   8,e,Alexandria
+41,u,   8,e,Downington
+42,v,   8,e,Dover
+43,x,   8,e,Mechanicville
+
+ 7,7,   9,s,Richmond
+50,H,   9,s,Virginia
+51,I,   9,s,North Carolina
+52,J,   9,s,South Carolina
+53,K,   9,s,Florida
+
+ 8,8,  10,n,Morgantown
+20,N,  10,n,Chicago MILW SOO
+21,O,  10,n,Chicago UP CNW
+22,P,  10,n,Chicago CBQ
+23,Q,  10,n,Chicago ATSF GTW
+24,R,  10,n,Chicago RI IC CGW
+25,S,  10,n,Chicago
+26,T,  10,n,Toledo GTW AA DTI
+27,U,  10,n,Ohio NKP WAB ERIE
+28,V,  10,n,Pitts PLE BLE PRR
+
+ 9,9,  11,w,Huntington
+30,n,  11,w,KC ATSF MKT RI
+31,o,  11,w,KC KCS MP UP
+32,p,  11,w,Kansas City
+33,q,  11,w,St Louis
+34,r,  11,w,Evansville
+35,s,  11,w,Louisville
+36,t,  11,w,Lexington
+
+-1
+
+'****************************************************************************
+'
+' Stations (Cities)
+'
+'****************************************************************************
+
+Stations = 196
+
+
+' Home Yard - Charleston WV
+' ----------------------------------------------
+
+' # NAME                DIV COMMENT
+
+  2,CHARLESTON WV,        2,yard
+  3,CHARLESTON WV,        2,eb - near
+  4,CHARLESTON WV,        2,wb - near
+  5,CHARLESTON WV,        2,wb - far
+  6,CHARLESTON WV,        2,eb - far
+  7,CHARLESTON WV,        2,eb - express
+  8,CHARLESTON WV,        2,blast furnace - hi
+  9,CHARLESTON WV,        2,blast furnace - lo
+ 10,CHARLESTON WV,        2,rolling mill - far 
+ 11,CHARLESTON WV,        2,rolling mill - near
+ 12,CHARLESTON WV,        2,conveyor
+ 22,CHARLESTON WV,        2,engine service
+
+ 13,AYER WV,              2,eb
+ 14,SLAYTON WV,           2,eb - far 
+ 15,SLAYTON WV,           2,wb - far
+ 16,SLAYTON WV,           2,wb - near
+ 17,MELCHER WV,           2,eb - tipple
+
+ 57,HITOP WV,            12,industries
+
+
+' Home Yard - Elkton WV
+' ----------------------------------------------
+
+ 28,ELKTON WV,            1,wb - yard
+ 29,ELKTON WV,            1,wb - freight house
+ 30,ELKTON WV,            1,wb - engine service
+ 31,ELKTON WV,            1,wb - mofw
+ 32,ELKTON WV,            1,wb - express - far
+ 33,ELKTON WV,            1,eb - eb past station
+
+ 36,LIMESTONE WV,         1,eb
+
+ 38,MEYERFORD WV,        13,power plant
+
+ 25,CRYSTAL SPRINGS WV,  59,eb
+ 26,CRYSTAL SPRINGS WV,  59,wb
+
+ 18,MELCHER WV,           1,wb - supply
+ 19,STUART WV,            1,wb - far
+ 20,STUART WV,            1,eb - near
+ 21,STUART WV,            1,wb - near
+
+ 23,MIKESVILLE WV,        1,wb
+
+ 56,BRUCETON WV,          6,stage
+ 88,HAGERSTOWN MD,       61,stage
+ 89,ROANOKE VA,          62,stage
+
+
+' Home Yard - Larkin Falls VA
+' ----------------------------------------------
+
+ 42,LARKIN FALLS VA,      3,yard
+ 44,LARKIN FALLS VA,      3,eb - near
+ 49,LARKIN FALLS VA,      3,eb - engine service
+ 46,LARKIN FALLS VA,      3,eb - in town
+ 47,LARKIN FALLS VA,      3,wb - in town
+ 43,LARKIN FALLS VA,      3,wb - near
+ 45,LARKIN FALLS VA,      3,eb - paper plant
+ 48,LARKIN FALLS VA,      3,wb - power plant
+
+ 86,LYNCHBURG VA,        60,stage
+
+ 40,SOU MAY CORNER VA,   14,coal mine
+
+ 50,HINCKLEY VA,          3,wb
+ 55,HINCKLEY VA,          3,eb
+
+ 53,WAYNESBORO VA,       11,stage
+ 54,WAYNESBORO VA,       65,stage
+
+
+' Home Yard - Fredericksburg VA
+' ----------------------------------------------
+
+ 60,FREDERICKSBURG VA,    4,yard and engine service
+ 61,FREDERICKSBURG VA,    4,eb
+ 62,FREDERICKSBURG VA,    4,wb
+
+
+' Home Yard - Hampton News VA
+' ----------------------------------------------
+
+ 70,HAMPTON NEWS VA,      5,yard and engine service
+ 71,HAMPTON NEWS VA,      5,eb
+ 72,HAMPTON NEWS VA,      5,wb
+
+ 80,PORT DIBBLE VA,      15,stage
+ 81,PORT DIBBLE VA,      16,stage
+
+'----------------------------------------------------------------------------
+'
+' These are cities in EASTERN area
+'
+'----------------------------------------------------------------------------
+
+' # NAME                DIV COMMENT
+
+100,MECHANICVILLE NY,    43, x
+101,MAYBROOK NY,         43, x
+105,DOVER NJ,            42, v
+102,DOVER NJ,            44, w
+103,DOWNINGTON PA,       41, u
+104,ALEXANDRIA VA,       10, 0
+
+'----------------------------------------------------------------------------
+'
+' These are cities in SOUTHERN area
+'
+'----------------------------------------------------------------------------
+
+' # NAME                DIV COMMENT
+
+ 91,RICHMOND VA,          7, 7
+ 82,PETERSBURG VA,       50, H
+ 83,RALEIGH NC,          51, I
+ 84,CHARLESTON SC,       52, J
+ 85,JACKSONVILLE FL,     53, K
+
+'----------------------------------------------------------------------------
+'
+' These are cities in NORTHERN area
+'
+'----------------------------------------------------------------------------
+
+' # NAME                DIV COMMENT
+
+ 92,MORGANTOWN WV,        8, 8
+
+ 98,ELKINS WV,           63, D
+ 99,GRAFTON WV,          64, E
+
+150,PITTSBURGH PA,       28, T
+151,AKRON OH,            27, U
+152,CLEVELAND OH,        27, U
+154,TOLEDO OH,           26, T
+153,CHICAGO IL,          20, N
+155,CHICAGO IL,          21, O
+156,CHICAGO IL,          22, P
+157,CHICAGO IL,          23, Q
+158,CHICAGO IL,          24, R
+159,CHICAGO IL,          25, S
+
+167,PORT CLINTON OH,     17, i
+168,PORT CLINTON OH,     18, j
+169,PORT CLINTON OH,     19, k
+
+'----------------------------------------------------------------------------
+'
+' These are cities in WESTERN area
+'
+'----------------------------------------------------------------------------
+
+' # NAME                DIV COMMENT
+
+ 93,HUNTINGTON WV,        9, 9
+ 94,HUNTINGTON WV,        9, 9
+
+190,LEXINGTON KY,        36, t
+191,LOUISVILLE KY,       35, s
+192,EVANSVILLE IN,       34, r
+193,ST LOUIS MO,         33, q
+194,KANSAS CITY MO,      32, n
+195,KANSAS CITY MO,      31, o
+196,KANSAS CITY MO,      30, p
+
+'----------------------------------------------------------------------------
+'
+' Not in use
+'
+'----------------------------------------------------------------------------
+
+' # NAME                DIV COMMENT
+
+ 24,,                     0,
+ 27,,                     0,
+ 34,,                     0,
+ 35,,                     0,
+ 37,,                     0,
+ 39,,                     0,
+ 41,,                     0,
+ 51,,                     0,
+ 63,,                     0,
+ 64,,                     0,
+ 65,,                     0,
+ 66,,                     0,
+ 67,,                     0,
+ 68,,                     0,
+ 69,,                     0,
+ 73,,                     0,
+ 74,,                     0,
+ 75,,                     0,
+ 76,,                     0,
+ 77,,                     0,
+ 78,,                     0,
+ 79,,                     0,
+ 87,,                     0,
+ 90,,                     0,
+ 95,,                     0,
+ 96,,                     0,
+ 97,,                     0,
+106,,                     0,
+107,,                     0,
+108,,                     0,
+109,,                     0,
+110,,                     0,
+111,,                     0,
+112,,                     0,
+113,,                     0,
+114,,                     0,
+115,,                     0,
+116,,                     0,
+117,,                     0,
+118,,                     0,
+119,,                     0,
+120,,                     0,
+121,,                     0,
+122,,                     0,
+123,,                     0,
+124,,                     0,
+125,,                     0,
+126,,                     0,
+127,,                     0,
+128,,                     0,
+129,,                     0,
+130,,                     0,
+131,,                     0,
+132,,                     0,
+133,,                     0,
+134,,                     0,
+135,,                     0,
+136,,                     0,
+137,,                     0,
+138,,                     0,
+139,,                     0,
+140,,                     0,
+141,,                     0,
+142,,                     0,
+143,,                     0,
+144,,                     0,
+145,,                     0,
+146,,                     0,
+147,,                     0,
+148,,                     0,
+149,,                     0,
+160,,                     0,
+161,,                     0,
+162,,                     0,
+163,,                     0,
+164,,                     0,
+165,,                     0,
+166,,                     0,
+170,,                     0,
+171,,                     0,
+172,,                     0,
+173,,                     0,
+174,,                     0,
+175,,                     0,
+176,,                     0,
+177,,                     0,
+178,,                     0,
+179,,                     0,
+180,,                     0,
+181,,                     0,
+182,,                     0,
+183,,                     0,
+184,,                     0,
+185,,                     0,
+186,,                     0,
+187,,                     0,
+188,,                     0,
+189,,                     0,
+
+-1
