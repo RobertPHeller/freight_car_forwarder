@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:14:28
-//  Last Modified : <250915.1110>
+//  Last Modified : <250916.2305>
 //
 //  Description	
 //
@@ -45,7 +45,6 @@ pub enum IndustryType {
     Yard,
     Industry,
     Offline,
-    Stage,
     Unknown,
 }
 
@@ -61,7 +60,6 @@ impl IndustryType {
             'Y' | 'y' => IndustryType::Yard,
             'I' | 'i' => IndustryType::Industry,
             'O' | 'o' => IndustryType::Offline,
-            'S' | 's' => IndustryType::Stage,
             _ => IndustryType::Unknown
         }
     }
@@ -74,7 +72,6 @@ impl fmt::Display for IndustryType {
             IndustryType::Yard => write!(f, "<#IndustryType Yard (Y)>"),
             IndustryType::Industry => write!(f, "<#IndustryType Industry (I)>"),
             IndustryType::Offline => write!(f, "<#IndustryType Offline (O)>"),
-            IndustryType::Stage => write!(f, "<#IndustryType Stage (S)>"),
             IndustryType::Unknown => write!(f, "<#IndustryType Unknown>"),
         }
     }

@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:14:13
-//  Last Modified : <250916.2144>
+//  Last Modified : <250916.2254>
 //
 //  Description	
 //
@@ -66,7 +66,13 @@ fn print_usage(program: &str, opts: Options) {
     print!("{}", opts.usage(&brief));
 }
 
-
+/// Run a single train.
+/// ## Parameters:
+/// - system The system data structure.
+/// - working_industries The working industries HashMap
+/// - printer The printer device.
+///
+/// __Returns__ nothing wrapped in an io::Result.
 fn run_one_train(system: &mut System, 
                  working_industries: &mut HashMap<usize, IndustryWorking>,
                  printer: &mut Printer)  -> io::Result<()> {
@@ -85,6 +91,13 @@ fn run_one_train(system: &mut System,
     Ok(())
 }
 
+/// Ask for a file name.
+/// ## Parameters:
+/// - prompt The prompt.
+/// - extension The file's extension.
+///
+/// __Returns__ the fully canonicalized filename String wrapped in an 
+///     io::Result.
 fn ask_for_filename(prompt: &str, extension: &str) -> io::Result<String> {
     let result: String; // = String::new();
     let os_extension = OsStr::new(extension);
@@ -142,6 +155,14 @@ fn ask_for_filename(prompt: &str, extension: &str) -> io::Result<String> {
     Ok(result)
 }
 
+/// Manage printing Switch lists and running trains.
+/// This is the sub-menu for printing Switch lists and running trains.
+/// ## Parameters:
+/// - system The system data structure.
+/// - stdout The io:Write to use.
+/// - working_industries The working industries.
+///
+/// __Returns__ nothing wrapped in an io::Result.
 fn manage_trains_and_printing<W>(system: &mut System,stdout: &mut W,working_industries: &mut HashMap<usize, IndustryWorking>) -> io::Result<()>
 where
      W: io::Write,
@@ -274,6 +295,13 @@ where
     Ok(())
 }
 
+/// Menu to get a car type character
+/// ## Parameters:
+/// - system The system data structure.
+/// - stdout The io::Write for the terminal.
+///
+/// __Returns__ The cars type character or the space character wrapped
+/// in an io::Result.
 fn menu_car_type<W>(system: &System,  stdout: &mut W) 
         -> io::Result<Option<char>>
 where
@@ -304,6 +332,15 @@ where
     }
 }
 
+/// Car type report -- prints (to a PDF file) a report of car types and where
+/// they are located. Selects on a three types of reports: All car type,
+/// one specific car type, or a summary report.
+/// ## Parameters:
+/// - system The system data structure.
+/// - stdout The io::Write for the terminal.
+/// - printer The printer device
+///
+/// __Returns__ nothing wrapped in an io::Write.
 fn car_type_report<W>(system: &System,  stdout: &mut W,printer: &mut Printer) -> io::Result<()> 
 where
     W: io::Write,
@@ -311,7 +348,7 @@ where
     let CTReportMenu: &str = &(system.SystemName() + "\n" + "\n" +
         "Enter <A> for all types\n" +
         "Enter <T> for a specific type\n" +
-        "Enter <S> for a summery report\n" +
+        "Enter <S> for a summary report\n" +
         "Enter <R> to return to the report menu\n" +
         "Enter [ATSR]: ");
     let reporttype = menu(stdout,CTReportMenu,&['A','a','T','t','S','s',
@@ -332,6 +369,11 @@ where
     Ok(())
 }
 
+/// Get a usize value from the terminal.
+/// ## Parameters:
+/// - prompt The prompt string.
+///
+/// __Returns__ a usize value wrapped in an io::Result.
 fn get_usize(prompt: &str) -> io::Result<usize> {
     let mut answer = String::new();
     print!("\n{}",prompt); io::stdout().flush()?;
@@ -344,6 +386,13 @@ fn get_usize(prompt: &str) -> io::Result<usize> {
     Ok(result)
 }
 
+/// Ask a Yes or No question and return true (yes) or false (no).
+/// ## Parameters:
+/// - stdout An io::Write for the terminal.
+/// - prompt The prompt question.
+///
+/// __Returns__ true for a yes answer or false for a no answer, wrapped in an
+/// io::Result.
 fn get_yesno<W>(stdout: &mut W,prompt: &str) -> io::Result<bool>
 where
     W: io::Write,
@@ -356,6 +405,16 @@ where
         _ => panic!("Should never get here!"),
     }
 }
+
+/// Produce a car locations report.  One of four possible reports: cars at
+/// industry, cars at a station, cars at a division, or cars everywhere.
+/// ## Parameters:
+/// - system The system data structure.
+/// - stdout The io::Write for the terminal.
+/// - printer The printer devide.
+/// - working_industries The working industries.
+///
+/// __Returns__ nothing wrapped in an io::Result.
 fn car_locations_report<W>(system: &System, stdout: &mut W,
                         printer: &mut Printer,
                     working_industries: &mut HashMap<usize, IndustryWorking>) 
@@ -399,6 +458,12 @@ where
     Ok(())
 }
 
+/// Get an owner's initials.
+/// ## Parameters:
+/// None.
+///
+/// __Returns__ a String containing the owner inititials wrapped in an 
+/// io::Result.
 fn get_owner()  -> io::Result<String>
 {
     let mut answer = String::new();
@@ -410,6 +475,13 @@ fn get_owner()  -> io::Result<String>
     Ok(answer.trim().to_string())
 }
 
+
+/// produce an owners report.
+/// ## Parameters:
+/// - system The system data structure.
+/// - printer The printer device;
+///
+/// __Returns__ nothing wrapped in an io::Result.
 fn owners_peport(system: &System,printer: &mut Printer) -> io::Result<()> 
 {
     let owner: String = get_owner()?;
@@ -419,6 +491,13 @@ fn owners_peport(system: &System,printer: &mut Printer) -> io::Result<()>
     Ok(())
 }
 
+/// Reports sub-menu
+/// ## Parameters:
+/// - system The system datastructure.
+/// - stdout The io::Write for the terminal.
+/// - working_industries The working industries.
+///
+/// __Returns__ nothing wrapped in an io::Result.
 fn reports_menu<W>(system: &System,stdout: &mut W,
                     working_industries: &mut HashMap<usize, IndustryWorking>) -> io::Result<()> 
 where
@@ -564,6 +643,11 @@ where
     Ok(())
 }
 
+/// Display movements by train.
+/// ## Parameters:
+/// - system The system data structure.
+///
+/// __Returns__ nothing wrapped in an io::Result.
 fn movements_by_train(system: &System) -> io::Result<()> { 
     println!("{}",system.SystemName());
     println!("\nEnter train name to show car movements\n");
@@ -579,6 +663,11 @@ fn movements_by_train(system: &System) -> io::Result<()> {
     Ok(())
 }
 
+/// Display movements by location.
+/// ## Parameters:
+/// - system The system data structure.
+///
+/// __Returns__ nothing wrapped in an io::Result.
 fn movements_by_location(system: &System) -> io::Result<()> {
     println!("{}",system.SystemName());
     println!("\nEnter location code to show car movements\n");
@@ -599,9 +688,11 @@ fn movements_by_location(system: &System) -> io::Result<()> {
     Ok(())    
 }
 
-//fn compile_car_movements(system: &System) {
-//}
-
+/// Show cars by division.
+/// ## Parameters:
+/// - system The system data structure.
+///
+/// __Returns__ nothing wrapped in an io::Result.
 fn show_cars_in_division(system: &System)  -> io::Result<()> {
     println!("{}",system.SystemName());
     println!("\nEnter division symbol to show car movements\n");
@@ -617,7 +708,12 @@ fn show_cars_in_division(system: &System)  -> io::Result<()> {
     };
     Ok(())
 }
-
+/// Show cars movements sub-menu.
+/// ## Parameters:
+/// - system The system data structure.
+/// - stdout The io::Write for the terminal.
+///
+/// __Returns__ nothing wrapped in an io::Result.
 fn show_car_movements<W>(system: &System,stdout: &mut W) -> io::Result<()> 
 where
     W: io::Write,
@@ -665,10 +761,13 @@ where
 
 /// Main program.
 ///
+/// Displays the main menu and then executes commands directly or calls
+/// functions to implement sub-menus.
+///
 /// ## Parameters:
 /// None.
 ///
-/// __Returns__ nothing.
+/// __Returns__ nothing wrapped in an io::Result.
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
     let program = args[0].clone();

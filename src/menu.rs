@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-15 13:11:06
-//  Last Modified : <250915.1459>
+//  Last Modified : <250916.2222>
 //
 //  Description	
 //
@@ -48,6 +48,12 @@ pub use crossterm::{
     Command,
 };
 
+/// Read one Character.  Used by the menu and wait_any_key functions.
+/// Lifted from the Crossterm interactive-demo example.
+/// ## Parameters:
+/// None.
+///
+/// __Returns__ one char, wrapped in an io::Result.
 pub fn read_char() -> std::io::Result<char> {
     loop {
         if let Ok(Event::Key(KeyEvent {
@@ -62,7 +68,23 @@ pub fn read_char() -> std::io::Result<char> {
     }
 }
 
-
+/// Display a menu screen and read one character.  Loops until the character
+/// read is one of the chars in the supplied slice.
+/// 
+/// The menu screen is displayed and one character is read. If the character
+/// is one of the allowed characters, the function returns that character.
+/// if it is any other character, the character is flagged as an undefined
+/// command character and the menu is redisplayed and another character is
+/// read.  This is repeated until a valid character is read, in which case the
+/// character is returned.
+///
+/// Adapted from the Crossterm interactive-demo example.
+/// ## Parameters:
+/// - w The io::Write object for the terminal (typically from stdout).
+/// - thescreen A &str that is the text of the menu screen.
+/// - chars A slice contains the allowed characters.
+///
+/// __Returns__ a character wrapped in an io::Result.
 pub fn menu<W>(w: &mut W, thscreen: &str, chars: &[char]) -> io::Result<char>
 where
     W: io::Write,
@@ -109,6 +131,12 @@ where
     Ok(theresult)
 }
 
+/// Display a one line message and wait for any keypress.
+/// ## Parameters:
+/// - w The io::Write to write to, usually stdout.
+/// - message The one line message.
+///
+/// __Returns__ nothing wrapped in an io::Result.
 pub fn wait_any_key<W>(w: &mut W, message: &str) -> io::Result<()>
 where
     W: io::Write,
