@@ -6,6 +6,7 @@ authors = ["Robert Heller <heller@deepsoft.com>"]
 description = "Port of the C++ port of Timothy O'Connor's Freight Car Forwarding system."
 license = "GPL-2.0-only"
 license-file = "COPYING"
+repository = "https://github.com/RobertPHeller/freight_car_forwarder"
 
 [dependencies]
 getopts = "0.2"
