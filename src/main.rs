@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:14:13
-//  Last Modified : <250916.1611>
+//  Last Modified : <250916.2144>
 //
 //  Description	
 //
@@ -399,8 +399,23 @@ where
     Ok(())
 }
 
+fn get_owner()  -> io::Result<String>
+{
+    let mut answer = String::new();
+    print!("\nEnter owner initials: "); io::stdout().flush()?;
+    let status = io::stdin().read_line(&mut answer)?;
+    if status == 0 {
+        return Err(Error::new(ErrorKind::UnexpectedEof,"End of file"));
+    }
+    Ok(answer.trim().to_string())
+}
+
 fn owners_peport(system: &System,printer: &mut Printer) -> io::Result<()> 
 {
+    let owner: String = get_owner()?;
+    if owner.len() > 0 {
+        system.ReportCarOwners(owner,printer);
+    }
     Ok(())
 }
 
