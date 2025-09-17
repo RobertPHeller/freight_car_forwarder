@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:14:13
-//  Last Modified : <250916.2254>
+//  Last Modified : <250917.1105>
 //
 //  Description	
 //
@@ -774,6 +774,11 @@ fn main() -> io::Result<()> {
 
     let mut opts = Options::new();    
     //opts.optopt("o", "", "set output file name", "NAME");
+    opts.optopt("y","yard", "set PrintYards", "[true or false]");
+    opts.optopt("a","alpha", "set PrintAlpha and PrintAtwice flags", "[0, 1, or 2]");
+    opts.optopt("l","list", "set PrintList and PrintLtwice flags", "[0, 1, or 2]");
+    opts.optopt("d","dispatch", "set PrintDispatch flag", "[true or false]");
+    opts.optopt("f","flag", "set Printem (trains) flag", "[true or false]");
     opts.optflag("h", "help", "print this help menu");
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => { m }
@@ -792,7 +797,46 @@ fn main() -> io::Result<()> {
     };
     
     let (mut system, mut working_industries) = System::new(systemfile);
-    
+
+    if matches.opt_present("y") {
+        let yardopt = matches.opt_str("y").expect("Missing value for -y")
+                        .parse::<bool>().expect("Not true or false");
+        system.SetPrintYards(yardopt);
+    }
+    if matches.opt_present("a") {
+        let alpha = matches.opt_str("a").expect("Missing value for -a")
+                        .parse::<u8>().expect("Not a number (0, 1, or 2)");
+        match alpha {
+            0 => {system.SetPrintAlpha(false); system.SetPrintAtwice(false);},
+            1 => {system.SetPrintAlpha(true); system.SetPrintAtwice(false);},
+            2 =>  {system.SetPrintAlpha(true); system.SetPrintAtwice(true);},
+            _ => panic!("-a should be 0, 1, or 2, was: {}", alpha),
+        };
+    }
+
+    if matches.opt_present("l") {
+        let list = matches.opt_str("l").expect("Missing value for -l")
+                    .parse::<u8>().expect("Not a number (0, 1, or 2)");
+        match list {
+            0 => {system.SetPrintList(false); system.SetPrintLtwice(false);},
+            1 => {system.SetPrintList(true); system.SetPrintLtwice(false);},
+            2 => {system.SetPrintList(true); system.SetPrintLtwice(true);},
+            _ => panic!("-a should be 0, 1, or 2, was: {}", list),
+        };
+    }
+
+    if matches.opt_present("d") {
+        let dispatch = matches.opt_str("d").expect("Missing value for -d")
+                        .parse::<bool>().expect("Not true or false");
+        system.SetPrintDispatch(dispatch);
+    }
+
+    if matches.opt_present("f") {
+        let flag = matches.opt_str("f").expect("Missing value for -f")
+                    .parse::<bool>().expect("Not true or false");
+        system.SetPrintem(flag);
+    }
+
     let MainMenu: &str = &(system.SystemName() + "\n" +
         "\n" +
         "Enter <L> Load cars file " + &system.CarsFile() + "\n" +

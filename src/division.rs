@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:08:54
-//  Last Modified : <250902.2103>
+//  Last Modified : <250917.1232>
 //
 //  Description	
 //
@@ -38,6 +38,10 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 
+/// This struct contains information about a division
+/// A division has a name, a home yard, a symbol character band an
+/// area character
+
 #[derive(Default, Debug, Clone)]
 pub struct Division {
     name: String,
@@ -49,6 +53,14 @@ pub struct Division {
 }
 
 impl Division {
+    /// Initialize a new division.
+    /// ## Parameters:
+    /// - name The name of the division
+    /// - home_index The home yard index.
+    /// - symbol The division's symbol
+    /// - area The division's area
+    ///
+    /// __Returns__ an initialized division
     pub fn new(name: String, home_index: usize, symbol: char, area: char) -> Self {
         Self {name: name,
               home_index: home_index,
@@ -56,9 +68,29 @@ impl Division {
               area: area,
          }
     }
+    /// Return the division's name.
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the name.
     pub fn Name(&self) -> String {self.name.clone()}
+    /// Return the home yard index.
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the home yard index.
     pub fn Home(&self) -> usize {self.home_index}
+    /// Return the symbol
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the symbol.
     pub fn Symbol(&self) -> char {self.symbol}
+    /// Return the area
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the area symbol.
     pub fn Area(&self) -> char {self.area}
 }
 
