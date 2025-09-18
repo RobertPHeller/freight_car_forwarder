@@ -1,6 +1,6 @@
 [package]
 name = "freight_car_forwarder"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 authors = ["Robert Heller <heller@deepsoft.com>"]
 description = "Port of the C++ port of Timothy O'Connor's Freight Car Forwarding system."
@@ -8,7 +8,7 @@ license = "GPL-2.0-only"
 repository = "https://github.com/RobertPHeller/freight_car_forwarder"
 documentation = "https://docs.rs/freight_car_forwarder"
 readme = "README.md"
-keywords = ["console"]
+keywords = ["model-railroad", "switch-lists", "freight-car-forwarder" , "console"]
 categories = ["command-line-utilities", "games", "simulation"]
 
 [dependencies]
