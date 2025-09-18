@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:13:27
-//  Last Modified : <250913.1135>
+//  Last Modified : <250918.0848>
 //
 //  Description	
 //
@@ -242,7 +242,7 @@ impl SwitchList {
     
     pub fn NextSwitchListForCarAndIndustry(&mut self, car: usize, 
                                             industry: usize) -> isize {
-        let start: usize = self.lastIndex as usize + 1;
+        let start: usize = (self.lastIndex+1) as usize;
         let end: usize = self.pickIndex;
         for Gx in start..end {
             let igx: usize = Gx;

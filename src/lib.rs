@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:07:03
-//  Last Modified : <250916.2305>
+//  Last Modified : <250918.0709>
 //
 //  Description	
 //
@@ -17,25 +17,25 @@
 //  History
 //	
 /////////////////////////////////////////////////////////////////////////////
-//!    Copyright (C) 2025  Robert Heller D/B/A Deepwoods Software
-//!			51 Locke Hill Road
-//!			Wendell, MA 01379-9728
-//!
-//!    This program is free software; you can redistribute it and/or modify
-//!    it under the terms of the GNU General Public License as published by
-//!    the Free Software Foundation; either version 2 of the License, or
-//!    (at your option) any later version.
-//!
-//!    This program is distributed in the hope that it will be useful,
-//!    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//!    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//!    GNU General Public License for more details.
-//!
-//!    You should have received a copy of the GNU General Public License
-//!    along with this program; if not, write to the Free Software
-//!    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//! 
-//!
+//    Copyright (C) 2025  Robert Heller D/B/A Deepwoods Software
+//			51 Locke Hill Road
+//			Wendell, MA 01379-9728
+//
+//    This program is free software; you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation; either version 2 of the License, or
+//    (at your option) any later version.
+//
+//    This program is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with this program; if not, write to the Free Software
+//    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+// 
+//
 //////////////////////////////////////////////////////////////////////////////
 
 //! This is a port of the C++ port of Timothy O'Connor's Freight Car 
@@ -48,14 +48,16 @@
 //!
 //! Github: [https://github.com/RobertPHeller/freight_car_forwarder](https://github.com/RobertPHeller/freight_car_forwarder)
 //!
+//! ## Main program
+//!
 //! Included is a terminal-based main program that implements most of the 
 //! basic functionallity that the original QBasic provided and much of the
 //! functionallity of the Tcl/TK & C++ version.
+//!
 //! (I left out the ability to Add, Remove or Edit/View cars.  This could be 
 //! added with a bit of effort, mostly in implementing an editor screen using 
 //! crossterm's cursor management API.)
-
-
+//!
 
 /// The station module implements stations along the railroad.
 ///
