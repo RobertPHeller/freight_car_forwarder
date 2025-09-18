@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:14:13
-//  Last Modified : <250917.1615>
+//  Last Modified : <250917.2211>
 //
 //  Description	
 //
@@ -55,7 +55,8 @@ pub use freight_car_forwarder::industry::IndustryWorking;
 pub mod menu;
 use crate::menu::*;
 pub mod commandids;
-//use crate::commandids::*;
+use crate::commandids::*;
+use crate::Commands::*;
 use lalrpop_util::lalrpop_mod;
 
 lalrpop_mod!(pub fcfscript); // synthesized by LALRPOP
@@ -764,6 +765,135 @@ where
     }
     Ok(())
 }
+fn run_batch_file(system: &mut System,
+                  working_industries: &mut HashMap<usize, IndustryWorking>,
+                  batchfile: &str) {
+    let f = File::open(batchfile).expect("Cannot open batch file");
+    let mut reader = BufReader::new(f);
+    let mut buffer = String::new(); 
+    let parser = fcfscript::CommandParser::new();
+    loop {
+        buffer.clear(); 
+        let result = reader.read_line(&mut buffer)
+                                .expect("I/O error on script file");
+        if result == 0 {break;}
+        buffer = buffer.trim().to_string();
+        if buffer.len() == 0 || buffer.starts_with("#") {continue;}
+        let cmd = parser.parse(&buffer).expect("Script parse error");
+        eprintln!("*** {:?} => {:?}",buffer,cmd);
+        match cmd {
+            Reload => *working_industries = system.ReLoadCarFile(),
+            Save => {system.SaveCars(working_industries);},
+            ShowCarsNotMoved => system.ShowCarsNotMoved(),
+            ShowCarMovements(showAll,TOption,IOption) => {
+                    let TrainOption = match TOption {
+                        None => None,
+                        Some(trainNumber) => system.TrainByIndex(trainNumber),
+                    };
+                    let IndOption = match IOption {
+                        None => None, 
+                        Some(indIndex) => system.IndustryByIndex(indIndex),
+                    };
+                    system.ShowCarMovements(showAll,TrainOption,IndOption);
+            },
+            ShowTrainTotals => system.ShowTrainTotals(),
+            ListTrainNames(all, trainType) =>
+                    system.ListTrainNames(all,trainType),
+            SetPrintYards(flag) => system.SetPrintYards(flag),
+            SetPrintAlpha(flag) => system.SetPrintAlpha(flag),
+            SetPrintAtwice(flag) => system.SetPrintAtwice(flag),
+            SetPrintList(flag) => system.SetPrintList(flag),
+            SetPrintLtwice(flag) => system.SetPrintLtwice(flag),
+            SetPrintDispatch(flag) => system.SetPrintDispatch(flag),
+            SetPrintem(flag) => system.SetPrintem(flag),
+            RunAllTrains(filename) => {
+                let mut printer: Printer = Printer::new(&filename,
+                                                        "All train in operating session",
+                                                        PageSize::Letter);
+                system.RunAllTrains(working_industries,&mut printer);
+            },
+            RunBoxMoves(filename) => {
+                let mut printer: Printer = Printer::new(&filename,
+                                                        "All Boxmoves",
+                                                        PageSize::Letter);
+                system.RunBoxMoves(working_industries,&mut printer);
+            },
+            RunOneTrain(trainName,filename) => {
+                match system.TrainByName(trainName.to_string()) {
+                    Some(train) => {
+                        let title = format!("Running train {}",trainName);
+                        let mut printer: Printer = Printer::new(&filename,
+                                                        &title,
+                                                        PageSize::Letter);
+                        system.RunOneTrain(train.Number(),false,
+                                           working_industries,
+                                            &mut printer);
+                        },
+                    None => println!("No such train: {}",trainName),
+                };
+            },
+            PrintAllLists(filename) => {
+                let mut printer: Printer = Printer::new(&filename,
+                                                        "Yard lists",
+                                                        PageSize::Letter);
+                system.PrintAllLists(&mut printer);
+            },
+            ShowUnassigned => system.ShowUnassignedCars(),
+            CarAssignment => system.CarAssignment(working_industries),
+            ReportIndustries(filename) => {
+                let mut printer: Printer = Printer::new(&filename,
+                                                        "Industry Report",
+                                                        PageSize::Letter);
+                system.ReportIndustries(&mut printer);
+            },
+            ReportTrains(filename) => {
+                let mut printer: Printer = Printer::new(&filename,
+                                                        "Train Report",
+                                                        PageSize::Letter);
+                system.ReportTrains(&mut printer);
+            },
+            ReportCars(filename) => {
+                let mut printer: Printer = Printer::new(&filename,
+                                                        "Car Report",
+                                                        PageSize::Letter);
+                system.ReportCars(&mut printer,working_industries);
+            },
+            ReportCarsNotMoved(filename) => {
+                let mut printer: Printer = Printer::new(&filename,
+                                                        "Cars Not Moved Report",
+                                                        PageSize::Letter);
+                system.ReportCarsNotMoved(&mut printer,working_industries);
+            },
+            ReportCarTypes(cttype,typechar,filename) => {
+                let mut printer: Printer = Printer::new(&filename,
+                                                        "Car Type Report",
+                                                        PageSize::Letter);
+                system.ReportCarTypes(cttype,typechar,&mut printer);
+            },
+            ReportCarLocations(cltype,locindex,filename) => {
+                let mut printer: Printer = Printer::new(&filename,
+                                                        "Car Location Report",
+                                                        PageSize::Letter);
+                system.ReportCarLocations(cltype,locindex,&mut printer,
+                                          working_industries);
+            },
+            ReportAnalysis(filename) => {
+                let mut printer: Printer = Printer::new(&filename,
+                                                        "Analysis Report",
+                                                        PageSize::Letter);
+                system.ReportAnalysis(&mut printer,working_industries);
+            },
+            ReportCarOwners(owner,filename) => {
+                let mut printer: Printer = Printer::new(&filename,
+                                                        "Car Owner Report",
+                                                        PageSize::Letter);
+                system.ReportCarOwners(owner,&mut printer);
+            },
+            ResetIndustries => system.ResetIndustryStats(working_industries),
+        };
+    }
+}
+
 
 /// Main program.
 ///
@@ -846,19 +976,9 @@ fn main() -> io::Result<()> {
 
     if matches.opt_present("b") {
         let batchfile = matches.opt_str("b").expect("Missing Batch file");
-        let f = File::open(batchfile).expect("Cannot open batch file");
-        let mut reader = BufReader::new(f);
-        let mut buffer = String::new(); 
-        let parser = fcfscript::CommandParser::new();
-        loop {
-            buffer.clear(); 
-            let result = reader.read_line(&mut buffer)?;
-            if result == 0 {break;}
-            buffer = buffer.trim().to_string();
-            if buffer.len() == 0 || buffer.starts_with("#") {continue;}
-            let cmd = parser.parse(&buffer).expect("Script parse error");
-            eprintln!("*** {:?} => {:?}",buffer,cmd);
-        }
+        run_batch_file(&mut system,
+                       &mut working_industries,
+                       &batchfile);
         return Ok(());
     };
 
