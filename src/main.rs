@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:14:13
-//  Last Modified : <250917.1105>
+//  Last Modified : <250917.1615>
 //
 //  Description	
 //
@@ -41,10 +41,11 @@ extern crate getopts;
 use getopts::Options;
 use std::env;
 //use std::io;
-use std::io::{self, Write, Error, ErrorKind};
+use std::io::{self, Write, Error, ErrorKind, BufReader, BufRead};
 use std::path::PathBuf;
 use std::ffi::OsStr;
 use std::fs;
+use std::fs::File;
 use std::collections::HashMap;
 pub use freight_car_forwarder::system::*;
 pub use freight_car_forwarder::industry::IndustryWorking;
@@ -53,6 +54,11 @@ pub use freight_car_forwarder::industry::IndustryWorking;
 
 pub mod menu;
 use crate::menu::*;
+pub mod commandids;
+//use crate::commandids::*;
+use lalrpop_util::lalrpop_mod;
+
+lalrpop_mod!(pub fcfscript); // synthesized by LALRPOP
 
 /// Print command line usage.
 ///
@@ -779,6 +785,7 @@ fn main() -> io::Result<()> {
     opts.optopt("l","list", "set PrintList and PrintLtwice flags", "[0, 1, or 2]");
     opts.optopt("d","dispatch", "set PrintDispatch flag", "[true or false]");
     opts.optopt("f","flag", "set Printem (trains) flag", "[true or false]");
+    opts.optopt("b", "batch", "run commands in a batch file", "BATCHFILE");
     opts.optflag("h", "help", "print this help menu");
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => { m }
@@ -836,6 +843,24 @@ fn main() -> io::Result<()> {
                     .parse::<bool>().expect("Not true or false");
         system.SetPrintem(flag);
     }
+
+    if matches.opt_present("b") {
+        let batchfile = matches.opt_str("b").expect("Missing Batch file");
+        let f = File::open(batchfile).expect("Cannot open batch file");
+        let mut reader = BufReader::new(f);
+        let mut buffer = String::new(); 
+        let parser = fcfscript::CommandParser::new();
+        loop {
+            buffer.clear(); 
+            let result = reader.read_line(&mut buffer)?;
+            if result == 0 {break;}
+            buffer = buffer.trim().to_string();
+            if buffer.len() == 0 || buffer.starts_with("#") {continue;}
+            let cmd = parser.parse(&buffer).expect("Script parse error");
+            eprintln!("*** {:?} => {:?}",buffer,cmd);
+        }
+        return Ok(());
+    };
 
     let MainMenu: &str = &(system.SystemName() + "\n" +
         "\n" +

@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250916.1426>
+//  Last Modified : <250917.2016>
 //
 //  Description	
 //
@@ -221,7 +221,7 @@ impl fmt::Display for System {
 }
 
 ///  Types of car type reports.
-
+#[derive(Debug)]
 pub enum CarTypeReport {
     /// Report on all car types.
     All,    
@@ -232,6 +232,7 @@ pub enum CarTypeReport {
 }
 
 ///  Types of location report.
+#[derive(Debug)]
 pub enum CarLocationType {
     /// Report by industry. 
     INDUSTRY,
