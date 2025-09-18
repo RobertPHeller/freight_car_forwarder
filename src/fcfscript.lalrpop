@@ -1,0 +1,141 @@
+use crate::commandids::*;
+use freight_car_forwarder::system::*;
+use std::str::FromStr;
+
+grammar;
+
+pub Command = {
+    Reload,
+    Save,
+    ShowCarsNotMoved,
+    ShowCarMovements,
+    ShowTrainTotals,
+    ListTrainNames,
+    SetPrintYards,
+    SetPrintAlpha,
+    SetPrintAtwice,
+    SetPrintList,
+    SetPrintLtwice,
+    SetPrintDispatch,
+    SetPrintem,    
+    RunAllTrains,
+    RunBoxMoves,
+    RunOneTrain,
+    PrintAllLists,
+    ShowUnassigned,
+    CarAssignment,
+    ReportIndustries,
+    ReportTrains,
+    ReportCars,
+    ReportCarsNotMoved,
+    ReportCarTypes,
+    ReportCarLocations,
+    ReportAnalysis,
+    ReportCarOwners,
+    ResetIndustries,
+};
+
+Reload: Commands = { "reloadcarfile" => Commands::Reload };
+Save: Commands = { "savecars" => Commands::Save };
+ShowUnassigned: Commands = { "showunassignedcars" => Commands::ShowUnassigned };
+CarAssignment: Commands = { "carassignment" => Commands::CarAssignment };
+ResetIndustries: Commands = { "resetindustries" => Commands::ResetIndustries };
+Bool: bool = {
+    "true" => true,
+    "false" => false,
+    "yes" => true,
+    "no" => false,
+};
+QuotedStringLiteral: String = {<l:r#""(\\\\|\\"|[^"\\])*""#> => l[1..l.len()-1].to_string()};
+SetPrintYards: Commands = { 
+    "setprintyards" <Bool> => Commands::SetPrintYards(<>)
+};
+SetPrintAlpha: Commands = {
+    "setprintalpha" <Bool> => Commands::SetPrintAlpha(<>)
+};
+SetPrintAtwice: Commands = {
+    "setprintatwice" <Bool> => Commands::SetPrintAtwice(<>)
+};
+SetPrintList: Commands = {
+    "setprintlist" <Bool> => Commands::SetPrintList(<>)
+};
+SetPrintLtwice: Commands = {
+    "setprintltwice" <Bool> => Commands::SetPrintLtwice(<>)
+};
+SetPrintDispatch: Commands = {
+    "setprintdispatch" <Bool> => Commands::SetPrintDispatch(<>)
+};
+SetPrintem: Commands = {
+    "setprintem" <Bool> => Commands::SetPrintem(<>)
+};    
+RunAllTrains: Commands = {
+    "runalltrains" <QuotedStringLiteral> => Commands::RunAllTrains(<>) };
+RunBoxMoves: Commands = {
+    "runboxmoves" <QuotedStringLiteral> => Commands::RunBoxMoves(<>) };
+RunOneTrain: Commands = { 
+    "runonetrain" <QuotedStringLiteral> <QuotedStringLiteral> =>
+                Commands::RunOneTrain(<>) };
+PrintAllLists: Commands = {
+    "printalllists" <QuotedStringLiteral> => Commands::PrintAllLists(<>) };
+ReportIndustries: Commands = {
+    "reportindustries" <QuotedStringLiteral> => Commands::ReportIndustries(<>) 
+};
+ReportTrains: Commands = {
+    "reporttrains" <QuotedStringLiteral> => Commands::ReportTrains(<>) };
+ReportCars: Commands = {
+    "reportcars" <QuotedStringLiteral> => Commands::ReportCars(<>) };
+ReportCarsNotMoved: Commands = {
+    "reportcarsnotmoved" <QuotedStringLiteral> 
+                        => Commands::ReportCarsNotMoved(<>) };
+CarTypeReport: CarTypeReport = {
+    "all" => CarTypeReport::All,
+    "type" => CarTypeReport::Type,
+    "summary" => CarTypeReport::Summary,
+};
+
+CarTypeChar: char = { <l:r"'[ a-zA-Z0-9?\]^&=`_{;\\|}~\[<>!#$*./:+()&@-]'"> =>
+        l.chars().nth(1).unwrap() };
+        
+Usize: usize = { r"[0-9]+" =>  usize::from_str(<>).unwrap()};
+    
+ReportCarTypes: Commands = {
+    "reportcartypes" <CarTypeReport> <CarTypeChar> <QuotedStringLiteral> 
+                => Commands::ReportCarTypes(<>) };
+CarLocationType: CarLocationType = {
+    "industry" => CarLocationType::INDUSTRY,
+    "station" => CarLocationType::STATION,
+    "division" => CarLocationType::DIVISION,
+    "all" => CarLocationType::ALL,
+};
+ReportCarLocations: Commands = {
+    "reportcarlocations" <CarLocationType> <Usize> <QuotedStringLiteral>
+                => Commands::ReportCarLocations(<>) };
+ReportAnalysis: Commands = {
+    "reportanalysis" <QuotedStringLiteral> => Commands::ReportAnalysis(<>) };
+ReportCarOwners: Commands = { 
+    "reportcarowners" <QuotedStringLiteral> <QuotedStringLiteral>
+                => Commands::ReportCarOwners(<>) };
+ShowCarsNotMoved: Commands = {
+    "showcarsnotmoved" => Commands::ShowCarsNotMoved};
+OptionalUsize: Option<usize> = {
+    "-" => None,
+    Usize => Some(<>),
+};
+ShowCarMovements: Commands = {
+    "showcarmovements" <Bool> <OptionalUsize> <OptionalUsize> =>
+        Commands::ShowCarMovements(<>) };
+
+ShowTrainTotals: Commands = {
+    "showtraintotals" => Commands::ShowTrainTotals };
+
+OptionalTrainType: Option<TrainType> = {
+    "-" => None,
+    "unknown" => Some(TrainType::Unknown),
+    "wayfreight" => Some(TrainType::Wayfreight),
+    "boxmove" => Some(TrainType::BoxMove),
+    "manifest" => Some(TrainType::Manifest),
+    "passenger" => Some(TrainType::Passenger),
+};
+ListTrainNames: Commands = {
+    "listtrainnames" <Bool> <OptionalTrainType> =>
+        Commands::ListTrainNames(<>) };
