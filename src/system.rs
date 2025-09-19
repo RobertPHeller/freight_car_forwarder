@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250917.2016>
+//  Last Modified : <250919.1105>
 //
 //  Description	
 //
@@ -231,7 +231,7 @@ pub enum CarTypeReport {
     Summary,
 }
 
-///  Types of location report.
+///  Types of location reports.
 #[derive(Debug)]
 pub enum CarLocationType {
     /// Report by industry. 
@@ -2014,7 +2014,8 @@ impl System {
     /// they could be moved to, based on a number of critiera, such as whether 
     /// they are loaded or empty,
     /// 
-    /// Main car assignment function.  Loops through all cars looking for cars*    /// that are unassigned and trys to find assignments for those cars.
+    /// Main car assignment function.  Loops through all cars looking for cars
+    /// that are unassigned and trys to find assignments for those cars.
     /// Assignments are based on things like car type and whether it is loaded
     /// or empty.  Loaded cars are forwarded to industries that consume the
     /// type of load and empty cars are forwarded either to their home yards
@@ -3827,23 +3828,23 @@ impl System {
     /// additional sections of the way freights or manifest trains need to be 
     /// run first. 
     ///
-    /// Run all of the trains in an operating session.  This simulates all   
-    /// movements.  Assuming the session went smoothly, the results of this  
+    /// Run all of the trains in an operating session.  This simulates all 
+    /// movements.  Assuming the session went smoothly, the results of this 
     /// will mirror what actually happens on the layout and all cars that were
-    /// moved this session will be at whereever they would be after the      
-    /// session.								
+    /// moved this session will be at whereever they would be after the 
+    /// session.
     ///
     /// We can then save the car state and/or run the car assignment for the 
-    /// next session.  In practice, what will happen is after running this   
+    /// next session.  In practice, what will happen is after running this 
     /// code (and manually run the box moves afterward), some of the cars will
-    /// be edited to reflect mistakes and problems encounted durring the     
+    /// be edited to reflect mistakes and problems encounted durring the 
     /// the operating system.  That is, the car data will be fixed to reflect
-    /// what really happened.  Presumably a large part of what happened was  
+    /// what really happened.  Presumably a large part of what happened was
+    /// was supposed to happen.	
     ///
-    /// was supposed to happen.						
     /// This code also creates information about things like switch lists    
     /// relating to switching that the train crew(s) will perform durring the
-    /// operating session.							
+    /// operating session.
     ///
     /// ## Parameters:
     /// - working_industries Working industries

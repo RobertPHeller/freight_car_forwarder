@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:14:28
-//  Last Modified : <250918.2040>
+//  Last Modified : <250919.1059>
 //
 //  Description	
 //
@@ -43,9 +43,13 @@ use crate::system::System;
 /// The IndustryType enum
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum IndustryType {
+    /// Industry is a Yard.
     Yard,
+    /// Industry is a modeled industry.
     Industry,
+    /// Industry is an "offline" industry, one not actually modeled.
     Offline,
+    /// Industry is an unknown type.
     Unknown,
 }
 
@@ -351,6 +355,87 @@ impl IndustryWorking {
     pub fn AddCar(&mut self, carindex: usize) {
         self.cars.push(carindex);
     }
+    /// Remove a car from this location.  If the car is not here, do nothing.
+    /// ## Parameters:
+    /// - Cx the car index
+    ///
+    /// __Returns__ nothing
+    pub fn RemoveCar(&mut self,Cx: usize) {
+        for c in 0..self.cars.len() {
+            if self.cars[c] == Cx {
+                self.cars.remove(c);
+                return;
+            }
+        }
+    }
+    /// The number of cars at this location.
+    /// ## Parameters:
+    /// None
+    ///
+    /// __Returns__ the number of cars.
+    pub fn CarsNum(&self) -> u32 {self.carsNum}
+    /// Set the number of cars
+    /// ## Parameters:
+    /// - cn the new number of cars
+    ///
+    /// __Returns__ nothing
+    pub fn SetCarsNum(&mut self, cn: u32) {self.carsNum = cn;}
+    /// Increment the cars number
+    /// ## Parameter:
+    /// None
+    ///
+    /// __Returns__ nothing
+    pub fn IncrCarsNum(&mut self) { self.carsNum += 1; }
+    /// Decrement the cars number
+    /// ## Parameter:
+    /// None
+    ///
+    /// __Returns__ nothing
+    pub fn DecrCarsNum(&mut self) { 
+        if  self.carsNum > 1 {self.carsNum -= 1; }
+    }
+    /// The length of all the cars at this location.
+    /// ## Parameters:
+    /// None
+    ///
+    /// __Returns__ the length of all the cars.
+    pub fn CarsLen(&self) -> u32 {self.carsLen}
+    /// Set the length  of all of the cars
+    /// ## Parameters:
+    /// - cl the new length  of all  of the cars
+    ///
+    /// __Returns__ nothing
+    pub fn SetCarsLen(&mut self, cl: u32) {self.carsLen = cl;}    
+    /// Add to the cars length
+    /// ## Parameters:
+    /// - cl the ammount to add to the car length
+    ///
+    /// __Returns__ nothing
+    pub fn AddToCarsLen(&mut self, cl: u32) {self.carsLen += cl;}
+    /// Subtract from the cars length
+    /// ## Parameters:
+    /// - cl the ammount to subtract from the car length
+    ///
+    /// __Returns__ nothing
+    pub fn SubFromCarsLen(&mut self, cl: u32) {
+        if self.carsLen < cl {
+            self.carsLen = 0;
+        } else {
+            self.carsLen -= cl;
+        }
+    }
+    /// The stats length at this location.
+    /// ## Parameters:
+    /// None
+    ///
+    /// __Returns__ the length of the stats.
+    pub fn StatsLen(&self) -> u32 {self.statsLen}
+    /// Set the stats length
+    /// ## Parameters:
+    /// - sl the new stats length
+    ///
+    /// __Returns__ nothing
+    pub fn SetStatsLen(&mut self, sl: u32) {self.statsLen = sl;}
     /// Increment stats length
     /// ## Parameters:
     /// - i the ammount to add to the stats len
@@ -367,27 +452,29 @@ impl IndustryWorking {
     pub fn IncrementStatsLen1(&mut self) {
         self.statsLen = self.statsLen + 1;
     }
-    pub fn CarsNum(&self) -> u32 {self.carsNum}
-    pub fn SetCarsNum(&mut self, cn: u32) {self.carsNum = cn;}
-    pub fn IncrCarsNum(&mut self) { self.carsNum += 1; }
-    pub fn DecrCarsNum(&mut self) { 
-        if  self.carsNum > 1 {self.carsNum -= 1; }
-    }
-    pub fn CarsLen(&self) -> u32 {self.carsLen}
-    pub fn SetCarsLen(&mut self, cl: u32) {self.carsLen = cl;}    
-    pub fn AddToCarsLen(&mut self, cl: u32) {self.carsLen += cl;}
-    pub fn SubFromCarsLen(&mut self, cl: u32) {
-        if self.carsLen < cl {
-            self.carsLen = 0;
-        } else {
-            self.carsLen -= cl;
-        }
-    }
-    pub fn StatsLen(&self) -> u32 {self.statsLen}
-    pub fn SetStatsLen(&mut self, sl: u32) {self.statsLen = sl;}
+    /// The used length at this location.
+    /// ## Parameters:
+    /// None
+    ///
+    /// __Returns__ the used length.
     pub fn UsedLen(&self) -> u32 {self.usedLen}
+    /// Set the used length
+    /// ## Parameters:
+    /// - ul the new used length
+    ///
+    /// __Returns__ nothing
     pub fn SetUsedLen(&mut self, ul: u32) {self.usedLen = ul;}
+    /// Add to the used length
+    /// ## Parameters:
+    /// - cl the ammount to add to the used length
+    ///
+    /// __Returns__ nothing
     pub fn AddToUsedLen(&mut self, cl: u32) {self.usedLen += cl;}
+    /// Subtract from the used length
+    /// ## Parameters:
+    /// - cl the ammount to subtract from the used length
+    ///
+    /// __Returns__ nothing
     pub fn SubFromUsedLen(&mut self, cl: u32) {
         if self.usedLen < cl {
             self.usedLen = 0;
@@ -395,17 +482,29 @@ impl IndustryWorking {
             self.usedLen -= cl;
         }
     }
-    pub fn RemoveCar(&mut self,Cx: usize) {
-        for c in 0..self.cars.len() {
-            if self.cars[c] == Cx {
-                self.cars.remove(c);
-                return;
-            }
-        }
-    }
+    /// The remaining length at this location.
+    /// ## Parameters:
+    /// None
+    ///
+    /// __Returns__ the remaining length.
     pub fn RemLen(&self) -> u32 {self.remLen}
+    /// Set the remaining length
+    /// ## Parameters:
+    /// - rl the new remaining length
+    ///
+    /// __Returns__ nothing
     pub fn SetRemLen(&mut self, rl: u32) {self.remLen = rl;}
+    /// Add to the remaining length
+    /// ## Parameters:
+    /// - rl the ammount to add to the remaining length
+    ///
+    /// __Returns__ nothing
     pub fn AddRemLen(&mut self, rl: u32) {self.remLen += rl;}
+    /// Subtract from the remaining length
+    /// ## Parameters:
+    /// - rl the ammount to subtract from the remaining length
+    ///
+    /// __Returns__ nothing
     pub fn SubRemLen(&mut self, rl: u32) {
         if self.remLen < rl {
             self.remLen = 0;

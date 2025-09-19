@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:11:01
-//  Last Modified : <250902.2108>
+//  Last Modified : <250919.1110>
 //
 //  Description	
 //
@@ -37,6 +37,8 @@
 // 
 //
 //////////////////////////////////////////////////////////////////////////////
+
+/// Owner struct
 #[derive(Debug, Default, Clone)]
 pub struct Owner {
     initials: String,
@@ -45,11 +47,33 @@ pub struct Owner {
 }
 
 impl Owner {
+    /// Initialize a new Owner struct
+    /// ## Parameters:
+    /// - initials the owner inirials
+    /// - name the owner name
+    /// - comment a comment
+    ///
+    /// __Returns__ a freshly initialized Owner struct.
     pub fn new(initials: String, name: String, comment: String) -> Self {
         Self {initials: initials, name: name, comment: comment}
     }
+    /// The owner initials
+    /// ## Parameters:
+    /// None
+    ///
+    /// __Returns__ the owner initials
     pub fn Initials(&self) -> String {self.initials.clone()}
+    /// The owner name
+    /// ## Parameters:
+    /// None
+    ///
+    /// __Returns__ the owner name
     pub fn Name(&self) -> String {self.name.clone()}
+    /// The owner comment
+    /// ## Parameters:
+    /// None
+    ///
+    /// __Returns__ the owner comment
     pub fn Comment(&self) -> String {self.comment.clone()}
 }
 

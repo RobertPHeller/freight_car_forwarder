@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:14:13
-//  Last Modified : <250918.0644>
+//  Last Modified : <250919.1016>
 //
 //  Description	
 //
@@ -784,7 +784,7 @@ fn run_batch_file(system: &mut System,
         buffer = buffer.trim().to_string();
         if buffer.len() == 0 || buffer.starts_with("#") {continue;}
         let cmd = parser.parse(&buffer).expect("Script parse error");
-        eprintln!("*** {:?} => {:?}",buffer,cmd);
+        //eprintln!("*** {:?} => {:?}",buffer,cmd);
         match cmd {
             Reload => *working_industries = system.ReLoadCarFile(),
             Save => {system.SaveCars(working_industries);},
