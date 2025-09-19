@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:10:29
-//  Last Modified : <250917.1320>
+//  Last Modified : <250918.1547>
 //
 //  Description	
 //
@@ -38,7 +38,7 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 
-
+/// The station structure conains the name, a comment and a division index.
 #[derive(Default, Debug, Clone)]
 pub struct Station {
     name: String,
@@ -47,11 +47,33 @@ pub struct Station {
 }
 
 impl Station {
+    /// Initialize a new station.
+    /// ## Parameters:
+    /// - name The name of the station.
+    /// - comment A comment about the station.
+    /// - division_index the division index.
+    ///
+    /// __Returns__ a fresh station sructure.
     pub fn new(name: String, comment: String, division_index: u8) -> Self {
         Self {name: name, comment: comment, division_index: division_index}
     }
+    /// The name of the station.
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the name of the station.
     pub fn Name(&self) -> String {self.name.clone()}
+    /// The comment for the station
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the comment for the station
     pub fn Comment(&self) -> String {self.comment.clone()}
+    /// The division index for the station
+    /// ## Parameters:
+    /// None.
+    ///
+    /// __Returns__ the station's division index.
     pub fn DivisionIndex(&self) -> u8 {self.division_index}
 }
 
