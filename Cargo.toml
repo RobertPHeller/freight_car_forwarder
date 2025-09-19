@@ -8,7 +8,7 @@ license = "GPL-2.0-only"
 repository = "https://github.com/RobertPHeller/freight_car_forwarder"
 documentation = "https://docs.rs/freight_car_forwarder"
 readme = "README.md"
-keywords = ["model-railway", "railroad", "model-railroad", "switch-lists" , "freight-operations", "console"]
+keywords = ["model-railway", "railroad", "model-railroad", "switch-lists" , "freight-operations"]
 categories = ["command-line-utilities", "games", "simulation"]
 
 [dependencies]
