@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:13:07
-//  Last Modified : <250902.2107>
+//  Last Modified : <250919.1430>
 //
 //  Description	
 //
@@ -39,9 +39,13 @@
 //////////////////////////////////////////////////////////////////////////////
 use std::fmt;
 
+/// The number of car type characters
 pub const NUMBER_OF_CARTYPES: u8 = 91;
+/// The abs max number of car types (7-bit ASCII)
 pub const MAX_CAR_TYPES: u8 = 128;
 
+/// Car type struct.  Maps between car type characters to a car type name and
+/// group.
 #[derive(Debug, Default, Clone)]
 pub struct CarType {
     comment: String,
@@ -50,11 +54,34 @@ pub struct CarType {
 }
 
 impl CarType {
+    /// Initialize a new gar type
+    /// ## Parameters:
+    /// - comment a comment about the car type (eg what the car is used for, 
+    /// etc.)
+    /// - type_name the name of the car type
+    /// - group the group character
+    ///
+    /// __Returns__ a freshly initialized CarType struct.
     pub fn new(comment: String, type_name: String, group: char) -> Self {
         Self {comment: comment, type_name: type_name, group: group }
     }
+    /// The car type comment
+    /// ## Parameters:
+    /// None
+    ///
+    /// __Returns__ the car type comment
     pub fn Comment(&self) -> String {self.comment.clone()}
+    /// The car type name
+    /// ## Parameters:
+    /// None
+    ///
+    /// __Returns__ the car type name
     pub fn Type(&self) -> String {self.type_name.clone()}
+    /// The car type group
+    /// ## Parameters:
+    /// None
+    ///
+    /// __Returns__ the car type group
     pub fn Group(&self) -> char {self.group}
 }
 
@@ -64,9 +91,11 @@ impl fmt::Display for CarType {
     }
 }
 
+/// The maximum number of car groups
 pub const MAX_CAR_GROUP: u8 = 16;
 
 
+/// The Car Group struct
 #[derive(Debug, Default, Clone)]
 pub struct CarGroup {
     description: String,
@@ -74,10 +103,26 @@ pub struct CarGroup {
 }
 
 impl CarGroup {
+    /// Initializer for CarGroup structs
+    /// ## Parameters:
+    /// - g group character
+    /// - d the group description
+    ///
+    /// __Returns__ an initialized CarGroup
     pub fn new(g: char, d: String) -> Self {
         Self {group: g, description: d}
     }
+    /// The group
+    /// ## Parameters:
+    /// None
+    ///
+    /// __Returns__ the group character
     pub fn Group(&self) -> char {self.group}
+    /// The description of the group
+    /// ## Parameters:
+    /// None
+    ///
+    /// __Returns__ the group's description
     pub fn Description(&self) -> String {self.description.clone()}
 }
 

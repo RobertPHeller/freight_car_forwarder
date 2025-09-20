@@ -1,6 +1,6 @@
 [package]
 name = "freight_car_forwarder"
-version = "0.1.7"
+version = "0.1.8"
 edition = "2021"
 authors = ["Robert Heller <heller@deepsoft.com>"]
 description = "Port of the C++ port of Timothy O'Connor's Freight Car Forwarding system."

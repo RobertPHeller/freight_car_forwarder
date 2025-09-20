@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:13:52
-//  Last Modified : <250911.1336>
+//  Last Modified : <250919.1600>
 //
 //  Description	
 //
@@ -41,30 +41,44 @@ extern crate cairo;
 extern crate pango;
 extern crate pango_sys;
 
+/// Page size enum
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum PageSize {
+    /// US Letter
     Letter,
+    /// A4
     A4,
 }
+/// Horizontal letter spacing
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum TypeSpacing {
+    /// Normal spacing
     One,
+    /// Narrow (Condensed 60%)
     Half,
+    /// Wide letter (double width)
     Double,
 }
 
+/// Type weight
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum TypeWeight {
+    /// Normal weight
     Normal,
+    /// Heavy (Bold) weight
     Bold,
 }
 
+/// Text slant
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum TypeSlant {
+    /// Upright
     Roman,
+    /// Slanted
     Italic,
 }
 
+/// Printer device.  This connects to a Cairo Pango PDF output file
 pub struct Printer {
     pageSize: PageSize,
     pdf_surface: cairo::PdfSurface,
@@ -91,6 +105,13 @@ pub struct Printer {
         
 
 impl Printer {
+    /// Open a PDF output file
+    /// ## Parameters:
+    /// - filename the output file name
+    /// - title the title at the top of each page
+    /// - pageSize the page size
+    ///
+    /// __Returns__ a freshly opened PDF output device.
     pub fn new(filename: &str, title: &str, pageSize: PageSize) -> Self {
         let swidth: f64;
         let sheight: f64;
@@ -134,20 +155,51 @@ impl Printer {
     //fn ClosePrinter(&mut self) -> bool {
     //    true
     //}
+    /// Is the printer opened?  With this implementation it is always open
+    /// until it goes out of scope
+    /// ## Parameters:
+    /// None
+    ///
+    /// __Returns__ true
     pub fn IsOpenP(&self) -> bool {true}
+    /// Page size
+    /// ## Parameters:
+    /// None
+    ///
+    /// __Returns__ The page size.
     pub fn PrinterPageSize(&self) -> PageSize {self.pageSize}
+    /// Set the type spacing
+    /// ## Parameters:
+    /// - spacing the new spacing
+    ///
+    /// __Returns__ true
     pub fn SetTypeSpacing(&mut self,spacing: TypeSpacing) -> bool {
         self.current_spacing = spacing;
         true
     }
+    /// Set the type slant
+    /// ## Parameters:
+    /// - slant the new slant
+    ///
+    /// __Returns__ true
     pub fn SetTypeSlant(&mut self,slant: TypeSlant) -> bool {
         self.current_slant = slant;
         true
     }
+    /// Set the type weight
+    /// ## Parameters:
+    /// - weight the new weight
+    ///
+    /// __Returns__ true
     pub fn SetTypeWeight(&mut self,weight: TypeWeight) -> bool {
         self.current_weight = weight;
         true
     }
+    /// Force a new page
+    /// ## Parameters:
+    /// - heading the page heading
+    ///
+    /// __Returns__ true
     pub fn NewPage(&mut self,heading: &str) -> bool {
         self.needPage = true;
         self.lines = 0;
@@ -161,6 +213,11 @@ impl Printer {
             true
         }
     }
+    /// Print a string and advance to the beginning of a new line
+    /// ## Parameters:
+    /// - line text to print
+    ///
+    /// __Returns__ true
     pub fn PutLine(&mut self,line: &str) -> bool {
         if line.len() > 0 {self.Put(line);}
         self.partline = false;
@@ -170,6 +227,11 @@ impl Printer {
         self.currentColumnFraction = 0.0;
         true
     }
+    /// Print a string
+    /// ## Parameters:
+    /// - text text to print
+    ///
+    /// __Returns__ the fractional collum position
     fn putstring(&mut self,text: &str) -> f64 {
         let desc: &pango::FontDescription = 
             match self.current_slant {
@@ -206,17 +268,26 @@ impl Printer {
         let pp = (w as u32 + 512) >> 10;
         (pango::units_to_double(w as i32) * text.len() as f64) / pp as f64
     }
+    /// Advance to the specified column
+    /// - column the column to advance to
+    ///
+    /// __Return__ true
     pub fn Tab(&mut self, column: u8) -> bool {
         while self.currentColumn < column.into() {self.Put(" ");}
         true
     }
 }
 
+/// Generic output function
 pub trait __Put<T> {
     fn Put(&mut self,object: T) -> bool;
 }
 
 impl __Put<char> for Printer {
+    /// Print one character
+    /// - object the character to print
+    ///
+    /// __Returns__ true
     fn Put(&mut self,object: char) -> bool {
         self.Put(format!("{}",object));
         true
@@ -224,6 +295,10 @@ impl __Put<char> for Printer {
 }
 
 impl __Put<u8> for Printer {
+    /// Print one u8 number
+    /// - object the u8 number to print
+    ///
+    /// __Returns__ true
     fn Put(&mut self,object: u8) -> bool {
         self.Put(format!("{}",object));
         true
@@ -231,6 +306,10 @@ impl __Put<u8> for Printer {
 }
 
 impl __Put<usize> for Printer {
+    /// Print one usize number
+    /// - object the usize number to print
+    ///
+    /// __Returns__ true
     fn Put(&mut self,object: usize) -> bool {
         self.Put(format!("{}",object));
         true
@@ -238,6 +317,10 @@ impl __Put<usize> for Printer {
 }
 
 impl __Put<isize> for Printer {
+    /// Print one isize number
+    /// - object the isize number to print
+    ///
+    /// __Returns__ true
     fn Put(&mut self,object: isize) -> bool {
         self.Put(format!("{}",object));
         true
@@ -245,6 +328,10 @@ impl __Put<isize> for Printer {
 }
 
 impl __Put<u32> for Printer {
+    /// Print one u32 number
+    /// - object the u32 number to print
+    ///
+    /// __Returns__ true
     fn Put(&mut self,object: u32) -> bool {
         self.Put(format!("{}",object));
         true
@@ -252,6 +339,10 @@ impl __Put<u32> for Printer {
 }
 
 impl __Put<i32> for Printer {
+    /// Print one i32 number
+    /// - object the i32 number to print
+    ///
+    /// __Returns__ true
     fn Put(&mut self,object: i32) -> bool {
         self.Put(format!("{}",object));
         true
@@ -259,6 +350,10 @@ impl __Put<i32> for Printer {
 }
 
 impl __Put<f64> for Printer {
+    /// Print one f64 number
+    /// - object the f64 number to print
+    ///
+    /// __Returns__ true
     fn Put(&mut self,object: f64) -> bool {
         self.Put(format!("{}",object));
         true
@@ -266,6 +361,10 @@ impl __Put<f64> for Printer {
 }
 
 impl __Put<String> for Printer {
+    /// Print one String
+    /// - object the String to print
+    ///
+    /// __Returns__ true
     fn Put(&mut self,object: String) -> bool {
         self.Put(object.as_str());
         true
@@ -273,6 +372,11 @@ impl __Put<String> for Printer {
 }
 
 impl __Put<&str> for Printer {
+    /// Print one &str 
+    /// (This is the real print function where the printing really happens)
+    /// - object the &str to print
+    ///
+    /// __Returns__ true
     fn Put(&mut self,text: &str) -> bool {
         let mut lineIter = text.lines();
         let mut line = lineIter.next();
