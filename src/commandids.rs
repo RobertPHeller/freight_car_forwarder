@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-17 15:32:09
-//  Last Modified : <250917.2034>
+//  Last Modified : <250919.2037>
 //
 //  Description	
 //
@@ -40,6 +40,9 @@
 
 use::freight_car_forwarder::system::{CarTypeReport,CarLocationType};
 use::freight_car_forwarder::train::TrainType;
+
+/// All of the understood commands as ENum variants.  The commands that
+/// take parameters are included as variants with value tuples
 #[derive(Debug)]
 pub enum Commands {
     Reload,

@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:14:13
-//  Last Modified : <250919.1016>
+//  Last Modified : <250919.2044>
 //
 //  Description	
 //
@@ -63,6 +63,7 @@ use crate::commandids::*;
 use crate::Commands::*;
 use lalrpop_util::lalrpop_mod;
 
+/// Pull in the parser module
 lalrpop_mod!(pub fcfscript); // synthesized by LALRPOP
 
 /// Print command line usage.
@@ -769,6 +770,13 @@ where
     }
     Ok(())
 }
+/// Run a batch script
+/// ## Parameters:
+/// - system The system scruct
+/// - working_industries The working_industries hashmap
+/// - batchfile the batch file name
+///
+/// __Returns__ nothing
 fn run_batch_file(system: &mut System,
                   working_industries: &mut HashMap<usize, IndustryWorking>,
                   batchfile: &str) {
@@ -901,8 +909,12 @@ fn run_batch_file(system: &mut System,
 
 /// Main program.
 ///
-/// Displays the main menu and then executes commands directly or calls
-/// functions to implement sub-menus.
+/// Processes CLI options and parameters.
+///
+/// If -b (--batch) processes in batch mode and exits otherwise
+/// displays the main menu and then executes commands interactively
+/// using functions (above) to implement sub-menus.
+/// "Commands" are single key-strokes.
 ///
 /// ## Parameters:
 /// None.
