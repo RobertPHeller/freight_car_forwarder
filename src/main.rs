@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:14:13
-//  Last Modified : <250919.2044>
+//  Last Modified : <250920.0853>
 //
 //  Description	
 //
@@ -63,7 +63,7 @@ use crate::commandids::*;
 use crate::Commands::*;
 use lalrpop_util::lalrpop_mod;
 
-/// Pull in the parser module
+// Pull in the parser module
 lalrpop_mod!(pub fcfscript); // synthesized by LALRPOP
 
 /// Print command line usage.
