@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:10:46
-//  Last Modified : <250919.1527>
+//  Last Modified : <250919.2014>
 //
 //  Description	
 //
@@ -71,7 +71,7 @@ impl TrainType {
     ///
     /// __Returns__ a TrainType Enum
     pub fn new(code: char) -> Self {
-        match char {
+        match code {
             'W' | 'w' => TrainType::Wayfreight,
             'B' | 'b' => TrainType::BoxMove,
             'M' | 'm' => TrainType::Manifest,
