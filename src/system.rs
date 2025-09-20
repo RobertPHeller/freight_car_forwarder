@@ -8,7 +8,7 @@
 //  Author        : $Author$
 //  Created By    : Robert Heller
 //  Created       : 2025-09-02 15:15:09
-//  Last Modified : <250919.1105>
+//  Last Modified : <250920.1033>
 //
 //  Description	
 //
@@ -1510,63 +1510,66 @@ impl System {
     ///
     /// __Returns__ the number of statistics read or Err.
     fn LoadStatsFile(&mut self) -> std::io::Result<(usize,HashMap<usize, IndustryWorking>)> {
-        let f = File::open(&self.statsFile)
-                .expect("Cannot open stats file");
-        let mut reader = BufReader::new(f);
-        let mut line = String::new();
-        let mut newformat: bool = false;
-        let result = reader.read_line(&mut line);
-        if result.is_err() {
-            let e = result.err().unwrap();
-            return Err(e);
-        }
-        let temp = line.find(',');
-        if temp.is_some() {
-            let pos = temp.unwrap();
-            let temp = line.as_str();
-            let word = &temp[0..pos];
-            line = String::from(word);
-            newformat = true;
-        }
-        self.statsPeriod = line.trim().parse::<u32>().expect("Syntax error");
-        let mut Gx: usize = 0;
         let mut industries: HashMap<usize, IndustryWorking> = HashMap::new();
-        loop {
-            line.clear();
-            Gx += 1;
+        let mut Gx: usize = 0;
+        if fs::exists(&self.statsFile)? {
+            let f = File::open(&self.statsFile)?;
+            let mut reader = BufReader::new(f);
+            let mut line = String::new();
+            let mut newformat: bool = false;
             let result = reader.read_line(&mut line);
-            if result.is_err() {break;}
-            if result.unwrap() == 0 {break;} 
-            let Ix: usize;
-            let cn: u32;
-            let cl: u32;
-            let sl: u32;
-            if newformat {
-                let vlist: Vec<_> = line.split(',').collect();
-                //println!("in LoadStats (newformat): vlist is {:?}", vlist);
-                Ix = vlist[0].trim().parse::<usize>().expect("Syntax error");
-                cn = vlist[1].trim().parse::<u32>().expect("Syntax error");
-                cl = vlist[2].trim().parse::<u32>().expect("Syntax error");
-                sl = vlist[3].trim().parse::<u32>().expect("Syntax error");
-            } else {
-                let line = line.as_str();
-                let Ixword = &line[0..4].trim();
-                Ix = Ixword.parse::<usize>().expect("Syntax error");
-                let cnword = &line[4..7].trim();
-                cn = cnword.parse::<u32>().expect("Syntax error");
-                let clword = &line[7..10].trim();
-                cl = clword.parse::<u32>().expect("Syntax error");
-                let slword = &line[10..15].trim();
-                sl = slword.parse::<u32>().expect("Syntax error");
+            if result.is_err() {
+                let e = result.err().unwrap();
+                return Err(e);
             }
-            industries.insert(Ix, IndustryWorking::new(
-                                    self.industries[&Ix].MyStationIndex(),
-                                    self.industries[&Ix].Name(),
-                                    self.industries[&Ix].Type()));
-            let industry = industries.get_mut(&Ix).unwrap();
-            industry.SetCarsNum(cn);
-            industry.SetCarsLen(cl);
-            industry.SetStatsLen(sl);
+            let temp = line.find(',');
+            if temp.is_some() {
+                let pos = temp.unwrap();
+                let temp = line.as_str();
+                let word = &temp[0..pos];
+                line = String::from(word);
+                newformat = true;
+            }
+            self.statsPeriod = line.trim().parse::<u32>().expect("Syntax error");
+            loop {
+                line.clear();
+                Gx += 1;
+                let result = reader.read_line(&mut line);
+                if result.is_err() {break;}
+                if result.unwrap() == 0 {break;} 
+                let Ix: usize;
+                let cn: u32;
+                let cl: u32;
+                let sl: u32;
+                if newformat {
+                    let vlist: Vec<_> = line.split(',').collect();
+                    //println!("in LoadStats (newformat): vlist is {:?}", vlist);
+                    Ix = vlist[0].trim().parse::<usize>().expect("Syntax error");
+                    cn = vlist[1].trim().parse::<u32>().expect("Syntax error");
+                    cl = vlist[2].trim().parse::<u32>().expect("Syntax error");
+                    sl = vlist[3].trim().parse::<u32>().expect("Syntax error");
+                } else {
+                    let line = line.as_str();
+                    let Ixword = &line[0..4].trim();
+                    Ix = Ixword.parse::<usize>().expect("Syntax error");
+                    let cnword = &line[4..7].trim();
+                    cn = cnword.parse::<u32>().expect("Syntax error");
+                    let clword = &line[7..10].trim();
+                    cl = clword.parse::<u32>().expect("Syntax error");
+                    let slword = &line[10..15].trim();
+                    sl = slword.parse::<u32>().expect("Syntax error");
+                }
+                industries.insert(Ix, IndustryWorking::new(
+                                        self.industries[&Ix].MyStationIndex(),
+                                        self.industries[&Ix].Name(),
+                                        self.industries[&Ix].Type()));
+                let industry = industries.get_mut(&Ix).unwrap();
+                industry.SetCarsNum(cn);
+                industry.SetCarsLen(cl);
+                industry.SetStatsLen(sl);
+            }
+        } else {
+            self.statsPeriod = 1;
         }
         for Ix in self.industries.keys() {
             if industries.contains_key(Ix) {continue;}
